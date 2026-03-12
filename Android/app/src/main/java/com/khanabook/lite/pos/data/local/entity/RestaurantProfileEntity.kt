@@ -1,7 +1,4 @@
-﻿package com.khanabook.lite.pos.data.local.entity
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+package com.khanabook.lite.pos.data.local.entity
 
 import androidx.room.*
 import com.google.gson.annotations.SerializedName
@@ -11,11 +8,11 @@ data class RestaurantProfileEntity(
     @SerializedName("localId") @PrimaryKey
     val id: Int = 1,
     @ColumnInfo(name = "shop_name")
-    val shopName: String,
+    val shopName: String? = null,
     @ColumnInfo(name = "shop_address")
-    val shopAddress: String,
+    val shopAddress: String? = null,
     @ColumnInfo(name = "whatsapp_number")
-    val whatsappNumber: String,
+    val whatsappNumber: String? = null,
     val email: String? = null,
     @ColumnInfo(name = "logo_path")
     val logoPath: String? = null,

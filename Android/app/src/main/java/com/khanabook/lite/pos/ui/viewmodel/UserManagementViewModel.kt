@@ -14,7 +14,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class UserManagementViewModel @Inject constructor(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val authManager: AuthManager
 ) : ViewModel() {
 
     val allUsers: Flow<List<UserEntity>> = userRepository.getAllUsers()
@@ -25,7 +26,7 @@ class UserManagementViewModel @Inject constructor(
             val user = UserEntity(
                 name = name,
                 email = phone, // using phone as identifier
-                passwordHash = AuthManager.hashPassword(password),
+                passwordHash = authManager.hashPassword(password),
                 whatsappNumber = phone,
                 isActive = true,
                 createdAt = now

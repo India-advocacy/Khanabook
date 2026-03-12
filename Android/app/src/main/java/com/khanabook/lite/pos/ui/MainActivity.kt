@@ -141,15 +141,26 @@ class MainActivity : ComponentActivity() {
                         val selectedTab =
                                 backStackEntry.arguments?.getString("tab")?.toIntOrNull() ?: 0
                         val scannedText = backStackEntry.savedStateHandle.get<String>("scanned_text_menu_config")
+                        val returnToSettingsMenu =
+                                backStackEntry.savedStateHandle.get<Boolean>("menu_config_return_to_menu") == true
                         MainScreen(
                                 initialTab = selectedTab,
                                 onNewBill = { navController.navigate("new_bill") },
                                 onSearchBill = { navController.navigate("search_bill") },
                                 onOrderStatus = { navController.navigate("order_status") },
                                 onCallCustomer = { navController.navigate("call_customer") },
-                                onScanClick = { navController.navigate("ocr_scanner/menu_config") },
+                                onScanClick = { categoryName ->
+                                    navController.currentBackStackEntry
+                                        ?.savedStateHandle
+                                        ?.set("ocr_category_name", categoryName)
+                                    navController.navigate("ocr_scanner/menu_config")
+                                },
                                 scannedText = scannedText,
-                                onScannedTextConsumed = { backStackEntry.savedStateHandle.remove<String>("scanned_text_menu_config") }
+                                onScannedTextConsumed = { backStackEntry.savedStateHandle.remove<String>("scanned_text_menu_config") },
+                                returnToSettingsMenu = returnToSettingsMenu,
+                                onSettingsMenuReturnConsumed = {
+                                    backStackEntry.savedStateHandle.remove<Boolean>("menu_config_return_to_menu")
+                                }
                         )
                     }
                     composable("new_bill") {
@@ -160,12 +171,22 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("ocr_scanner/{source}") { backStackEntry ->
                         val source = backStackEntry.arguments?.getString("source") ?: "new_bill"
+                        val selectedCategoryName =
+                            navController.previousBackStackEntry
+                                ?.savedStateHandle
+                                ?.get<String>("ocr_category_name")
                         OcrScannerScreen(
+                                selectedCategoryName = selectedCategoryName,
                                 onTextScanned = { text ->
                                     navController.previousBackStackEntry?.savedStateHandle?.set("scanned_text_$source", text)
+                                    navController.previousBackStackEntry?.savedStateHandle?.set("menu_config_return_to_menu", true)
+                                    navController.previousBackStackEntry?.savedStateHandle?.remove<String>("ocr_category_name")
                                     navController.popBackStack()
                                 },
-                                onBack = { navController.popBackStack() }
+                                onBack = {
+                                    navController.previousBackStackEntry?.savedStateHandle?.remove<String>("ocr_category_name")
+                                    navController.popBackStack()
+                                }
                         )
                     }
                     composable("search_bill") {

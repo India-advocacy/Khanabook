@@ -3,6 +3,7 @@ package com.khanabook.saas.entity;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
@@ -11,6 +12,9 @@ import lombok.Setter;
 @Entity
 @Table(name = "restaurantprofiles", uniqueConstraints = {
     @UniqueConstraint(columnNames = {"restaurant_id", "device_id", "local_id"})
+}, indexes = {
+    @Index(name = "idx_restaurantprofiles_tenant_updated", columnList = "restaurant_id, updated_at"),
+    @Index(name = "idx_restaurantprofiles_device", columnList = "restaurant_id, device_id, local_id")
 })
 @Getter
 @Setter

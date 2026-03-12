@@ -39,5 +39,5 @@ public abstract class BaseSyncEntity {
 
     @Column(name = "server_updated_at", nullable = false)
     @JsonProperty("serverUpdatedAt")
-    private Long serverUpdatedAt = System.currentTimeMillis();
+    private Long serverUpdatedAt = 0L;
 }

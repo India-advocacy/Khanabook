@@ -9,64 +9,125 @@ import android.util.Log
 import android.view.ViewGroup
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.*
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
 import com.khanabook.lite.pos.domain.util.TextRecognitionHelper
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
+import com.khanabook.lite.pos.ui.theme.DarkBrown2
+import com.khanabook.lite.pos.ui.theme.ParchmentBG
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import java.util.concurrent.Executors
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun OcrScannerScreen(
+    selectedCategoryName: String? = null,
     onTextScanned: (String) -> Unit,
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
-    
-    // Expert Fix: Single instance of Helper tied to Screen lifecycle
     val textRecognitionHelper = remember { TextRecognitionHelper() }
-    
+
     var hasCameraPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
         )
     }
+    var extractedText by remember { mutableStateOf<String?>(null) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var capturedBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    val previewViewState = remember { mutableStateOf<PreviewView?>(null) }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        hasCameraPermission = granted
-    }
-
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let {
-            textRecognitionHelper.processUri(
-                context, 
-                it, 
-                onSuccess = { text, _ -> if (text.isNotBlank()) onTextScanned(text) },
-                onFailure = { /* Handle Gallery Error */ }
-            )
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            hasCameraPermission = granted
         }
-    }
 
-    // Expert Fix: Proper Resource Cleanup
+    val galleryLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            uri?.let {
+                isProcessing = true
+                errorMessage = null
+                extractedText = null
+                capturedBitmap = null
+                textRecognitionHelper.processUri(
+                    context = context,
+                    uri = it,
+                    onSuccess = { text, _ ->
+                        extractedText = text.takeIf(String::isNotBlank)
+                        errorMessage =
+                            if (text.isBlank()) "No readable text found. Try another image."
+                            else null
+                        isProcessing = false
+                    },
+                    onFailure = { error ->
+                        errorMessage = error.message ?: "Failed to process gallery image."
+                        isProcessing = false
+                    }
+                )
+            }
+        }
+
     DisposableEffect(context) {
         onDispose {
             try {
@@ -81,118 +142,144 @@ fun OcrScannerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Scan Menu Item", color = PrimaryGold) },
+                title = { Text("Scan Menu", color = PrimaryGold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = PrimaryGold
+                        )
                     }
                 },
                 actions = {
-                    IconButton(onClick = { galleryLauncher.launch("image/*") }) {
-                        Icon(Icons.Default.PhotoLibrary, contentDescription = "Gallery", tint = PrimaryGold)
+                    IconButton(
+                        onClick = {
+                            errorMessage = null
+                            extractedText = null
+                            galleryLauncher.launch("image/*")
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.PhotoLibrary,
+                            contentDescription = "Gallery",
+                            tint = PrimaryGold
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBrown1)
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize().background(Color.Black)) {
+        Box(
+            modifier =
+                Modifier.padding(padding).fillMaxSize().background(Color.Black)
+        ) {
             if (hasCameraPermission) {
-                CameraPreview(
-                    onTextScanned = onTextScanned,
-                    helper = textRecognitionHelper
+                CameraPreview(previewViewState = previewViewState)
+
+                ScanControls(
+                    selectedCategoryName = selectedCategoryName,
+                    hasCapturedPhoto = capturedBitmap != null,
+                    hasProcessedText = extractedText != null,
+                    isProcessing = isProcessing,
+                    errorMessage = errorMessage,
+                    onCapturePhoto = {
+                        val frozenBitmap = previewViewState.value?.bitmap
+                        if (frozenBitmap == null) {
+                            errorMessage = "Unable to capture preview. Try again."
+                        } else {
+                            capturedBitmap = frozenBitmap
+                            extractedText = null
+                            errorMessage = null
+                        }
+                    },
+                    onProcessPhoto = {
+                        capturedBitmap?.let { bitmap ->
+                            processCapturedBitmap(
+                                bitmap = bitmap,
+                                helper = textRecognitionHelper,
+                                setProcessing = { isProcessing = it },
+                                setExtractedText = { extractedText = it },
+                                setError = { errorMessage = it }
+                            )
+                        }
+                    },
+                    onUseText = {
+                        extractedText?.takeIf(String::isNotBlank)?.let(onTextScanned)
+                    },
+                    onRetake = {
+                        capturedBitmap = null
+                        errorMessage = null
+                        isProcessing = false
+                    },
+                    onRescan = {
+                        capturedBitmap = null
+                        extractedText = null
+                        errorMessage = null
+                        isProcessing = false
+                    }
                 )
+
+                if (capturedBitmap != null) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.45f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            bitmap = capturedBitmap!!.asImageBitmap(),
+                            contentDescription = "Captured menu photo",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
             } else {
                 PermissionDeniedContent(
-                    onRequestPermission = { launcher.launch(Manifest.permission.CAMERA) }
+                    onRequestPermission = { permissionLauncher.launch(Manifest.permission.CAMERA) }
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalGetImage::class)
 @Composable
-fun CameraPreview(
-    onTextScanned: (String) -> Unit,
-    helper: TextRecognitionHelper
-) {
-    val context = LocalContext.current
+private fun CameraPreview(previewViewState: MutableState<PreviewView?>) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
-    
-    // Expert Fix: Atomic flags to throttle processing and stop scanning after success
-    var isProcessing = remember { false }
-    var isFinished = remember { false }
 
     AndroidView(
         factory = { ctx ->
-            val previewView = PreviewView(ctx).apply {
-                layoutParams = ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT
-                )
-            }
+            val previewView =
+                PreviewView(ctx).apply {
+                    layoutParams =
+                        ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                }
 
             val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-            cameraProviderFuture.addListener({
-                val cameraProvider = cameraProviderFuture.get()
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
-
-                val imageAnalysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                    .also { analysis ->
-                        analysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                            // Throttling: Skip frames if already busy or successful
-                            if (isProcessing || isFinished) {
-                                imageProxy.close()
-                                return@setAnalyzer
-                            }
-
-                            val mediaImage = imageProxy.image
-                            if (mediaImage != null) {
-                                isProcessing = true
-                                val image = InputImage.fromMediaImage(
-                                    mediaImage,
-                                    imageProxy.imageInfo.rotationDegrees
-                                )
-                                
-                                helper.processImage(image,
-                                    onSuccess = { text, _ ->
-                                        if (text.isNotBlank() && !isFinished) {
-                                            isFinished = true // Lock scanning once successful
-                                            onTextScanned(text)
-                                        }
-                                        isProcessing = false
-                                        imageProxy.close()
-                                    },
-                                    onFailure = {
-                                        isProcessing = false
-                                        imageProxy.close()
-                                    }
-                                )
-                            } else {
-                                imageProxy.close()
-                            }
+            cameraProviderFuture.addListener(
+                {
+                    val cameraProvider = cameraProviderFuture.get()
+                    val preview =
+                        Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
                         }
+                    try {
+                        cameraProvider.unbindAll()
+                        cameraProvider.bindToLifecycle(
+                            lifecycleOwner,
+                            CameraSelector.DEFAULT_BACK_CAMERA,
+                            preview
+                        )
+                    } catch (e: Exception) {
+                        Log.e("CAMERA", "Binding failed", e)
                     }
+                },
+                ContextCompat.getMainExecutor(ctx)
+            )
 
-                try {
-                    cameraProvider.unbindAll()
-                    cameraProvider.bindToLifecycle(
-                        lifecycleOwner,
-                        CameraSelector.DEFAULT_BACK_CAMERA,
-                        preview,
-                        imageAnalysis
-                    )
-                } catch (e: Exception) {
-                    Log.e("CAMERA", "Binding failed", e)
-                }
-            }, ContextCompat.getMainExecutor(ctx))
-
+            previewViewState.value = previewView
             previewView
         },
         modifier = Modifier.fillMaxSize()
@@ -200,18 +287,198 @@ fun CameraPreview(
 
     DisposableEffect(Unit) {
         onDispose {
-            cameraExecutor.shutdown()
+            previewViewState.value = null
         }
     }
+}
+
+@Composable
+private fun ScanControls(
+    selectedCategoryName: String?,
+    hasCapturedPhoto: Boolean,
+    hasProcessedText: Boolean,
+    isProcessing: Boolean,
+    errorMessage: String?,
+    onCapturePhoto: () -> Unit,
+    onProcessPhoto: () -> Unit,
+    onUseText: () -> Unit,
+    onRetake: () -> Unit,
+    onRescan: () -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        contentAlignment = Alignment.BottomCenter
+    ) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = DarkBrown2.copy(alpha = 0.92f)),
+            shape = RoundedCornerShape(18.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Text(
+                    if (!hasCapturedPhoto) {
+                        buildString {
+                            append("Menu will add to ")
+                            if (!selectedCategoryName.isNullOrBlank()) {
+                                append('"')
+                                append(selectedCategoryName)
+                                append('"')
+                            } else {
+                                append("the selected category")
+                            }
+                            append(".")
+                        }
+                    } else if (!hasProcessedText) {
+                        "Photo captured. Process it or retake the photo."
+                    } else {
+                        "Menu text is ready for the selected category."
+                    },
+                    color = Color.White,
+                    fontSize = 14.sp
+                )
+
+                if (errorMessage != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = errorMessage,
+                        color = Color(0xFFFFB4A9),
+                        fontSize = 13.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                if (!hasCapturedPhoto) {
+                    Button(
+                        onClick = onCapturePhoto,
+                        enabled = !isProcessing,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = PrimaryGold,
+                                contentColor = DarkBrown1
+                            )
+                    ) {
+                        if (isProcessing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = DarkBrown1,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text("Processing...")
+                        } else {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null)
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text("Capture Photo", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                } else if (!hasProcessedText) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onRetake,
+                            modifier = Modifier.weight(1f),
+                            colors =
+                                ButtonDefaults.outlinedButtonColors(
+                                    contentColor = PrimaryGold
+                                )
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                            Spacer(modifier = Modifier.size(6.dp))
+                            Text("Retake")
+                        }
+
+                        Button(
+                            onClick = onProcessPhoto,
+                            enabled = !isProcessing,
+                            modifier = Modifier.weight(1f),
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryGold,
+                                    contentColor = DarkBrown1
+                                )
+                        ) {
+                            if (isProcessing) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = DarkBrown1,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text("Process", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = onRescan,
+                            modifier = Modifier.weight(1f),
+                            colors =
+                                ButtonDefaults.outlinedButtonColors(
+                                    contentColor = PrimaryGold
+                                )
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                            Spacer(modifier = Modifier.size(6.dp))
+                            Text("Rescan")
+                        }
+
+                        Button(
+                            onClick = onUseText,
+                            modifier = Modifier.weight(1f),
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor = PrimaryGold,
+                                    contentColor = DarkBrown1
+                                )
+                        ) {
+                            Text("Use Text", fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalGetImage::class)
+private fun processCapturedBitmap(
+    bitmap: android.graphics.Bitmap,
+    helper: TextRecognitionHelper,
+    setProcessing: (Boolean) -> Unit,
+    setExtractedText: (String?) -> Unit,
+    setError: (String?) -> Unit
+) {
+    setProcessing(true)
+    setError(null)
+    helper.processImage(
+        image = InputImage.fromBitmap(bitmap, 0),
+        onSuccess = { text, _ ->
+            setProcessing(false)
+            setExtractedText(text.takeIf(String::isNotBlank))
+            if (text.isBlank()) {
+                setError("No readable text found. Try rescanning with better focus.")
+            }
+        },
+        onFailure = { error ->
+            setProcessing(false)
+            setError(error.message ?: "Text extraction failed. Try rescanning.")
+        }
+    )
 }
 
 @Composable
 fun PermissionDeniedContent(onRequestPermission: () -> Unit) {
     val context = LocalContext.current
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier = Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -227,12 +494,15 @@ fun PermissionDeniedContent(onRequestPermission: () -> Unit) {
         ) {
             Text("Grant Permission", color = DarkBrown1)
         }
-        TextButton(onClick = {
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                data = Uri.fromParts("package", context.packageName, null)
+        TextButton(
+            onClick = {
+                val intent =
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                context.startActivity(intent)
             }
-            context.startActivity(intent)
-        }) {
+        ) {
             Text("Open Settings", color = PrimaryGold)
         }
     }

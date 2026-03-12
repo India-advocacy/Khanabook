@@ -1,7 +1,4 @@
-﻿package com.khanabook.lite.pos.domain.util
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+package com.khanabook.lite.pos.domain.util
 
 import android.content.Context
 import android.content.Intent

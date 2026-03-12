@@ -38,7 +38,7 @@ import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 @Composable
 fun MenuConfigurationScreen(
     onBack: () -> Unit,
-    onScanClick: () -> Unit = {},
+    onScanClick: (String?) -> Unit = {},
     scannedText: String? = null,
     onScannedTextConsumed: () -> Unit = {},
     viewModel: MenuViewModel = hiltViewModel()
@@ -60,6 +60,15 @@ fun MenuConfigurationScreen(
     var configMode by remember { mutableStateOf<String?>(null) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
+    val selectedCategoryName = remember(categories, selectedCategoryId) {
+        categories.firstOrNull { it.id == selectedCategoryId }?.name
+    }
+
+    val pdfPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let { viewModel.extractTextFromPdf(context, it) }
+    }
 
     // Process scanned text
     LaunchedEffect(scannedText) {
@@ -108,8 +117,10 @@ fun MenuConfigurationScreen(
             if (configMode == null) {
                 // Mode Selection UI
                 ModeSelectionView(
+                    selectedCategoryName = selectedCategoryName,
                     onManualClick = { configMode = "manual" },
-                    onScanClick = { configMode = "scan" }
+                    onScanClick = { configMode = "scan" },
+                    onPdfClick = { pdfPickerLauncher.launch("application/pdf") }
                 )
             } else {
                 // Actual Content
@@ -121,7 +132,8 @@ fun MenuConfigurationScreen(
                     disabledCount = disabledCount,
                     addOnsCount = addOnsCount,
                     viewModel = viewModel,
-                    onScanClick = onScanClick,
+                    onScanClick = { onScanClick(selectedCategoryName) },
+                    onPdfClick = { pdfPickerLauncher.launch("application/pdf") },
                     showScanOption = configMode == "scan",
                     onAddCategory = { showAddCategoryDialog = true },
                     onAddItem = { showAddItemDialog = true },
@@ -291,26 +303,53 @@ fun ReviewScannedItemsDialog(
 }
 
 @Composable
-fun ModeSelectionView(onManualClick: () -> Unit, onScanClick: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        ModeCard(
-            title = "Manually Setup",
-            description = "Add categories and items one by one using a form.",
-            icon = Icons.Default.EditNote,
-            onClick = onManualClick
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        ModeCard(
-            title = "Scan or Upload File",
-            description = "Setup your menu instantly by scanning a physical menu card or uploading a photo from gallery.",
-            icon = Icons.Default.QrCodeScanner,
-            onClick = onScanClick
+fun ModeSelectionView(
+    selectedCategoryName: String?,
+    onManualClick: () -> Unit,
+    onScanClick: () -> Unit,
+    onPdfClick: () -> Unit
+) {
+    Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            ModeCard(
+                title = "Manually Setup",
+                description = "Add categories and items one by one using a form.",
+                icon = Icons.Default.EditNote,
+                onClick = onManualClick
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            ModeCard(
+                title = "Scan Menu",
+                description = "Capture a photo of the menu and process it for the selected category.",
+                icon = Icons.Default.QrCodeScanner,
+                onClick = onScanClick
+            )
+        }
+
+        ExtendedFloatingActionButton(
+            onClick = onPdfClick,
+            modifier = Modifier.align(Alignment.BottomEnd),
+            containerColor = PrimaryGold,
+            contentColor = DarkBrown1,
+            text = {
+                Text(
+                    if (!selectedCategoryName.isNullOrBlank()) {
+                        "Upload PDF for \"$selectedCategoryName\""
+                    } else {
+                        "Upload PDF"
+                    },
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            icon = {
+                Icon(Icons.Default.PictureAsPdf, contentDescription = null)
+            }
         )
     }
 }
@@ -363,6 +402,7 @@ fun MenuConfigurationContent(
     addOnsCount: Int,
     viewModel: MenuViewModel,
     onScanClick: () -> Unit,
+    onPdfClick: () -> Unit,
     showScanOption: Boolean,
     onAddCategory: () -> Unit,
     onAddItem: () -> Unit,
@@ -502,27 +542,47 @@ fun MenuConfigurationContent(
                                         )
                                     }
                                 }
+                                
+                                Surface(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clickable(enabled = canAddItem) { onPdfClick() },
+                                    color = if (canAddItem) ParchmentBG else Color.LightGray.copy(alpha = 0.5f),
+                                    border = BorderStroke(1.dp, if (canAddItem) Color(0xFF5D4037) else Color.Gray),
+                                    shape = RoundedCornerShape(4.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            Icons.Default.PictureAsPdf,
+                                            contentDescription = "Upload PDF",
+                                            tint = if (canAddItem) Color(0xFF5D4037) else Color.Gray,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
                             }
 
                             // Add New Button
-                            Surface(
-                                modifier = Modifier
-                                    .height(40.dp)
-                                    .clickable(enabled = canAddItem) { onAddItem() },
-                                color = if (canAddItem) ParchmentBG else Color.LightGray.copy(alpha = 0.5f),
-                                border = BorderStroke(1.dp, if (canAddItem) Color(0xFF5D4037) else Color.Gray),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier.padding(horizontal = 12.dp),
-                                    contentAlignment = Alignment.Center
+                            if (!showScanOption) {
+                                Surface(
+                                    modifier = Modifier
+                                        .height(40.dp)
+                                        .clickable(enabled = canAddItem) { onAddItem() },
+                                    color = if (canAddItem) ParchmentBG else Color.LightGray.copy(alpha = 0.5f),
+                                    border = BorderStroke(1.dp, if (canAddItem) Color(0xFF5D4037) else Color.Gray),
+                                    shape = RoundedCornerShape(4.dp)
                                 ) {
-                                    Text(
-                                        "ADD NEW", 
-                                        color = if (canAddItem) Color(0xFF5D4037) else Color.Gray, 
-                                        fontSize = 12.sp, 
-                                        fontWeight = FontWeight.Bold
-                                    )
+                                    Box(
+                                        modifier = Modifier.padding(horizontal = 12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            "ADD NEW", 
+                                            color = if (canAddItem) Color(0xFF5D4037) else Color.Gray, 
+                                            fontSize = 12.sp, 
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
                         }

@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Log
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
-import com.khanabook.lite.pos.data.local.DatabaseInitializer
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 import kotlinx.coroutines.MainScope
@@ -19,7 +18,6 @@ class KhanaBookApplication : Application(), Configuration.Provider {
     }
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
-    @Inject lateinit var databaseInitializer: DatabaseInitializer
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -40,20 +38,14 @@ class KhanaBookApplication : Application(), Configuration.Provider {
         // Schedule Periodic Sync
         com.khanabook.lite.pos.worker.MasterSyncWorker.schedule(this)
 
-        // Initialize sample data on startup
+        // Initialize background scope
         val exceptionHandler =
                 kotlinx.coroutines.CoroutineExceptionHandler { _, throwable ->
                     Log.e("KhanaBookApp", "Coroutine Exception", throwable)
                 }
 
         MainScope().launch(exceptionHandler) {
-            try {
-                if (::databaseInitializer.isInitialized) {
-                    databaseInitializer.initialize()
-                }
-            } catch (e: Exception) {
-                Log.e("KhanaBookApp", "Failed to initialize database", e)
-            }
+            // Background tasks if any
         }
     }
 }

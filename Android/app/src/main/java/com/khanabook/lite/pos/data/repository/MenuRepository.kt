@@ -42,6 +42,10 @@ class MenuRepository(
         return menuDao.getItemById(id)
     }
 
+    suspend fun getItemOnce(id: Int): MenuItemEntity? {
+        return menuDao.getItemById(id)
+    }
+
     suspend fun getItemByName(name: String): MenuItemEntity? {
         return menuDao.getItemByName(name)
     }

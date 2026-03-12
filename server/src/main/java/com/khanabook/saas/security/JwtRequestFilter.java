@@ -6,10 +6,14 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 
 @Component
 @RequiredArgsConstructor
@@ -28,20 +32,35 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             try {
                 if (!jwtUtility.isTokenExpired(jwt)) {
                     Long restaurantId = jwtUtility.extractRestaurantId(jwt);
-                    // Inject Tenant ID into the Secure Thread Context
-                    TenantContext.setCurrentTenant(restaurantId);
+                    String username    = jwtUtility.extractUsername(jwt);
+
+                    if (restaurantId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        // 1. Set tenant context for downstream multi-tenant isolation
+                        TenantContext.setCurrentTenant(restaurantId);
+
+                        // 2. Tell Spring Security this request is authenticated
+                        UsernamePasswordAuthenticationToken authToken =
+                                new UsernamePasswordAuthenticationToken(
+                                        username,
+                                        null,
+                                        Collections.emptyList() // no roles needed yet
+                                );
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
                 }
             } catch (Exception e) {
-                // Token invalid or malformed
-                System.err.println("JWT Validation Failed: " + e.getMessage());
+                // Token invalid or malformed — log at debug level only (no PII)
+                logger.debug("JWT validation failed: " + e.getClass().getSimpleName());
             }
         }
 
         try {
             chain.doFilter(request, response);
         } finally {
-            // CRITICAL: Always clear ThreadLocal to prevent memory leaks or data bleeding
+            // CRITICAL: Always clear ThreadLocal to prevent data bleeding across requests
             TenantContext.clear();
+            SecurityContextHolder.clearContext();
         }
     }
 }

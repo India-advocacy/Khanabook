@@ -1,8 +1,8 @@
 package com.khanabook.lite.pos.data.remote.api
 
 data class LoginRequest(
-    val email: String,
-    val passwordHash: String,
+    val phoneNumber: String,
+    val password: String,
     val deviceId: String
 )
 
@@ -12,9 +12,9 @@ data class GoogleLoginRequest(
 )
 
 data class SignupRequest(
-    val email: String,
+    val phoneNumber: String,
     val name: String,
-    val passwordHash: String,
+    val password: String,
     val deviceId: String
 )
 
@@ -22,5 +22,5 @@ data class AuthResponse(
     val token: String,
     val restaurantId: Long,
     val userName: String,
-    val role: String
+    val role: String? = null
 )

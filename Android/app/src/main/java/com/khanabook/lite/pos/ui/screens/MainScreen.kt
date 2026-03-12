@@ -26,9 +26,11 @@ fun MainScreen(
     onSearchBill: () -> Unit,
     onOrderStatus: () -> Unit,
     onCallCustomer: () -> Unit,
-    onScanClick: () -> Unit = {},
+    onScanClick: (String?) -> Unit = {},
     scannedText: String? = null,
     onScannedTextConsumed: () -> Unit = {},
+    returnToSettingsMenu: Boolean = false,
+    onSettingsMenuReturnConsumed: () -> Unit = {},
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val visibleTabs = remember { NavigationUtils.getVisibleTabs() }
@@ -58,7 +60,9 @@ fun MainScreen(
                     onBack = backToHome,
                     onScanClick = onScanClick,
                     scannedText = scannedText,
-                    onScannedTextConsumed = onScannedTextConsumed
+                    onScannedTextConsumed = onScannedTextConsumed,
+                    returnToMenuRoot = returnToSettingsMenu,
+                    onReturnToMenuRootConsumed = onSettingsMenuReturnConsumed
                 )
             }
         }

@@ -1,7 +1,4 @@
-﻿package com.khanabook.lite.pos.di
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+package com.khanabook.lite.pos.di
 
 import com.khanabook.lite.pos.data.remote.WhatsAppApiService
 import dagger.Module

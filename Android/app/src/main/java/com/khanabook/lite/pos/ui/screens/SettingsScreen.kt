@@ -29,8 +29,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Inventory2
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -44,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.khanabook.lite.pos.data.local.entity.*
+import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
@@ -56,15 +60,24 @@ import java.io.FileOutputStream
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
-    onScanClick: () -> Unit = {},
+    onScanClick: (String?) -> Unit = {},
     scannedText: String? = null,
     onScannedTextConsumed: () -> Unit = {},
+    returnToMenuRoot: Boolean = false,
+    onReturnToMenuRootConsumed: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     var section by remember { mutableStateOf("menu") }
+
+    LaunchedEffect(returnToMenuRoot) {
+        if (returnToMenuRoot) {
+            section = "menu"
+            onReturnToMenuRootConsumed()
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -119,6 +132,7 @@ fun SettingsScreen(
                             SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration") { section = "payment" }
                             SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") { section = "printer" }
                             SettingsItem(icon = Icons.Filled.Settings, text = "Tax Configuration") { section = "tax" }
+                            SettingsItem(icon = Icons.Default.Inventory2, text = "Inventory Configuration") { section = "inventory" }
                             
                             Spacer(modifier = Modifier.height(16.dp))
                             
@@ -194,6 +208,9 @@ fun SettingsScreen(
                     }
                     "tax" -> {
                         TaxConfigView(profile, onSave = { viewModel.saveProfile(it); section = "menu" }, onBack = { section = "menu" })
+                    }
+                    "inventory" -> {
+                        InventoryConfigView(viewModel = viewModel, onBack = { section = "menu" })
                     }
                 }
             }
@@ -469,7 +486,12 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                 }
             }
         }
-        context.registerReceiver(receiver, IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED))
+        val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
         onDispose { try { context.unregisterReceiver(receiver) } catch (_: Exception) {} }
     }
 
@@ -492,6 +514,27 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
         }
     }
 
+    val permissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { perms ->
+        val ok = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            perms[Manifest.permission.BLUETOOTH_CONNECT] == true && perms[Manifest.permission.BLUETOOTH_SCAN] == true
+        } else {
+            perms[Manifest.permission.BLUETOOTH] == true && perms[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        }
+        if (ok) {
+            if (!viewModel.isBluetoothEnabled(context)) {
+                bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+            } else {
+                viewModel.startBluetoothScan(context)
+                showBtSheet = true
+            }
+        } else {
+            Toast.makeText(context, "Bluetooth permissions required", Toast.LENGTH_SHORT).show()
+            enabled = false
+        }
+    }
+
     LaunchedEffect(btConnectResult) {
         btConnectResult?.let { Toast.makeText(context, if (it) "Printer Connected!" else "Connection Failed", Toast.LENGTH_SHORT).show(); if (it) showBtSheet = false; viewModel.clearBtConnectResult() }
     }
@@ -505,7 +548,14 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                     onCheckedChange = { 
                         enabled = it
                         if (it) {
-                            if (!viewModel.isBluetoothEnabled(context)) {
+                            if (!viewModel.hasBluetoothPermissions(context)) {
+                                val perms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                    arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
+                                } else {
+                                    arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.ACCESS_FINE_LOCATION)
+                                }
+                                permissionLauncher.launch(perms)
+                            } else if (!viewModel.isBluetoothEnabled(context)) {
                                 bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
                             } else {
                                 viewModel.startBluetoothScan(context)
@@ -526,7 +576,21 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { viewModel.startBluetoothScan(context); showBtSheet = true }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D4037))) {
+                    Button(onClick = { 
+                        if (!viewModel.hasBluetoothPermissions(context)) {
+                            val perms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                                arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
+                            } else {
+                                arrayOf(Manifest.permission.BLUETOOTH, Manifest.permission.ACCESS_FINE_LOCATION)
+                            }
+                            permissionLauncher.launch(perms)
+                        } else if (!viewModel.isBluetoothEnabled(context)) {
+                            bluetoothLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+                        } else {
+                            viewModel.startBluetoothScan(context)
+                            showBtSheet = true 
+                        }
+                    }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D4037))) {
                         Text("Scan", color = Color.White)
                     }
                     Button(onClick = { viewModel.testPrint() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)) {
@@ -602,21 +666,42 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
     var gstNumber by remember { mutableStateOf(profile?.gstin ?: "") }
     var gstPct by remember { mutableStateOf((profile?.gstPercentage ?: 0.0).toString()) }
     var fssaiNumber by remember { mutableStateOf(profile?.fssaiNumber ?: "") }
-    val isSaveEnabled = isValidTaxPercentage(gstPct) && fssaiNumber.length >= 10
+    
+    val isFssaiValid = fssaiNumber.isNotBlank() && fssaiNumber.length >= 10
+    val isGstValid = !gstEnabled || (gstNumber.isNotBlank() && isValidTaxPercentage(gstPct))
+    val isSaveEnabled = isFssaiValid && isGstValid
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
         ConfigCard {
             ParchmentTextField(value = country, onValueChange = { country = it }, label = "Country")
             Spacer(modifier = Modifier.height(16.dp))
-            ParchmentTextField(value = fssaiNumber, onValueChange = { fssaiNumber = it }, label = "FSSAI Number")
+            ParchmentTextField(
+                value = fssaiNumber, 
+                onValueChange = { fssaiNumber = it }, 
+                label = "FSSAI Number (Mandatory)",
+                isError = fssaiNumber.isNotEmpty() && !isFssaiValid,
+                supportingText = if (fssaiNumber.isNotEmpty() && !isFssaiValid) "Invalid FSSAI Number" else null
+            )
             if (country.equals("India", true)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("GST Registered", color = TextGold)
                     Switch(checked = gstEnabled, onCheckedChange = { gstEnabled = it }, colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF4CAF50)))
                 }
                 if (gstEnabled) {
-                    ParchmentTextField(value = gstNumber, onValueChange = { gstNumber = it.uppercase() }, label = "GSTIN")
-                    ParchmentTextField(value = gstPct, onValueChange = { gstPct = it }, label = "GST %")
+                    ParchmentTextField(
+                        value = gstNumber, 
+                        onValueChange = { gstNumber = it.uppercase() }, 
+                        label = "GSTIN (Mandatory)",
+                        isError = gstEnabled && gstNumber.isEmpty()
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    ParchmentTextField(
+                        value = gstPct, 
+                        onValueChange = { gstPct = it }, 
+                        label = "GST % (Mandatory)",
+                        isError = gstEnabled && !isValidTaxPercentage(gstPct),
+                        supportingText = if (gstEnabled && !isValidTaxPercentage(gstPct)) "Invalid GST %" else null
+                    )
                 }
             }
             Spacer(modifier = Modifier.height(24.dp))
@@ -636,4 +721,99 @@ private fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: Strin
 
 private fun loadBitmap(path: String): Bitmap? {
     return try { BitmapFactory.decodeFile(path) } catch (_: Exception) { null }
+}
+
+@Composable
+fun InventoryConfigView(viewModel: SettingsViewModel, onBack: () -> Unit) {
+    val categories by viewModel.categories.collectAsState()
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        if (categories.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No categories found", color = TextGold)
+            }
+        } else {
+            ScrollableTabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = DarkBrown1,
+                contentColor = PrimaryGold,
+                edgePadding = 16.dp,
+                divider = {},
+                indicator = { tabPositions ->
+                    if (selectedTab < tabPositions.size) {
+                        TabRowDefaults.Indicator(
+                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                            color = PrimaryGold
+                        )
+                    }
+                }
+            ) {
+                categories.forEachIndexed { index, category ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = { Text(category.name, fontSize = 12.sp) }
+                    )
+                }
+            }
+
+            val categoryId = categories[selectedTab].id
+            val items by viewModel.getMenuWithVariantsByCategory(categoryId).collectAsState(emptyList())
+
+            LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                items(items) { menuWithVariants ->
+                    InventoryItemCard(menuWithVariants, viewModel)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InventoryItemCard(menuWithVariants: MenuWithVariants, viewModel: SettingsViewModel) {
+    val item = menuWithVariants.menuItem
+    var stock by remember { mutableStateOf(item.currentStock.toString()) }
+    var threshold by remember { mutableStateOf(item.lowStockThreshold.toString()) }
+
+    ConfigCard {
+        Text(item.name, color = PrimaryGold, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(12.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Available Stock", color = TextGold, fontSize = 12.sp)
+                ParchmentTextField(
+                    value = stock,
+                    onValueChange = { stock = it },
+                    label = "Current Qty"
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { viewModel.updateItemStock(item.id, stock.toDoubleOrNull() ?: 0.0) },
+                    modifier = Modifier.fillMaxWidth().height(36.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Text("Update Stock", fontSize = 10.sp, color = Color.White)
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Low Stock Alert", color = TextGold, fontSize = 12.sp)
+                ParchmentTextField(
+                    value = threshold,
+                    onValueChange = { threshold = it },
+                    label = "Threshold"
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = { viewModel.updateItemThreshold(item.id, threshold.toDoubleOrNull() ?: 0.0) },
+                    modifier = Modifier.fillMaxWidth().height(36.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                    shape = RoundedCornerShape(18.dp)
+                ) {
+                    Text("Update Threshold", fontSize = 10.sp, color = DarkBrown1)
+                }
+            }
+        }
+    }
 }

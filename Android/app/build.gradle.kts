@@ -1,4 +1,4 @@
-﻿
+
 import java.util.Properties
 
 plugins {
@@ -149,6 +149,7 @@ dependencies {
     implementation("org.mindrot:jbcrypt:0.4")
     implementation(libs.sqlcipher)
     implementation(libs.androidx.sqlite.ktx)
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Social Login
     implementation(libs.play.services.auth)
@@ -172,6 +173,9 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.androidx.camera.extensions)
+    implementation(libs.pdfbox.android)
+    implementation(libs.accompanist.pager)
+    implementation(libs.accompanist.pager.indicators)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

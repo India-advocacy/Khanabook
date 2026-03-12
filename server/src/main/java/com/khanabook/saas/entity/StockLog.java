@@ -4,11 +4,15 @@ import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "stock_logs")
+@Table(name = "stock_logs", indexes = {
+    @Index(name = "idx_stock_logs_tenant_updated", columnList = "restaurant_id, updated_at"),
+    @Index(name = "idx_stock_logs_device", columnList = "restaurant_id, device_id, local_id")
+})
 @Getter
 @Setter
 public class StockLog extends BaseSyncEntity {

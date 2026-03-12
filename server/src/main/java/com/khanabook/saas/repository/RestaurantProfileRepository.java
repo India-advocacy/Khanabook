@@ -10,6 +10,21 @@ public interface RestaurantProfileRepository extends SyncRepository<RestaurantPr
     Optional<RestaurantProfile> findByRestaurantId(Long restaurantId);
 
     @org.springframework.data.jpa.repository.Modifying
-    @org.springframework.data.jpa.repository.Query(value = "UPDATE restaurantprofiles SET daily_order_counter = :daily, lifetime_order_counter = :lifetime, last_reset_date = :today, updated_at = :now, server_updated_at = :now WHERE restaurant_id = :restaurantId", nativeQuery = true)
-    void updateCountersAtomic(Long restaurantId, Integer daily, Integer lifetime, String today, Long now);
+    @org.springframework.data.jpa.repository.Query(value = """
+        UPDATE restaurantprofiles 
+        SET 
+          daily_order_counter = CASE 
+            WHEN last_reset_date = :today THEN COALESCE(daily_order_counter, 0) + 1 
+            ELSE 1 
+          END,
+          lifetime_order_counter = COALESCE(lifetime_order_counter, 0) + 1,
+          last_reset_date = :today,
+          updated_at = :now,
+          server_updated_at = :now
+        WHERE restaurant_id = :restaurantId
+        """, nativeQuery = true)
+    int incrementCountersAtomic(Long restaurantId, String today, Long now);
+
+    @org.springframework.data.jpa.repository.Query(value = "SELECT daily_order_counter, lifetime_order_counter FROM restaurantprofiles WHERE restaurant_id = :restaurantId", nativeQuery = true)
+    java.util.List<Object[]> getCounters(Long restaurantId);
 }

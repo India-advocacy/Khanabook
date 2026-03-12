@@ -1,7 +1,4 @@
-﻿package com.khanabook.lite.pos.domain.manager
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+package com.khanabook.lite.pos.domain.manager
 
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import java.text.SimpleDateFormat
@@ -10,7 +7,7 @@ import java.util.*
 object OrderIdManager {
     
     fun getDailyOrderDisplay(date: String, counter: Int): String {
-        return String.format("%03d", counter)
+        return "$date-${String.format("%03d", counter)}"
     }
 
     fun isResetNeeded(profile: RestaurantProfileEntity, today: String): Boolean {

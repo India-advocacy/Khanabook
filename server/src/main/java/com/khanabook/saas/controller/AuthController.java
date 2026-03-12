@@ -1,6 +1,11 @@
 package com.khanabook.saas.controller;
 
-import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.service.AuthService;
+import com.fasterxml.jackson.annotation.JsonAlias;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,77 +13,88 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Auth controller — thin layer that delegates entirely to AuthService.
+ *
+ * CRIT-01: Routes here (/auth/**) are the ONLY publicly accessible endpoints.
+ *           All other routes require a valid JWT (enforced in SecurityConfig).
+ * CRIT-03: Password is hashed by AuthService using BCrypt — never stored plain.
+ * CRIT-04: Google OAuth mock has been removed. Implement real Google ID token
+ *           verification on the server using google-auth-library-oauth2-http
+ *           before enabling Google login in production.
+ * ARCH-01: Zero business logic or repository access here.
+ */
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final JwtUtility jwtUtility;
+    private final AuthService authService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
-        System.out.println("\n[AuthController] Login Request received for: " + request.getEmail() + " from device: "
-                + request.getDeviceId());
-
-        // In a real app, verify password here. For sync test, we generate a real JWT.
-        String token = jwtUtility.generateToken(request.getEmail(), 1L);
-        System.out.println("[AuthController] JWT Token successfully generated. Logging in as Admin User.");
-        return ResponseEntity.ok(new AuthResponse(token, 1L, "Admin User"));
-    }
-
-    @PostMapping("/google")
-    public ResponseEntity<?> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
-        System.out.println("\n[AuthController] Google Login Request received from device: " + request.getDeviceId());
-        // For sync test, generate real JWT from Google ID token placeholder
-        String token = jwtUtility.generateToken("google_user", 1L);
-        return ResponseEntity.ok(new AuthResponse(token, 1L, "Google User"));
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody SignupRequest request) {
-        System.out.println("\n[AuthController] Signup Request received for: " + request.getEmail());
-
-        // In a real app, you would create the tenant, user, and restaurant profile
-        // here.
-        // For this demo/test, we give them a mocked tenant/restaurant ID and a valid
-        // token.
-        Long newRestaurantId = System.currentTimeMillis() % 10000;
-        String token = jwtUtility.generateToken(request.getEmail(), newRestaurantId);
-
-        System.out.println("[AuthController] JWT Token successfully generated for new user.");
-        return ResponseEntity.ok(new AuthResponse(token, newRestaurantId, request.getName()));
+    public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
+        return ResponseEntity.ok(authService.signup(request));
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
+    /**
+     * Google login
+     */
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
+        return ResponseEntity.ok(authService.googleLogin(request));
+    }
+
+    // ─── Request / Response DTOs ──────────────────────────────────────────────
+
+    @Data @AllArgsConstructor @NoArgsConstructor
     public static class LoginRequest {
-        private String email;
-        private String passwordHash;
+        @NotBlank(message = "Phone number is required")
+        @Pattern(regexp = "^\\d{10,15}$", message = "Phone number must contain 10 to 15 digits")
+        @Size(max = 15)
+        @JsonAlias("email")
+        private String phoneNumber;
+
+        /** The client sends the plain password; server verifies against BCrypt hash. */
+        @NotBlank(message = "Password is required")
+        @Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
+        private String password;
+
+        @Size(max = 128)
         private String deviceId;
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
+    @Data @AllArgsConstructor @NoArgsConstructor
     public static class GoogleLoginRequest {
         private String idToken;
         private String deviceId;
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
+    @Data @AllArgsConstructor @NoArgsConstructor
     public static class SignupRequest {
-        private String email;
+        @NotBlank(message = "Phone number is required")
+        @Pattern(regexp = "^\\d{10,15}$", message = "Phone number must contain 10 to 15 digits")
+        @Size(max = 15)
+        @JsonAlias("email")
+        private String phoneNumber;
+
+        @NotBlank(message = "Name is required")
+        @Size(min = 2, max = 100, message = "Name must be between 2 and 100 characters")
         private String name;
+
+        @NotBlank(message = "Password is required")
+        @Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
         private String password;
+
+        @Size(max = 128)
         private String deviceId;
     }
 
-    @Data
-    @AllArgsConstructor
-    @NoArgsConstructor
+    @Data @AllArgsConstructor @NoArgsConstructor
     public static class AuthResponse {
         private String token;
         private Long restaurantId;

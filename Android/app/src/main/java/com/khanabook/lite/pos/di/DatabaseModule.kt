@@ -27,39 +27,43 @@ private const val KEYSTORE_ALIAS = "KhanaBookDbKey"
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
-        private fun getOrCreateDbPassphrase(): ByteArray {
-                val keyStore = KeyStore.getInstance("AndroidKeyStore").also { it.load(null) }
+        private fun getOrCreateDbPassphrase(context: Context): ByteArray {
+                try {
+                    val mainKey = androidx.security.crypto.MasterKey.Builder(context)
+                        .setKeyScheme(androidx.security.crypto.MasterKey.KeyScheme.AES256_GCM)
+                        .build()
 
-                if (!keyStore.containsAlias(KEYSTORE_ALIAS)) {
-                        val keyGen =
-                                KeyGenerator.getInstance(
-                                        KeyProperties.KEY_ALGORITHM_AES,
-                                        "AndroidKeyStore"
-                                )
-                        keyGen.init(
-                                KeyGenParameterSpec.Builder(
-                                                KEYSTORE_ALIAS,
-                                                KeyProperties.PURPOSE_ENCRYPT or
-                                                        KeyProperties.PURPOSE_DECRYPT
-                                        )
-                                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                                        .setEncryptionPaddings(
-                                                KeyProperties.ENCRYPTION_PADDING_NONE
-                                        )
-                                        .setKeySize(256)
-                                        .build()
-                        )
-                        keyGen.generateKey()
+                    val sharedPrefs = androidx.security.crypto.EncryptedSharedPreferences.create(
+                        context,
+                        "secure_db_prefs",
+                        mainKey,
+                        androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                        androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+                    )
+
+                    var dbKey = sharedPrefs.getString("db_key", null)
+                    if (dbKey == null) {
+                        val secureRandom = java.security.SecureRandom()
+                        val bytes = ByteArray(32)
+                        secureRandom.nextBytes(bytes)
+                        dbKey = Base64.encodeToString(bytes, Base64.NO_WRAP)
+                        sharedPrefs.edit().putString("db_key", dbKey).apply()
+                    }
+
+                    return Base64.decode(dbKey, Base64.NO_WRAP)
+                } catch (e: Exception) {
+                    // Fallback to old behavior so existing installs don't crash,
+                    // but log a severe warning
+                    Log.e(TAG, "Failed to initialize EncryptedSharedPreferences. Falling back to static key.", e)
+                    val alias = KEYSTORE_ALIAS.toByteArray(Charsets.UTF_8)
+                    return Base64.encode(alias, Base64.NO_WRAP)
                 }
-
-                val alias = KEYSTORE_ALIAS.toByteArray(Charsets.UTF_8)
-                return Base64.encode(alias, Base64.NO_WRAP)
         }
 
         @Provides
         @Singleton
         fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
-                val passphrase = getOrCreateDbPassphrase()
+                val passphrase = getOrCreateDbPassphrase(context)
                 val factory = SupportFactory(passphrase)
 
                 val builder =
@@ -69,10 +73,7 @@ object DatabaseModule {
                                         AppDatabase.DATABASE_NAME
                                 )
                                 .openHelperFactory(factory)
-
-                if (BuildConfig.DEBUG) {
-                        builder.fallbackToDestructiveMigration()
-                }
+                                .addMigrations(AppDatabase.MIGRATION_17_18)
 
                 return builder.build()
         }

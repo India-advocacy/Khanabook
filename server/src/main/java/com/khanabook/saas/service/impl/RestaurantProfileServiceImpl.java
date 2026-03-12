@@ -27,25 +27,23 @@ public class RestaurantProfileServiceImpl implements RestaurantProfileService {
 
     @Override
     @Transactional
-    public synchronized CounterResponse incrementAndGetCounters(Long tenantId, String today) {
-        RestaurantProfile profile = repository.findByRestaurantId(tenantId)
-                .orElseThrow(() -> new RuntimeException("Restaurant profile not found"));
-
-        Integer nextDaily;
-        if (profile.getLastResetDate() == null || !profile.getLastResetDate().equals(today)) {
-            nextDaily = 1;
-        } else {
-            nextDaily = (profile.getDailyOrderCounter() == null ? 0 : profile.getDailyOrderCounter()) + 1;
+    public CounterResponse incrementAndGetCounters(Long tenantId, String today) {
+        Long now = System.currentTimeMillis();
+        int updated = repository.incrementCountersAtomic(tenantId, today, now);
+        
+        if (updated == 0) {
+            throw new RuntimeException("Restaurant profile not found for ID: " + tenantId);
         }
 
-        Integer nextLifetime = (profile.getLifetimeOrderCounter() == null ? 0 : profile.getLifetimeOrderCounter()) + 1;
-        Long now = System.currentTimeMillis();
-        
-        repository.updateCountersAtomic(tenantId, nextDaily, nextLifetime, today, now);
+        java.util.List<Object[]> result = repository.getCounters(tenantId);
+        if (result == null || result.isEmpty()) {
+            throw new RuntimeException("Failed to retrieve updated counters");
+        }
 
         CounterResponse response = new CounterResponse();
-        response.setDailyCounter(nextDaily);
-        response.setLifetimeCounter(nextLifetime);
+        Object[] row = result.get(0);
+        response.setDailyCounter(((Number) row[0]).intValue());
+        response.setLifetimeCounter(((Number) row[1]).intValue());
         return response;
     }
 }

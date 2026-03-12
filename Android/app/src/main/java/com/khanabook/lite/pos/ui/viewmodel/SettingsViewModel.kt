@@ -138,11 +138,11 @@ class SettingsViewModel @Inject constructor(
     fun saveProfile(profile: RestaurantProfileEntity) {
         viewModelScope.launch {
             restaurantRepository.saveProfile(profile)
-            userRepository.updateAdminPhoneNumber(profile.whatsappNumber)
+            userRepository.updateAdminPhoneNumber(profile.whatsappNumber ?: "")
             
             userRepository.currentUser.value?.let { current ->
                 userRepository.setCurrentUser(current.copy(
-                    email = profile.whatsappNumber,
+                    email = profile.whatsappNumber ?: "",
                     whatsappNumber = profile.whatsappNumber
                 ))
             }
@@ -210,6 +210,12 @@ class SettingsViewModel @Inject constructor(
     fun updateItemThreshold(itemId: Int, threshold: Double) {
         viewModelScope.launch {
             inventoryRepository.updateThreshold(itemId, threshold)
+        }
+    }
+
+    fun updateItemStock(itemId: Int, stock: Double) {
+        viewModelScope.launch {
+            inventoryRepository.adjustStock(itemId, stock - (menuRepository.getItemOnce(itemId)?.currentStock ?: 0.0), "Manual adjustment in Settings")
         }
     }
 

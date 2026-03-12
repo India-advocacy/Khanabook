@@ -20,18 +20,20 @@ public class StockLogServiceImpl implements StockLogService {
 
     @Override
     public List<Integer> pushData(Long tenantId, List<StockLog> payload) {
-        // Resolve Server IDs for menu items
-        for (StockLog log : payload) {
+        java.util.Iterator<StockLog> iterator = payload.iterator();
+        while (iterator.hasNext()) {
+            StockLog log = iterator.next();
             if (log.getServerMenuItemId() == null && log.getMenuItemId() != null) {
                 Optional<MenuItem> menuItem = menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(
                         tenantId, log.getDeviceId(), log.getMenuItemId());
-                menuItem.ifPresent(item -> log.setServerMenuItemId(item.getId()));
                 
-                // Fallback: If not found by device (e.g. created on another device), try just tenant + localId
-                // But the system seems designed for device-specific localIds.
-                // If still null, we might need a default to avoid DB crash.
-                if (log.getServerMenuItemId() == null) {
-                    log.setServerMenuItemId(0L); // Placeholder to satisfy NOT NULL
+                if (menuItem.isPresent()) {
+                    log.setServerMenuItemId(menuItem.get().getId());
+                } else {
+                    // Skip this record to prevent corruption
+                    System.err.println("WARNING: Skipping StockLog push. Could not resolve serverMenuItemId for localId: " 
+                            + log.getMenuItemId() + " on device: " + log.getDeviceId());
+                    iterator.remove();
                 }
             }
         }

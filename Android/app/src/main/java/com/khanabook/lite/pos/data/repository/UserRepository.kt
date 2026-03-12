@@ -27,22 +27,22 @@ class UserRepository(
     private val _currentUser = MutableStateFlow<UserEntity?>(null)
     val currentUser: StateFlow<UserEntity?> = _currentUser
 
-    suspend fun remoteLogin(email: String, passwordHash: String): Result<UserEntity> {
+    suspend fun remoteLogin(phoneNumber: String, passwordPlain: String, localPasswordHash: String): Result<UserEntity> {
         return try {
             val deviceId = sessionManager.getDeviceId() ?: "unknown_device"
-            val request = com.khanabook.lite.pos.data.remote.api.LoginRequest(email, passwordHash, deviceId)
+            val request = com.khanabook.lite.pos.data.remote.api.LoginRequest(phoneNumber, passwordPlain, deviceId)
             
             val response = api.login(request)
 
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
 
-            var localUser = userDao.getUserByEmail(email)
+            var localUser = userDao.getUserByEmail(phoneNumber)
             if (localUser == null) {
                 localUser = UserEntity(
                     name = response.userName,
-                    email = email,
-                    passwordHash = passwordHash,
+                    email = phoneNumber,
+                    passwordHash = localPasswordHash,
                     restaurantId = response.restaurantId,
                     deviceId = deviceId,
                     isActive = true,
@@ -65,22 +65,22 @@ class UserRepository(
         }
     }
 
-    suspend fun remoteSignup(name: String, email: String, passwordHash: String): Result<UserEntity> {
+    suspend fun remoteSignup(name: String, phoneNumber: String, passwordPlain: String, localPasswordHash: String): Result<UserEntity> {
         return try {
             val deviceId = sessionManager.getDeviceId() ?: "unknown_device"
-            val request = com.khanabook.lite.pos.data.remote.api.SignupRequest(email, name, passwordHash, deviceId)
+            val request = com.khanabook.lite.pos.data.remote.api.SignupRequest(phoneNumber, name, passwordPlain, deviceId)
             
             val response = api.signup(request)
 
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
 
-            var localUser = userDao.getUserByEmail(email)
+            var localUser = userDao.getUserByEmail(phoneNumber)
             if (localUser == null) {
                 localUser = UserEntity(
                     name = name,
-                    email = email,
-                    passwordHash = passwordHash,
+                    email = phoneNumber,
+                    passwordHash = localPasswordHash,
                     restaurantId = response.restaurantId,
                     deviceId = deviceId,
                     isActive = true,
@@ -112,12 +112,14 @@ class UserRepository(
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
 
-            var localUser = userDao.getUserByEmail(response.userName)
+            // In Google login case, userName from token payload is likely the email
+            val email = response.userName 
+            var localUser = userDao.getUserByEmail(email)
             if (localUser == null) {
                 localUser = UserEntity(
                     name = response.userName,
-                    email = response.userName,
-                    passwordHash = "",
+                    email = email,
+                    passwordHash = "GOOGLE_AUTH",
                     restaurantId = response.restaurantId,
                     deviceId = deviceId,
                     isActive = true,
@@ -205,8 +207,8 @@ class UserRepository(
         val syncWorkRequest =
                 OneTimeWorkRequestBuilder<MasterSyncWorker>().setConstraints(constraints).build()
         workManager.enqueueUniqueWork(
-            "MasterSyncWorker_OneTime",
-            ExistingWorkPolicy.REPLACE,
+            "ImmediateSync",
+            ExistingWorkPolicy.KEEP,
             syncWorkRequest
         )
     }

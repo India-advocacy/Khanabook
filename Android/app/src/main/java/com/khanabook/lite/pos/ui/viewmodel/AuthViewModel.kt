@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.ui.viewmodel
+package com.khanabook.lite.pos.ui.viewmodel
 
 import android.content.Context
 import android.util.Log
@@ -42,7 +42,8 @@ constructor(
         private val whatsAppApiService: WhatsAppApiService,
         private val restaurantRepository: RestaurantRepository,
         private val syncManager: SyncManager,
-        private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager
+        private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
+        private val authManager: AuthManager
 ) : ViewModel() {
 
     init {
@@ -92,7 +93,8 @@ constructor(
             sessionManager.saveLastSyncTimestamp(0L)
             sessionManager.setInitialSyncCompleted(false)
 
-            val result = userRepository.remoteLogin(email, password)
+            val localHash = authManager.hashPassword(password)
+            val result = userRepository.remoteLogin(email, password, localHash)
 
             result.onSuccess { user ->
                 Log.d(TAG, "Remote login success for: $email")
@@ -124,24 +126,30 @@ constructor(
                 }
 
                 _loginStatus.value = LoginResult.Success(user)
-            }
-.onFailure { e ->
+            }.onFailure { e ->
                 Log.e(TAG, "Remote login failed: ${e.message}. Falling back to local.", e)
                 // Fallback to local login if offline or server error
                 val user = userRepository.getUserByEmail(email)
-                if (user != null && AuthManager.verifyPassword(password, user.passwordHash)) {
-                    if (user.isActive) {
-                        failedLoginAttempts = 0
-                        userRepository.setCurrentUser(user)
-                        _loginStatus.value = LoginResult.Success(user)
+                if (user != null) {
+                    val verified = authManager.verifyPassword(password, user.passwordHash)
+                    if (verified) {
+                        if (user.isActive) {
+                            failedLoginAttempts = 0
+                            userRepository.setCurrentUser(user)
+                            _loginStatus.value = LoginResult.Success(user)
+                        } else {
+                            _loginStatus.value = LoginResult.Error("Account is inactive")
+                        }
                     } else {
-                        _loginStatus.value = LoginResult.Error("Account is inactive")
+                        failedLoginAttempts++
+                        _loginStatus.value = LoginResult.Error("Incorrect password. Please try again.")
                     }
                 } else {
                     failedLoginAttempts++
-                    _loginStatus.value = LoginResult.Error("Login failed: ${e.message}")
+                    _loginStatus.value = LoginResult.Error("No account found with this number or server is offline.")
                 }
             }
+
         }
     }
 
@@ -256,7 +264,8 @@ constructor(
                 sessionManager.setInitialSyncCompleted(false)
 
                 // 1. Create User remotely to get JWT Token
-                val result = userRepository.remoteSignup(name, phoneNumber, password)
+                val localHash = authManager.hashPassword(password)
+                val result = userRepository.remoteSignup(name, phoneNumber, password, localHash)
                 
                 result.onSuccess {
                     // 2. Update Shop Profile with signup details
@@ -304,7 +313,7 @@ constructor(
             try {
                 val user = userRepository.getUserByEmail(phoneNumber)
                 if (user != null) {
-                    val newHash = AuthManager.hashPassword(newPassword)
+                    val newHash = authManager.hashPassword(newPassword)
                     userRepository.updatePasswordHash(user.id, newHash)
                     _resetPasswordStatus.value = ResetPasswordResult.Success
                 } else {

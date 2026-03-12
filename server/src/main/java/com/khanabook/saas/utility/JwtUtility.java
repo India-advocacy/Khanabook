@@ -1,6 +1,8 @@
 package com.khanabook.saas.utility;
 
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 import java.util.function.Function;
 
@@ -19,6 +21,21 @@ public class JwtUtility {
     @Value("${jwt.secret:YourDefaultSecretKeyThatIsAtLeast32CharsLong}")
     private String secret;
 
+    private SecretKey getSigningKey() {
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length >= 32) {
+            return Keys.hmacShaKeyFor(secretBytes);
+        }
+
+        // Derive a stable 256-bit key from short configured secrets for local/dev setups.
+        try {
+            byte[] hashedSecret = MessageDigest.getInstance("SHA-256").digest(secretBytes);
+            return Keys.hmacShaKeyFor(hashedSecret);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 algorithm unavailable for JWT key derivation", e);
+        }
+    }
+
     public Long extractRestaurantId(String token) {
         final Claims claims = extractAllClaims(token);
         return claims.get("restaurantId", Long.class);
@@ -34,15 +51,24 @@ public class JwtUtility {
     }
 
     private Claims extractAllClaims(String token) {
-        SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         return Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
 
-    public String generateToken(String username, Long restaurantId) { SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8)); return Jwts.builder().setSubject(username).claim("restaurantId", restaurantId).setIssuedAt(new Date()).setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10)).signWith(key).compact(); } public Boolean isTokenExpired(String token) {
+    public String generateToken(String username, Long restaurantId) {
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("restaurantId", restaurantId)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 10))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public Boolean isTokenExpired(String token) {
         return extractClaim(token, Claims::getExpiration).before(new Date());
     }
 }

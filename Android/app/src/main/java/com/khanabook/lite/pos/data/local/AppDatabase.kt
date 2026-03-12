@@ -34,10 +34,30 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         const val DATABASE_NAME = "khanabook_lite_db"
 
-        // Simplified: Incremented version to 18. 
-        // In a production app, we would write migrations to:
-        // 1. Drop raw_materials, material_batches, recipe_ingredients, raw_material_stock_logs
-        // 2. Add current_stock and low_stock_threshold to menu_items and item_variants
-        // 3. Remove role from users
+        // Migration 17 to 18
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Drop old inventory tables
+                db.execSQL("DROP TABLE IF EXISTS `raw_materials`")
+                db.execSQL("DROP TABLE IF EXISTS `material_batches`")
+                db.execSQL("DROP TABLE IF EXISTS `recipe_ingredients`")
+                db.execSQL("DROP TABLE IF EXISTS `raw_material_stock_logs`")
+
+                // Add inventory tracking columns to menu items and variants
+                try {
+                    db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `current_stock` REAL NOT NULL DEFAULT 0.0")
+                    db.execSQL("ALTER TABLE `menu_items` ADD COLUMN `low_stock_threshold` REAL NOT NULL DEFAULT 0.0")
+                } catch (e: Exception) {
+                    // Columns might already exist from a previous beta build migration
+                }
+
+                try {
+                    db.execSQL("ALTER TABLE `item_variants` ADD COLUMN `current_stock` REAL NOT NULL DEFAULT 0.0")
+                    db.execSQL("ALTER TABLE `item_variants` ADD COLUMN `low_stock_threshold` REAL NOT NULL DEFAULT 0.0")
+                } catch (e: Exception) {
+                    // Columns might already exist
+                }
+            }
+        }
     }
 }

@@ -1,88 +1,89 @@
 package com.khanabook.lite.pos
 
 import com.khanabook.lite.pos.data.local.entity.BillItemEntity
-import com.khanabook.lite.pos.data.local.entity.RecipeIngredientEntity
-import com.khanabook.lite.pos.data.repository.BatchRepository
-import com.khanabook.lite.pos.data.repository.RecipeRepository
+import com.khanabook.lite.pos.data.local.entity.StockLogEntity
+import com.khanabook.lite.pos.data.repository.InventoryRepository
+import com.khanabook.lite.pos.data.repository.MenuRepository
 import com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
-import org.mockito.kotlin.whenever
 
 class InventoryConsumptionTest {
 
     @Mock
-    private lateinit var recipeRepository: RecipeRepository
+    private lateinit var menuRepository: MenuRepository
 
     @Mock
-    private lateinit var batchRepository: BatchRepository
+    private lateinit var inventoryRepository: InventoryRepository
 
     private lateinit var inventoryConsumptionManager: InventoryConsumptionManager
 
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
-        inventoryConsumptionManager = InventoryConsumptionManager(recipeRepository, batchRepository)
+        inventoryConsumptionManager = InventoryConsumptionManager(menuRepository, inventoryRepository)
     }
 
     @Test
-    fun `consumeMaterialsForBill should calculate and consume correct quantities`() = runTest {
-        // Arrange
-        val menuItemId = 101
+    fun `consumeMaterialsForBill should deduct stock and log base item sale`() = runTest {
         val billItems = listOf(
-            BillItemEntity(id = 1, billId = 1, menuItemId = menuItemId, itemName = "Biryani", quantity = 3, price = 200.0, itemTotal = 600.0)
+            BillItemEntity(
+                id = 1,
+                billId = 42,
+                menuItemId = 101,
+                itemName = "Biryani",
+                quantity = 3,
+                price = 200.0,
+                itemTotal = 600.0
+            )
         )
 
-        val ingredients = listOf(
-            RecipeIngredientEntity(id = 1, menuItemId = menuItemId, rawMaterialId = 501, quantityNeeded = 0.2) // 0.2kg Chicken per Biryani
-        )
-
-        whenever(recipeRepository.getIngredientsOnce(menuItemId)).thenReturn(ingredients)
-
-        // Act
         inventoryConsumptionManager.consumeMaterialsForBill(billItems)
 
-        // Assert: 3 Biryani * 0.2kg = 0.6kg
-        val materialIdCaptor = argumentCaptor<Int>()
-        val quantityCaptor = argumentCaptor<Double>()
-        
-        verify(batchRepository).consumeFromBatches(
-            materialId = materialIdCaptor.capture(),
-            totalToConsume = quantityCaptor.capture(),
-            reason = any()
-        )
-        
-        org.junit.Assert.assertEquals(501, materialIdCaptor.firstValue)
-        org.junit.Assert.assertEquals(0.6, quantityCaptor.firstValue, 0.001)
+        verify(menuRepository).updateStock(101, -3.0)
+
+        val logCaptor = argumentCaptor<StockLogEntity>()
+        verify(inventoryRepository).insertStockLog(logCaptor.capture())
+
+        val log = logCaptor.firstValue
+        org.junit.Assert.assertEquals(101, log.menuItemId)
+        org.junit.Assert.assertEquals(null, log.variantId)
+        org.junit.Assert.assertEquals(-3.0, log.delta, 0.001)
+        org.junit.Assert.assertEquals("Sale (Bill #42)", log.reason)
     }
-    
+
     @Test
-    fun `consumeMaterialsForBill should handle multiple ingredients`() = runTest {
-        // Arrange
-        val menuItemId = 101
+    fun `consumeMaterialsForBill should deduct variant stock and log variant sale`() = runTest {
         val billItems = listOf(
-            BillItemEntity(id = 1, billId = 1, menuItemId = menuItemId, itemName = "Biryani", quantity = 2, price = 200.0, itemTotal = 400.0)
+            BillItemEntity(
+                id = 1,
+                billId = 7,
+                menuItemId = 101,
+                itemName = "Tea",
+                variantId = 501,
+                variantName = "Large",
+                quantity = 2,
+                price = 30.0,
+                itemTotal = 60.0
+            )
         )
 
-        val ingredients = listOf(
-            RecipeIngredientEntity(id = 1, menuItemId = menuItemId, rawMaterialId = 501, quantityNeeded = 0.2), // Chicken
-            RecipeIngredientEntity(id = 2, menuItemId = menuItemId, rawMaterialId = 502, quantityNeeded = 0.1)  // Rice
-        )
-
-        whenever(recipeRepository.getIngredientsOnce(menuItemId)).thenReturn(ingredients)
-
-        // Act
         inventoryConsumptionManager.consumeMaterialsForBill(billItems)
 
-        // Assert
-        verify(batchRepository).consumeFromBatches(eq(501), eq(0.4), any())
-        verify(batchRepository).consumeFromBatches(eq(502), eq(0.2), any())
+        verify(menuRepository).updateVariantStock(501, -2.0)
+
+        val logCaptor = argumentCaptor<StockLogEntity>()
+        verify(inventoryRepository).insertStockLog(logCaptor.capture())
+
+        val log = logCaptor.firstValue
+        org.junit.Assert.assertEquals(101, log.menuItemId)
+        org.junit.Assert.assertEquals(501, log.variantId)
+        org.junit.Assert.assertEquals(-2.0, log.delta, 0.001)
+        org.junit.Assert.assertEquals("Sale (Bill #7)", log.reason)
     }
 }

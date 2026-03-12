@@ -1,21 +1,23 @@
-﻿package com.khanabook.lite.pos.domain.manager
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+package com.khanabook.lite.pos.domain.manager
 
 import org.mindrot.jbcrypt.BCrypt
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
-object AuthManager {
+@Singleton
+class AuthManager @Inject constructor() {
 
-    fun hashPassword(password: String): String {
-        return BCrypt.hashpw(password, BCrypt.gensalt(12))
+    suspend fun hashPassword(password: String): String = withContext(Dispatchers.Default) {
+        BCrypt.hashpw(password, BCrypt.gensalt(12))
     }
 
-    fun verifyPassword(password: String, hash: String): Boolean {
-        return try {
+    suspend fun verifyPassword(password: String, hash: String): Boolean = withContext(Dispatchers.Default) {
+        try {
             BCrypt.checkpw(password, hash)
         } catch (e: Exception) {
-            false // Fallback for old SHA-256 hashes if any existed, though migration would be needed for a real prod app
+            false // Fallback for old SHA-256 hashes if any existed
         }
     }
 }

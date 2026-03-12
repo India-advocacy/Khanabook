@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.domain.manager
+package com.khanabook.lite.pos.domain.manager
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -12,6 +12,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 private const val PREFS_NAME = "session_prefs"
@@ -23,13 +24,19 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     private val prefs: SharedPreferences =
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    private var timeoutMinutes: Int = 30
+    private var timeoutMinutes: Int
+        get() = prefs.getInt("session_timeout_minutes", 30)
+        set(value) {
+            prefs.edit().putInt("session_timeout_minutes", value).apply()
+        }
 
     private val _isSessionExpired = MutableStateFlow(false)
     val isSessionExpired: StateFlow<Boolean> = _isSessionExpired
 
     // Background scope for periodic session checks
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    private var sessionCheckJob: kotlinx.coroutines.Job? = null
 
     init {
         startPeriodicCheck()
@@ -68,8 +75,9 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
 
     /** Automatically checks session expiry in the background every minute */
     private fun startPeriodicCheck() {
-        scope.launch {
-            while (true) {
+        sessionCheckJob?.cancel()
+        sessionCheckJob = scope.launch {
+            while (isActive) {
                 delay(SESSION_CHECK_INTERVAL_MS)
                 checkSession()
             }
@@ -118,6 +126,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun clearSession() {
+        sessionCheckJob?.cancel()
         prefs.edit().clear().apply()
         _isSessionExpired.value = true
     }

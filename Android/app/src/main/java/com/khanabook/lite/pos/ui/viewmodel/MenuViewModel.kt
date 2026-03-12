@@ -2,6 +2,8 @@ package com.khanabook.lite.pos.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.content.Context
+import android.net.Uri
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
@@ -22,6 +24,57 @@ class MenuViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val menuRepository: MenuRepository
 ) : ViewModel() {
+
+    companion object {
+        private val trailingPriceRegex =
+            Regex("""(?i)(?:\u20B9|rs\.?|inr)?\s*(\d+(?:\.\d{1,2})?)\s*$""")
+        private val leadingBulletRegex = Regex("""^\s*(?:[-*]+|\d+[.)])\s*""")
+        private val trailingSeparatorRegex = Regex("""[\s\-:|]+$""")
+        private val trailingCurrencyRegex = Regex("""(?i)(?:\u20B9|rs\.?|inr)\s*$""")
+
+        internal fun parseDraftsFromText(text: String): List<DraftMenuItem> {
+            return text
+                .lineSequence()
+                .map { normalizeImportLine(it) }
+                .filter { it.length > 2 && it.any(Char::isLetter) }
+                .mapNotNull { parseDraftLine(it) }
+                .toList()
+        }
+
+        private fun normalizeImportLine(raw: String): String {
+            return raw
+                .replace("\u20B9", " Rs ")
+                .replace("â‚¹", " Rs ")
+                .replace('\u00A0', ' ')
+                .replace(Regex("""\s+"""), " ")
+                .trim()
+        }
+
+        private fun parseDraftLine(line: String): DraftMenuItem? {
+            val cleanedLine = line.replace(leadingBulletRegex, "")
+            val priceMatch = trailingPriceRegex.find(cleanedLine)
+            val name = if (priceMatch != null) {
+                cleanedLine
+                    .substring(0, priceMatch.range.first)
+                    .replace(trailingCurrencyRegex, "")
+                    .replace(trailingSeparatorRegex, "")
+                    .trim()
+            } else {
+                cleanedLine
+            }
+
+            if (name.isBlank()) {
+                return null
+            }
+
+            val normalizedName = name
+                .lowercase()
+                .split(Regex("""\s+"""))
+                .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
+            val price = priceMatch?.groupValues?.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+            return DraftMenuItem(normalizedName, price)
+        }
+    }
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
@@ -201,35 +254,37 @@ class MenuViewModel @Inject constructor(
     }
 
     /**
+     * Extracts text from a PDF URI and parses it into drafts.
+     */
+    fun extractTextFromPdf(context: Context, uri: Uri) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(context.applicationContext)
+                val inputStream = context.contentResolver.openInputStream(uri)
+                inputStream?.use { input ->
+                    val document = com.tom_roush.pdfbox.pdmodel.PDDocument.load(input)
+                    val stripper = com.tom_roush.pdfbox.text.PDFTextStripper()
+                    val text = stripper.getText(document)
+                    document.close()
+                    
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        parseScannedTextToDrafts(text)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    android.widget.Toast.makeText(context, "Failed to read PDF: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    /**
      * Parses raw OCR text into Draft items for review.
      */
     fun parseScannedTextToDrafts(text: String) {
-        val lines = text.split("\n", "\r").map { it.trim() }.filter { it.length > 2 }
-        val drafts = lines.map { line ->
-            val parts = if (line.contains("-")) {
-                line.split("-")
-            } else if (line.contains("₹")) {
-                line.split("₹")
-            } else {
-                // Look for the last number in the string as price
-                val regex = """(\d+\.?\d*)$""".toRegex()
-                val match = regex.find(line)
-                if (match != null) {
-                    listOf(line.replace(match.value, "").trim(), match.value)
-                } else {
-                    listOf(line)
-                }
-            }
-
-            val name = parts[0].trim().lowercase().replaceFirstChar { it.uppercase() }
-            val price = if (parts.size > 1) {
-                parts[1].filter { it.isDigit() || it == '.' }.toDoubleOrNull() ?: 0.0
-            } else 0.0
-            
-            DraftMenuItem(name, price)
-        }.filter { it.name.isNotBlank() }
-        
-        _scannedDrafts.value = drafts
+        _scannedDrafts.value = parseDraftsFromText(text)
     }
 
     fun saveDraftsToCategory(categoryId: Int) {
