@@ -108,8 +108,4 @@ constructor(
               Result.retry()
             }
           }
-
-  private fun pooledResourcesChanged(data: MasterSyncResponse): Boolean {
-    return data.profiles.isNotEmpty() || data.users.isNotEmpty() || data.bills.isNotEmpty()
-  }
 }

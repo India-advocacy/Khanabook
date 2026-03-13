@@ -141,8 +141,8 @@ class SettingsViewModel @Inject constructor(
             userRepository.updateAdminPhoneNumber(profile.whatsappNumber ?: "")
             
             userRepository.currentUser.value?.let { current ->
+                // Only update whatsappNumber — never overwrite email (it is the login identifier)
                 userRepository.setCurrentUser(current.copy(
-                    email = profile.whatsappNumber ?: "",
                     whatsappNumber = profile.whatsappNumber
                 ))
             }

@@ -170,11 +170,9 @@ class MasterSyncProcessor @Inject constructor(
             userDao.insertSyncedUsers(
                 masterData.users.map { remoteUser ->
                     val localUser = localUsersByEmail[remoteUser.email]
-                    val resolvedPasswordHash = try {
-                        remoteUser.passwordHash
-                    } catch (_: NullPointerException) {
-                        null
-                    }.takeUnless { it.isNullOrBlank() }
+                    // Use remote hash if valid; fall back to local hash; sentinel if neither exists
+                    val resolvedPasswordHash = remoteUser.passwordHash
+                        .takeUnless { it.isNullOrBlank() }
                         ?: localUser?.passwordHash
                         ?: "SYNC_IMPORTED_USER"
 
@@ -185,7 +183,7 @@ class MasterSyncProcessor @Inject constructor(
                         passwordHash = resolvedPasswordHash,
                         whatsappNumber = remoteUser.whatsappNumber ?: localUser?.whatsappNumber,
                         isActive = remoteUser.isActive,
-                        createdAt = remoteUser.createdAt,
+                        createdAt = remoteUser.createdAt.orFallback(""),
                         restaurantId = remoteUser.restaurantId,
                         deviceId = remoteUser.deviceId,
                         isSynced = true

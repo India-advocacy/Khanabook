@@ -346,13 +346,13 @@ class MenuViewModel @Inject constructor(
         viewModelScope.launch {
             val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             val selectedDrafts = _ocrImportUiState.value.drafts.filter { it.isSelected }
-            
+
+            // Fetch existing items once — avoids one DB query per draft (N+1 bug)
+            val existingItems = menuRepository.getItemsByCategoryFlow(categoryId).first()
+            val existingNames = existingItems.map { it.name.lowercase() }.toHashSet()
+
             for (draft in selectedDrafts) {
-                val existing = menuRepository.getItemsByCategoryFlow(categoryId).first().any { 
-                    it.name.equals(draft.name, ignoreCase = true) 
-                }
-                
-                if (!existing) {
+                if (draft.name.lowercase() !in existingNames) {
                     menuRepository.insertItem(
                         MenuItemEntity(
                             categoryId = categoryId,

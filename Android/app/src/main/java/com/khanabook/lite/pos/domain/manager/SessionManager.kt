@@ -9,6 +9,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -77,7 +78,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     private fun startPeriodicCheck() {
         sessionCheckJob?.cancel()
         sessionCheckJob = scope.launch {
-            while (isActive) {
+            while (currentCoroutineContext().isActive) {
                 delay(SESSION_CHECK_INTERVAL_MS)
                 checkSession()
             }

@@ -88,10 +88,6 @@ constructor(
 
         viewModelScope.launch {
             _loginStatus.value = null // Clear previous status
-            
-            // Reset sync state for fresh start
-            sessionManager.saveLastSyncTimestamp(0L)
-            sessionManager.setInitialSyncCompleted(false)
 
             val localHash = authManager.hashPassword(password)
             val result = userRepository.remoteLogin(email, password, localHash)
@@ -99,6 +95,12 @@ constructor(
             result.onSuccess { user ->
                 Log.d(TAG, "Remote login success for: $email")
                 failedLoginAttempts = 0
+                lockoutUntilMs = 0L
+
+                // Reset sync state only on successful login
+                sessionManager.saveLastSyncTimestamp(0L)
+                sessionManager.setInitialSyncCompleted(false)
+
                 // Trigger immediate sync
                 syncManager.performMasterPull()
 
@@ -135,6 +137,7 @@ constructor(
                     if (verified) {
                         if (user.isActive) {
                             failedLoginAttempts = 0
+                            lockoutUntilMs = 0L
                             userRepository.setCurrentUser(user)
                             _loginStatus.value = LoginResult.Success(user)
                         } else {
@@ -142,11 +145,22 @@ constructor(
                         }
                     } else {
                         failedLoginAttempts++
-                        _loginStatus.value = LoginResult.Error("Incorrect password. Please try again.")
+                        if (failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+                            lockoutUntilMs = System.currentTimeMillis() + 5 * 60 * 1000L
+                            _loginStatus.value = LoginResult.Error("Too many failed attempts. Locked for 5 minutes.")
+                        } else {
+                            val remaining = MAX_FAILED_ATTEMPTS - failedLoginAttempts
+                            _loginStatus.value = LoginResult.Error("Incorrect password. $remaining attempt(s) remaining.")
+                        }
                     }
                 } else {
                     failedLoginAttempts++
-                    _loginStatus.value = LoginResult.Error("No account found with this number or server is offline.")
+                    if (failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+                        lockoutUntilMs = System.currentTimeMillis() + 5 * 60 * 1000L
+                        _loginStatus.value = LoginResult.Error("Too many failed attempts. Locked for 5 minutes.")
+                    } else {
+                        _loginStatus.value = LoginResult.Error("No account found with this number or server is offline.")
+                    }
                 }
             }
 
@@ -259,15 +273,15 @@ constructor(
     fun signUp(name: String, phoneNumber: String, password: String) {
         viewModelScope.launch {
             try {
-                // Reset sync state
-                sessionManager.saveLastSyncTimestamp(0L)
-                sessionManager.setInitialSyncCompleted(false)
-
                 // 1. Create User remotely to get JWT Token
                 val localHash = authManager.hashPassword(password)
                 val result = userRepository.remoteSignup(name, phoneNumber, password, localHash)
                 
                 result.onSuccess {
+                    // Reset sync state only after successful signup
+                    sessionManager.saveLastSyncTimestamp(0L)
+                    sessionManager.setInitialSyncCompleted(false)
+
                     // 2. Update Shop Profile with signup details
                     val currentProfile = restaurantRepository.getProfile()
                     val updatedProfile =
@@ -299,7 +313,6 @@ constructor(
 
                     _signUpStatus.value = SignUpResult.Success
                 }.onFailure { e ->
-                    // Fallback to local if needed, but for "after signup auto login" to work with Sync, we need token.
                     _signUpStatus.value = SignUpResult.Error(e.message ?: "Registration failed")
                 }
             } catch (e: Exception) {
@@ -386,6 +399,12 @@ constructor(
                     
                     result.onSuccess { user ->
                         failedLoginAttempts = 0
+                        lockoutUntilMs = 0L
+
+                        // Reset sync state only on successful Google login
+                        sessionManager.saveLastSyncTimestamp(0L)
+                        sessionManager.setInitialSyncCompleted(false)
+
                         // Trigger immediate sync
                         syncManager.performMasterPull()
 
