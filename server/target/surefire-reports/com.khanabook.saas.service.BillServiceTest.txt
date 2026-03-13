@@ -1,4 +1,58 @@
 -------------------------------------------------------------------------------
 Test set: com.khanabook.saas.service.BillServiceTest
 -------------------------------------------------------------------------------
-Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 8.379 s -- in com.khanabook.saas.service.BillServiceTest
+Tests run: 2, Failures: 0, Errors: 2, Skipped: 0, Time elapsed: 5.257 s <<< FAILURE! -- in com.khanabook.saas.service.BillServiceTest
+com.khanabook.saas.service.BillServiceTest.givenExistingBill_whenMobileIsNewer_thenUpdateLwwSuccess -- Time elapsed: 5.084 s <<< ERROR!
+org.mockito.exceptions.misusing.PotentialStubbingProblem: 
+
+Strict stubbing argument mismatch. Please check:
+ - this invocation of 'saveAll' method:
+    billRepository.saveAll(
+    [com.khanabook.saas.entity.Bill@2dbd803f]
+);
+    -> at com.khanabook.saas.sync.service.GenericSyncService.handlePushSync(GenericSyncService.java:143)
+ - has following stubbing(s) with different arguments:
+    1. billRepository.saveAll([]);
+      -> at com.khanabook.saas.service.BillServiceTest.givenExistingBill_whenMobileIsNewer_thenUpdateLwwSuccess(BillServiceTest.java:68)
+Typically, stubbing argument mismatch indicates user mistake when writing tests.
+Mockito fails early so that you can debug potential problem easily.
+However, there are legit scenarios when this exception generates false negative signal:
+  - stubbing the same method multiple times using 'given().will()' or 'when().then()' API
+    Please use 'will().given()' or 'doReturn().when()' API for stubbing.
+  - stubbed method is intentionally invoked with different arguments by code under test
+    Please use default or 'silent' JUnit Rule (equivalent of Strictness.LENIENT).
+For more information see javadoc for PotentialStubbingProblem class.
+	at com.khanabook.saas.sync.service.GenericSyncService.handlePushSync(GenericSyncService.java:143)
+	at com.khanabook.saas.service.impl.BillServiceImpl.pushData(BillServiceImpl.java:19)
+	at com.khanabook.saas.service.BillServiceTest.givenExistingBill_whenMobileIsNewer_thenUpdateLwwSuccess(BillServiceTest.java:70)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+
+com.khanabook.saas.service.BillServiceTest.givenHackedPayload_whenInsertNewBill_thenForceTenantIsolation -- Time elapsed: 0.017 s <<< ERROR!
+org.mockito.exceptions.misusing.PotentialStubbingProblem: 
+
+Strict stubbing argument mismatch. Please check:
+ - this invocation of 'saveAll' method:
+    billRepository.saveAll(
+    [com.khanabook.saas.entity.Bill@63da207f]
+);
+    -> at com.khanabook.saas.sync.service.GenericSyncService.handlePushSync(GenericSyncService.java:143)
+ - has following stubbing(s) with different arguments:
+    1. billRepository.saveAll([]);
+      -> at com.khanabook.saas.service.BillServiceTest.givenHackedPayload_whenInsertNewBill_thenForceTenantIsolation(BillServiceTest.java:90)
+Typically, stubbing argument mismatch indicates user mistake when writing tests.
+Mockito fails early so that you can debug potential problem easily.
+However, there are legit scenarios when this exception generates false negative signal:
+  - stubbing the same method multiple times using 'given().will()' or 'when().then()' API
+    Please use 'will().given()' or 'doReturn().when()' API for stubbing.
+  - stubbed method is intentionally invoked with different arguments by code under test
+    Please use default or 'silent' JUnit Rule (equivalent of Strictness.LENIENT).
+For more information see javadoc for PotentialStubbingProblem class.
+	at com.khanabook.saas.sync.service.GenericSyncService.handlePushSync(GenericSyncService.java:143)
+	at com.khanabook.saas.service.impl.BillServiceImpl.pushData(BillServiceImpl.java:19)
+	at com.khanabook.saas.service.BillServiceTest.givenHackedPayload_whenInsertNewBill_thenForceTenantIsolation(BillServiceTest.java:92)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1596)
+

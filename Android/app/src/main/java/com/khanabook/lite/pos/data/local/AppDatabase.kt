@@ -20,7 +20,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 19,
+        version = 20,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {

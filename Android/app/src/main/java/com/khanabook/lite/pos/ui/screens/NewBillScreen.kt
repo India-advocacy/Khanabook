@@ -1,8 +1,9 @@
-﻿@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.khanabook.lite.pos.ui.screens
 
 import android.graphics.BitmapFactory
+import coil.compose.AsyncImage
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -564,23 +565,20 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
                                     .clickable { showQrModal = true },
                     contentAlignment = Alignment.Center
             ) {
-                profile?.upiQrPath?.let { path ->
-                    BitmapFactory.decodeFile(path)?.let {
-                        Image(bitmap = it.asImageBitmap(), null, modifier = Modifier.fillMaxSize())
-                    }
-                            ?: Icon(
-                                    Icons.Default.QrCode,
-                                    null,
-                                    modifier = Modifier.size(100.dp),
-                                    tint = Color.LightGray
-                            )
+                if (!profile?.upiQrPath.isNullOrBlank()) {
+                    AsyncImage(
+                        model = profile?.upiQrPath,
+                        contentDescription = "QR Code",
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.QrCode,
+                        null,
+                        modifier = Modifier.size(100.dp),
+                        tint = Color.LightGray
+                    )
                 }
-                        ?: Icon(
-                                Icons.Default.QrCode,
-                                null,
-                                modifier = Modifier.size(100.dp),
-                                tint = Color.LightGray
-                        )
             }
             Text(
                     "Tap to Enlarge",
@@ -807,27 +805,20 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
                                         Modifier.size(280.dp).background(Color.White).padding(8.dp),
                                 contentAlignment = Alignment.Center
                         ) {
-                            profile?.upiQrPath?.let { path ->
-                                BitmapFactory.decodeFile(path)?.let {
-                                    Image(
-                                            bitmap = it.asImageBitmap(),
-                                            null,
-                                            modifier = Modifier.fillMaxSize()
-                                    )
-                                }
-                                        ?: Icon(
-                                                Icons.Default.QrCode,
-                                                null,
-                                                modifier = Modifier.size(180.dp),
-                                                tint = Color.LightGray
-                                        )
+                            if (!profile?.upiQrPath.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = profile?.upiQrPath,
+                                    contentDescription = "QR Code",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.QrCode,
+                                    null,
+                                    modifier = Modifier.size(180.dp),
+                                    tint = Color.LightGray
+                                )
                             }
-                                    ?: Icon(
-                                            Icons.Default.QrCode,
-                                            null,
-                                            modifier = Modifier.size(180.dp),
-                                            tint = Color.LightGray
-                                    )
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))

@@ -113,64 +113,57 @@ class MasterSyncProcessor @Inject constructor(
                 masterData.profiles.map { remoteProfile ->
                     RestaurantProfileEntity(
                         id = 1,
-                        shopName = remoteProfile.shopName,
-                        shopAddress = remoteProfile.shopAddress,
-                        whatsappNumber = remoteProfile.whatsappNumber,
-                        email = remoteProfile.email,
-                        logoPath = remoteProfile.logoPath,
-                        fssaiNumber = remoteProfile.fssaiNumber,
-                        emailInvoiceConsent = remoteProfile.emailInvoiceConsent,
-                        country = remoteProfile.country?.takeUnless { it.isBlank() }
-                            ?: currentLocalProfile?.country
-                            ?: "India",
-                        gstEnabled = remoteProfile.gstEnabled,
-                        gstin = remoteProfile.gstin,
-                        isTaxInclusive = remoteProfile.isTaxInclusive,
-                        gstPercentage = remoteProfile.gstPercentage,
-                        customTaxName = remoteProfile.customTaxName,
-                        customTaxNumber = remoteProfile.customTaxNumber,
-                        customTaxPercentage = remoteProfile.customTaxPercentage,
-                        currency = remoteProfile.currency?.takeUnless { it.isBlank() }
-                            ?: currentLocalProfile?.currency
-                            ?: "INR",
-                        upiEnabled = remoteProfile.upiEnabled,
+                        shopName = remoteProfile.shopName.orFallback("My Shop"),
+                        shopAddress = remoteProfile.shopAddress.orFallback(""),
+                        whatsappNumber = remoteProfile.whatsappNumber.orFallback(""),
+                        email = remoteProfile.email.orFallback(""),
+                        logoPath = remoteProfile.logoPath, // Keep null if null to handle download later
+                        fssaiNumber = remoteProfile.fssaiNumber.orFallback(""),
+                        emailInvoiceConsent = remoteProfile.emailInvoiceConsent ?: false,
+                        country = remoteProfile.country.orFallback(currentLocalProfile?.country ?: "India"),
+                        gstEnabled = remoteProfile.gstEnabled ?: false,
+                        gstin = remoteProfile.gstin.orFallback(""),
+                        isTaxInclusive = remoteProfile.isTaxInclusive ?: false,
+                        gstPercentage = remoteProfile.gstPercentage ?: 0.0,
+                        customTaxName = remoteProfile.customTaxName.orFallback(""),
+                        customTaxNumber = remoteProfile.customTaxNumber.orFallback(""),
+                        customTaxPercentage = remoteProfile.customTaxPercentage ?: 0.0,
+                        currency = remoteProfile.currency.orFallback(currentLocalProfile?.currency ?: "INR"),
+                        upiEnabled = remoteProfile.upiEnabled ?: false,
                         upiQrPath = remoteProfile.upiQrPath,
-                        upiHandle = remoteProfile.upiHandle,
-                        upiMobile = remoteProfile.upiMobile,
-                        cashEnabled = remoteProfile.cashEnabled,
-                        posEnabled = remoteProfile.posEnabled,
-                        zomatoEnabled = remoteProfile.zomatoEnabled,
-                        swiggyEnabled = remoteProfile.swiggyEnabled,
-                        ownWebsiteEnabled = remoteProfile.ownWebsiteEnabled,
-                        printerEnabled = remoteProfile.printerEnabled,
-                        printerName = remoteProfile.printerName,
-                        printerMac = remoteProfile.printerMac,
-                        paperSize = remoteProfile.paperSize.takeUnless { it.isBlank() }
-                            ?: currentLocalProfile?.paperSize
-                            ?: "58mm",
-                        autoPrintOnSuccess = remoteProfile.autoPrintOnSuccess,
-                        includeLogoInPrint = remoteProfile.includeLogoInPrint,
-                        printCustomerWhatsapp = remoteProfile.printCustomerWhatsapp,
-                        // Keep local counters to avoid multi-device ID conflicts.
+                        upiHandle = remoteProfile.upiHandle.orFallback(""),
+                        upiMobile = remoteProfile.upiMobile.orFallback(""),
+                        cashEnabled = remoteProfile.cashEnabled ?: true,
+                        posEnabled = remoteProfile.posEnabled ?: false,
+                        zomatoEnabled = remoteProfile.zomatoEnabled ?: false,
+                        swiggyEnabled = remoteProfile.swiggyEnabled ?: false,
+                        ownWebsiteEnabled = remoteProfile.ownWebsiteEnabled ?: false,
+                        printerEnabled = remoteProfile.printerEnabled ?: false,
+                        printerName = remoteProfile.printerName.orFallback(""),
+                        printerMac = remoteProfile.printerMac.orFallback(""),
+                        paperSize = remoteProfile.paperSize.orFallback(currentLocalProfile?.paperSize ?: "58mm"),
+                        autoPrintOnSuccess = remoteProfile.autoPrintOnSuccess ?: false,
+                        includeLogoInPrint = remoteProfile.includeLogoInPrint ?: true,
+                        printCustomerWhatsapp = remoteProfile.printCustomerWhatsapp ?: true,
                         dailyOrderCounter = currentLocalProfile?.dailyOrderCounter ?: remoteProfile.dailyOrderCounter,
                         lifetimeOrderCounter = currentLocalProfile?.lifetimeOrderCounter ?: remoteProfile.lifetimeOrderCounter,
-                        lastResetDate = currentLocalProfile?.lastResetDate ?: remoteProfile.lastResetDate,
-                        sessionTimeoutMinutes = remoteProfile.sessionTimeoutMinutes,
-                        restaurantId = remoteProfile.restaurantId,
-                        deviceId = remoteProfile.deviceId,
+                        lastResetDate = currentLocalProfile?.lastResetDate ?: remoteProfile.lastResetDate.orFallback(""),
+                        sessionTimeoutMinutes = remoteProfile.sessionTimeoutMinutes ?: 30,
+                        restaurantId = remoteProfile.restaurantId ?: 0L,
+                        deviceId = remoteProfile.deviceId.orFallback("unknown_device"),
                         isSynced = true,
                         updatedAt = remoteProfile.updatedAt,
-                        isDeleted = remoteProfile.isDeleted
+                        isDeleted = remoteProfile.isDeleted ?: false
                     )
                 }
             )
         }
+
         if (masterData.users.isNotEmpty()) {
             val localUsersByEmail = userDao.getAllUsersOnce().associateBy { it.email }
             userDao.insertSyncedUsers(
                 masterData.users.map { remoteUser ->
                     val localUser = localUsersByEmail[remoteUser.email]
-                    // Use remote hash if valid; fall back to local hash; sentinel if neither exists
                     val resolvedPasswordHash = remoteUser.passwordHash
                         .takeUnless { it.isNullOrBlank() }
                         ?: localUser?.passwordHash
@@ -178,38 +171,39 @@ class MasterSyncProcessor @Inject constructor(
 
                     UserEntity(
                         id = remoteUser.id,
-                        name = remoteUser.name,
-                        email = remoteUser.email,
+                        name = remoteUser.name.orFallback("User"),
+                        email = remoteUser.email.orFallback(""),
                         passwordHash = resolvedPasswordHash,
-                        whatsappNumber = remoteUser.whatsappNumber ?: localUser?.whatsappNumber,
-                        isActive = remoteUser.isActive,
+                        whatsappNumber = remoteUser.whatsappNumber ?: localUser?.whatsappNumber ?: "",
+                        isActive = remoteUser.isActive ?: true,
                         createdAt = remoteUser.createdAt.orFallback(""),
-                        restaurantId = remoteUser.restaurantId,
-                        deviceId = remoteUser.deviceId,
+                        restaurantId = remoteUser.restaurantId ?: 0L,
+                        deviceId = remoteUser.deviceId.orFallback(""),
                         isSynced = true
                     )
                 }
             )
         }
+
         if (masterData.categories.isNotEmpty()) {
             categoryDao.insertSyncedCategories(
                 masterData.categories.map { remoteCategory ->
                     CategoryEntity(
                         id = remoteCategory.id,
-                        name = remoteCategory.name.orFallback("Uncategorized"),
+                        name = remoteCategory.name.orFallback("Category"),
                         isVeg = remoteCategory.isVeg,
-                        sortOrder = remoteCategory.sortOrder,
-                        isActive = remoteCategory.isActive,
+                        sortOrder = remoteCategory.sortOrder ?: 0,
                         createdAt = remoteCategory.createdAt.orFallback(""),
-                        restaurantId = remoteCategory.restaurantId,
+                        restaurantId = remoteCategory.restaurantId ?: 0L,
                         deviceId = remoteCategory.deviceId.orFallback(""),
                         isSynced = true,
                         updatedAt = remoteCategory.updatedAt,
-                        isDeleted = remoteCategory.isDeleted
+                        isDeleted = remoteCategory.isDeleted ?: false
                     )
                 }
             )
         }
+
         if (masterData.menuItems.isNotEmpty()) {
             menuDao.insertSyncedMenuItems(
                 masterData.menuItems.map { remoteMenuItem ->
@@ -217,22 +211,23 @@ class MasterSyncProcessor @Inject constructor(
                         id = remoteMenuItem.id,
                         categoryId = remoteMenuItem.categoryId,
                         name = remoteMenuItem.name.orFallback("Unnamed Item"),
-                        basePrice = remoteMenuItem.basePrice,
+                        basePrice = remoteMenuItem.basePrice ?: 0.0,
                         foodType = remoteMenuItem.foodType.orFallback("veg"),
                         description = remoteMenuItem.description,
-                        isAvailable = remoteMenuItem.isAvailable,
-                        currentStock = remoteMenuItem.currentStock,
-                        lowStockThreshold = remoteMenuItem.lowStockThreshold,
+                        isAvailable = remoteMenuItem.isAvailable ?: true,
+                        currentStock = remoteMenuItem.currentStock ?: 0.0,
+                        lowStockThreshold = remoteMenuItem.lowStockThreshold ?: 0.0,
                         createdAt = remoteMenuItem.createdAt.orFallback(""),
-                        restaurantId = remoteMenuItem.restaurantId,
+                        restaurantId = remoteMenuItem.restaurantId ?: 0L,
                         deviceId = remoteMenuItem.deviceId.orFallback(""),
                         isSynced = true,
                         updatedAt = remoteMenuItem.updatedAt,
-                        isDeleted = remoteMenuItem.isDeleted
+                        isDeleted = remoteMenuItem.isDeleted ?: false
                     )
                 }
             )
         }
+
         if (masterData.itemVariants.isNotEmpty()) {
             menuDao.insertSyncedItemVariants(
                 masterData.itemVariants.map { remoteVariant ->
@@ -240,20 +235,21 @@ class MasterSyncProcessor @Inject constructor(
                         id = remoteVariant.id,
                         menuItemId = remoteVariant.menuItemId,
                         variantName = remoteVariant.variantName.orFallback("Default"),
-                        price = remoteVariant.price,
-                        isAvailable = remoteVariant.isAvailable,
-                        sortOrder = remoteVariant.sortOrder,
-                        currentStock = remoteVariant.currentStock,
-                        lowStockThreshold = remoteVariant.lowStockThreshold,
-                        restaurantId = remoteVariant.restaurantId,
+                        price = remoteVariant.price ?: 0.0,
+                        isAvailable = remoteVariant.isAvailable ?: true,
+                        sortOrder = remoteVariant.sortOrder ?: 0,
+                        currentStock = remoteVariant.currentStock ?: 0.0,
+                        lowStockThreshold = remoteVariant.lowStockThreshold ?: 0.0,
+                        restaurantId = remoteVariant.restaurantId ?: 0L,
                         deviceId = remoteVariant.deviceId.orFallback(""),
                         isSynced = true,
                         updatedAt = remoteVariant.updatedAt,
-                        isDeleted = remoteVariant.isDeleted
+                        isDeleted = remoteVariant.isDeleted ?: false
                     )
                 }
             )
         }
+
         if (masterData.stockLogs.isNotEmpty()) {
             inventoryDao.insertSyncedStockLogs(
                 masterData.stockLogs.map { remoteStockLog ->
@@ -261,52 +257,54 @@ class MasterSyncProcessor @Inject constructor(
                         id = remoteStockLog.id,
                         menuItemId = remoteStockLog.menuItemId,
                         variantId = remoteStockLog.variantId,
-                        delta = remoteStockLog.delta,
+                        delta = remoteStockLog.delta ?: 0.0,
                         reason = remoteStockLog.reason.orFallback("adjustment"),
                         createdAt = remoteStockLog.createdAt.orFallback(""),
-                        restaurantId = remoteStockLog.restaurantId,
+                        restaurantId = remoteStockLog.restaurantId ?: 0L,
                         deviceId = remoteStockLog.deviceId.orFallback(""),
                         isSynced = true,
                         updatedAt = remoteStockLog.updatedAt,
-                        isDeleted = remoteStockLog.isDeleted
+                        isDeleted = remoteStockLog.isDeleted ?: false
                     )
                 }
             )
         }
+
         if (masterData.bills.isNotEmpty()) {
             billDao.insertSyncedBills(
                 masterData.bills.map { remoteBill ->
                     BillEntity(
                         id = remoteBill.id,
-                        restaurantId = remoteBill.restaurantId,
+                        restaurantId = remoteBill.restaurantId ?: 0L,
                         deviceId = remoteBill.deviceId.orFallback(""),
-                        dailyOrderId = remoteBill.dailyOrderId,
+                        dailyOrderId = remoteBill.dailyOrderId ?: 0,
                         dailyOrderDisplay = remoteBill.dailyOrderDisplay.orFallback(""),
-                        lifetimeOrderId = remoteBill.lifetimeOrderId,
+                        lifetimeOrderId = remoteBill.lifetimeOrderId ?: 0,
                         orderType = remoteBill.orderType.orFallback("order"),
                         customerName = remoteBill.customerName,
                         customerWhatsapp = remoteBill.customerWhatsapp,
-                        subtotal = remoteBill.subtotal,
-                        gstPercentage = remoteBill.gstPercentage,
-                        cgstAmount = remoteBill.cgstAmount,
-                        sgstAmount = remoteBill.sgstAmount,
-                        customTaxAmount = remoteBill.customTaxAmount,
-                        totalAmount = remoteBill.totalAmount,
+                        subtotal = remoteBill.subtotal ?: 0.0,
+                        gstPercentage = remoteBill.gstPercentage ?: 0.0,
+                        cgstAmount = remoteBill.cgstAmount ?: 0.0,
+                        sgstAmount = remoteBill.sgstAmount ?: 0.0,
+                        customTaxAmount = remoteBill.customTaxAmount ?: 0.0,
+                        totalAmount = remoteBill.totalAmount ?: 0.0,
                         paymentMode = remoteBill.paymentMode.orFallback("cash"),
-                        partAmount1 = remoteBill.partAmount1,
-                        partAmount2 = remoteBill.partAmount2,
+                        partAmount1 = remoteBill.partAmount1 ?: 0.0,
+                        partAmount2 = remoteBill.partAmount2 ?: 0.0,
                         paymentStatus = remoteBill.paymentStatus.orFallback("success"),
                         orderStatus = remoteBill.orderStatus.orFallback("completed"),
-                        createdBy = remoteBill.createdBy,
+                        createdBy = remoteBill.createdBy?.toInt(),
                         createdAt = remoteBill.createdAt.orFallback(""),
                         paidAt = remoteBill.paidAt,
                         isSynced = true,
                         updatedAt = remoteBill.updatedAt,
-                        isDeleted = remoteBill.isDeleted
+                        isDeleted = remoteBill.isDeleted ?: false
                     )
                 }
             )
         }
+
         if (masterData.billItems.isNotEmpty()) {
             billDao.insertSyncedBillItems(
                 masterData.billItems.map { remoteBillItem ->
@@ -317,19 +315,20 @@ class MasterSyncProcessor @Inject constructor(
                         itemName = remoteBillItem.itemName.orFallback("Unnamed Item"),
                         variantId = remoteBillItem.variantId,
                         variantName = remoteBillItem.variantName,
-                        price = remoteBillItem.price,
-                        quantity = remoteBillItem.quantity,
-                        itemTotal = remoteBillItem.itemTotal,
+                        price = remoteBillItem.price ?: 0.0,
+                        quantity = remoteBillItem.quantity?.toInt() ?: 0,
+                        itemTotal = remoteBillItem.itemTotal ?: 0.0,
                         specialInstruction = remoteBillItem.specialInstruction,
-                        restaurantId = remoteBillItem.restaurantId,
+                        restaurantId = remoteBillItem.restaurantId ?: 0L,
                         deviceId = remoteBillItem.deviceId.orFallback(""),
                         isSynced = true,
                         updatedAt = remoteBillItem.updatedAt,
-                        isDeleted = remoteBillItem.isDeleted
+                        isDeleted = remoteBillItem.isDeleted ?: false
                     )
                 }
             )
         }
+
         if (masterData.billPayments.isNotEmpty()) {
             billDao.insertSyncedBillPayments(
                 masterData.billPayments.map { remoteBillPayment ->
@@ -337,12 +336,12 @@ class MasterSyncProcessor @Inject constructor(
                         id = remoteBillPayment.id,
                         billId = remoteBillPayment.billId,
                         paymentMode = remoteBillPayment.paymentMode.orFallback("cash"),
-                        amount = remoteBillPayment.amount,
-                        restaurantId = remoteBillPayment.restaurantId,
+                        amount = remoteBillPayment.amount ?: 0.0,
+                        restaurantId = remoteBillPayment.restaurantId ?: 0L,
                         deviceId = remoteBillPayment.deviceId.orFallback(""),
                         isSynced = true,
                         updatedAt = remoteBillPayment.updatedAt,
-                        isDeleted = remoteBillPayment.isDeleted
+                        isDeleted = remoteBillPayment.isDeleted ?: false
                     )
                 }
             )

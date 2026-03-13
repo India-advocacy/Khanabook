@@ -74,6 +74,7 @@ object DatabaseModule {
                                 )
                                 .openHelperFactory(factory)
                                 .addMigrations(AppDatabase.MIGRATION_17_18, AppDatabase.MIGRATION_18_19)
+                                .fallbackToDestructiveMigration()
 
                 return builder.build()
         }

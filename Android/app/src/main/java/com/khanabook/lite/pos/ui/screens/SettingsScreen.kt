@@ -57,6 +57,9 @@ import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import java.io.File
 import java.io.FileOutputStream
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import coil.request.CachePolicy
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,7 +119,7 @@ fun SettingsScreen(
                                 .verticalScroll(rememberScrollState())
                         ) {
                             Spacer(modifier = Modifier.height(8.dp))
-                            ProfileCard(currentUser)
+                            ProfileCard(currentUser, profile)
                             Spacer(modifier = Modifier.height(16.dp))
                             
                             SettingsItem(icon = Icons.Filled.Store, text = "Shop/Restaurant Configuration") { section = "shop" }
@@ -210,7 +213,10 @@ fun SettingsScreen(
 }
 
 @Composable
-fun ProfileCard(user: UserEntity?) {
+fun ProfileCard(user: UserEntity?, profile: RestaurantProfileEntity?) {
+    val displayName = profile?.shopName?.takeIf { it.isNotBlank() } ?: user?.name?.takeIf { it.isNotBlank() } ?: "Guest"
+    val displayPhone = profile?.whatsappNumber?.takeIf { it.isNotBlank() } ?: user?.whatsappNumber ?: ""
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = DarkBrown2.copy(alpha = 0.5f)),
@@ -219,12 +225,14 @@ fun ProfileCard(user: UserEntity?) {
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.size(50.dp).background(PrimaryGold, CircleShape), contentAlignment = Alignment.Center) {
-                Text(text = user?.name?.take(1)?.uppercase() ?: "?", color = DarkBrown1, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(text = displayName.take(1).uppercase(), color = DarkBrown1, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = user?.name ?: "Guest User", color = TextLight, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text(text = user?.whatsappNumber ?: "", color = TextGold, fontSize = 12.sp)
+                Text(text = displayName, color = TextLight, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                if (displayPhone.isNotBlank()) {
+                    Text(text = displayPhone, color = TextGold, fontSize = 12.sp)
+                }
             }
         }
     }
@@ -268,6 +276,19 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
     var email by remember { mutableStateOf(profile?.email ?: "") }
     var logoPath by remember { mutableStateOf(profile?.logoPath) }
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
+    var logoUpdateTrigger by remember { mutableStateOf(0L) }
+
+    // Sync local state when profile changes (e.g. after login/sync)
+    LaunchedEffect(profile) {
+        profile?.let {
+            name = it.shopName ?: ""
+            address = it.shopAddress ?: ""
+            whatsapp = it.whatsappNumber ?: ""
+            email = it.email ?: ""
+            logoPath = it.logoPath
+            consent = it.emailInvoiceConsent
+        }
+    }
 
     // --- OTP States ---
     var showOtpDialog by remember { mutableStateOf(false) }
@@ -347,7 +368,10 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
     }
 
     val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { logoPath = copyUriToInternalStorage(context, it, "shop_logo.png") }
+        uri?.let { 
+            logoPath = copyUriToInternalStorage(context, it, "shop_logo.png")
+            logoUpdateTrigger = System.currentTimeMillis() // Force refresh
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
@@ -356,7 +380,20 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Box(modifier = Modifier.size(100.dp).background(Color.White).border(1.dp, Color.LightGray), contentAlignment = Alignment.Center) {
-                    logoPath?.let { loadBitmap(it)?.let { bmp -> Image(bitmap = bmp.asImageBitmap(), contentDescription = null, modifier = Modifier.fillMaxSize().padding(4.dp)) } } ?: Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                    if (!logoPath.isNullOrBlank()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(logoPath)
+                                .setParameter("refresh", logoUpdateTrigger) // Cache buster for local updates
+                                .crossfade(true)
+                                .diskCachePolicy(CachePolicy.DISABLED) // Always reload if it's a local file update
+                                .build(),
+                            contentDescription = "Logo",
+                            modifier = Modifier.fillMaxSize().padding(4.dp)
+                        )
+                    } else {
+                        Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                    }
                 }
                 OutlinedButton(onClick = { logoLauncher.launch("image/*") }, border = BorderStroke(1.dp, PrimaryGold), shape = RoundedCornerShape(20.dp)) { Text("Change Logo", color = PrimaryGold) }
             }
@@ -408,9 +445,29 @@ private fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
     var zomatoEnabled by remember { mutableStateOf(profile?.zomatoEnabled ?: false) }
     var swiggyEnabled by remember { mutableStateOf(profile?.swiggyEnabled ?: false) }
     var ownWebsiteEnabled by remember { mutableStateOf(profile?.ownWebsiteEnabled ?: false) }
+    var qrUpdateTrigger by remember { mutableStateOf(0L) }
+
+    // Sync local state when profile changes
+    LaunchedEffect(profile) {
+        profile?.let {
+            currency = it.currency ?: "INR"
+            upiSupported = it.upiEnabled
+            upiHandle = it.upiHandle ?: ""
+            upiMobile = it.upiMobile ?: ""
+            qrPath = it.upiQrPath
+            cashEnabled = it.cashEnabled
+            posEnabled = it.posEnabled
+            zomatoEnabled = it.zomatoEnabled
+            swiggyEnabled = it.swiggyEnabled
+            ownWebsiteEnabled = it.ownWebsiteEnabled
+        }
+    }
 
     val qrLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { qrPath = copyUriToInternalStorage(context, it, "upi_qr.png") }
+        uri?.let { 
+            qrPath = copyUriToInternalStorage(context, it, "upi_qr.png")
+            qrUpdateTrigger = System.currentTimeMillis()
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
@@ -432,7 +489,20 @@ private fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                 Spacer(modifier = Modifier.height(20.dp))
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Box(modifier = Modifier.size(100.dp).background(Color.White).border(1.dp, Color.LightGray).padding(4.dp), contentAlignment = Alignment.Center) {
-                        qrPath?.let { loadBitmap(it)?.let { bmp -> Image(bitmap = bmp.asImageBitmap(), contentDescription = null, modifier = Modifier.fillMaxSize()) } } ?: Icon(Icons.Default.QrCode, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                        if (!qrPath.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(qrPath)
+                                    .setParameter("refresh", qrUpdateTrigger)
+                                    .crossfade(true)
+                                    .diskCachePolicy(CachePolicy.DISABLED)
+                                    .build(),
+                                contentDescription = "QR Code",
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Icon(Icons.Default.QrCode, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                        }
                     }
                     OutlinedButton(onClick = { qrLauncher.launch("image/*") }, border = BorderStroke(1.dp, PrimaryGold), shape = RoundedCornerShape(20.dp)) { Text("Upload QR Code", color = PrimaryGold) }
                 }

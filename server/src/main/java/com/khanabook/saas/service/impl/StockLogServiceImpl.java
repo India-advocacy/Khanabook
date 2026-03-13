@@ -2,8 +2,10 @@ package com.khanabook.saas.service.impl;
 
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.entity.StockLog;
+import com.khanabook.saas.entity.ItemVariant;
 import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.StockLogRepository;
+import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.service.StockLogService;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import java.util.Optional;
 public class StockLogServiceImpl implements StockLogService {
     private final StockLogRepository repository;
     private final MenuItemRepository menuItemRepository;
+    private final ItemVariantRepository itemVariantRepository;
     private final GenericSyncService genericSyncService;
 
     @Override
@@ -23,6 +26,8 @@ public class StockLogServiceImpl implements StockLogService {
         java.util.Iterator<StockLog> iterator = payload.iterator();
         while (iterator.hasNext()) {
             StockLog log = iterator.next();
+            
+            // 1. Resolve MenuItem
             if (log.getServerMenuItemId() == null && log.getMenuItemId() != null) {
                 Optional<MenuItem> menuItem = menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(
                         tenantId, log.getDeviceId(), log.getMenuItemId());
@@ -30,10 +35,31 @@ public class StockLogServiceImpl implements StockLogService {
                 if (menuItem.isPresent()) {
                     log.setServerMenuItemId(menuItem.get().getId());
                 } else {
-                    // Skip this record to prevent corruption
-                    System.err.println("WARNING: Skipping StockLog push. Could not resolve serverMenuItemId for localId: " 
-                            + log.getMenuItemId() + " on device: " + log.getDeviceId());
-                    iterator.remove();
+                    // FALLBACK: Try resolving by Server ID directly.
+                    Optional<MenuItem> serverMenuItem = menuItemRepository.findById(log.getMenuItemId().longValue());
+                    if (serverMenuItem.isPresent() && serverMenuItem.get().getRestaurantId().equals(tenantId)) {
+                        log.setServerMenuItemId(serverMenuItem.get().getId());
+                    } else {
+                        System.err.println("WARNING: Skipping StockLog push. Could not resolve serverMenuItemId for localId: " 
+                                + log.getMenuItemId() + " on device: " + log.getDeviceId());
+                        iterator.remove();
+                        continue;
+                    }
+                }
+            }
+
+            // 2. Resolve Variant (if applicable)
+            if (log.getServerVariantId() == null && log.getVariantId() != null && log.getVariantId() > 0) {
+                Optional<ItemVariant> variant = itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalId(
+                        tenantId, log.getDeviceId(), log.getVariantId());
+                
+                if (variant.isPresent()) {
+                    log.setServerVariantId(variant.get().getId());
+                } else {
+                    Optional<ItemVariant> serverVariant = itemVariantRepository.findById(log.getVariantId().longValue());
+                    if (serverVariant.isPresent() && serverVariant.get().getRestaurantId().equals(tenantId)) {
+                        log.setServerVariantId(serverVariant.get().getId());
+                    }
                 }
             }
         }

@@ -15,6 +15,7 @@ import lombok.Setter;
 })
 @Getter
 @Setter
+
 public class StockLog extends BaseSyncEntity {
 
     @Column(name = "menu_item_id")
