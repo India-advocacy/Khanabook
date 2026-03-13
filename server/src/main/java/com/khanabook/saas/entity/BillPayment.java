@@ -20,6 +20,9 @@ public class BillPayment extends BaseSyncEntity {
     @Column(name = "bill_id", nullable = true)
     private Integer billId;
 
+    @Column(name = "server_bill_id", nullable = true)
+    private Long serverBillId;
+
     @Column(name = "payment_mode")
     private String paymentMode;
 
