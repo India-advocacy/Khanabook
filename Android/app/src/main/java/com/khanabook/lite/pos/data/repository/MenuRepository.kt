@@ -50,6 +50,10 @@ class MenuRepository(
         return menuDao.getItemByName(name)
     }
 
+    suspend fun getMenuItemByCode(code: String): MenuItemEntity? {
+        return menuDao.getItemByBarcode(code)
+    }
+
     suspend fun getAllMenuItemsOnce(): List<MenuItemEntity> {
         return menuDao.getAllMenuItemsOnce()
     }

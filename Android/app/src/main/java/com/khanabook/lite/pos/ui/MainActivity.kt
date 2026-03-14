@@ -160,19 +160,27 @@ class MainActivity : ComponentActivity() {
                     composable("new_bill") {
                         NewBillScreen(
                                 onBack = { navController.popBackStack() },
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                navController = navController
                         )
                     }
                     composable("ocr_scanner/{source}") { backStackEntry ->
+                        val source = backStackEntry.arguments?.getString("source") ?: "menu_config"
+                        val isBarcodeScan = source == "billing"
                         val selectedCategoryName =
-                            navController.previousBackStackEntry
+                            if (!isBarcodeScan) navController.previousBackStackEntry
                                 ?.savedStateHandle
                                 ?.get<String>("ocr_category_name")
+                            else null
                         OcrScannerScreen(
                                 selectedCategoryName = selectedCategoryName,
                                 viewModel = menuViewModel,
+                                navController = navController,
+                                returnBarcode = isBarcodeScan,
                                 onBack = {
-                                    navController.previousBackStackEntry?.savedStateHandle?.remove<String>("ocr_category_name")
+                                    if (!isBarcodeScan) {
+                                        navController.previousBackStackEntry?.savedStateHandle?.remove<String>("ocr_category_name")
+                                    }
                                     navController.popBackStack()
                                 }
                         )

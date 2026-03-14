@@ -133,6 +133,20 @@ class BillingViewModel @Inject constructor(
     }
 
     /**
+     * Barcode Scanning Logic: Looks up an item by its barcode and adds it to the cart.
+     */
+    fun handleScannedBarcode(barcode: String) {
+        viewModelScope.launch {
+            val menuItem = menuRepository.getMenuItemByCode(barcode)
+            if (menuItem != null) {
+                addToCart(menuItem)
+            } else {
+                _error.value = "No item found for barcode: $barcode"
+            }
+        }
+    }
+
+    /**
      * OCR Scanning Logic: Processes scanned text and adds matching items to cart.
      */
     fun addItemByScannedText(text: String) {

@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.PaymentModeManager
@@ -49,7 +50,8 @@ fun NewBillScreen(
         onBack: () -> Unit,
         modifier: Modifier = Modifier,
         billingViewModel: BillingViewModel = hiltViewModel(),
-        menuViewModel: MenuViewModel = hiltViewModel()
+        menuViewModel: MenuViewModel = hiltViewModel(),
+        navController: androidx.navigation.NavController? = null
 ) {
     var step by remember { mutableIntStateOf(1) }
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
@@ -110,7 +112,8 @@ fun NewBillScreen(
                                 onProceedToPayment = { step = 3 },
                                 total = summary.total,
                                 itemCount = cartItems.sumOf { it.quantity },
-                                hideHeader = true
+                                hideHeader = true,
+                                navController = navController
                         )
                 3 ->
                         PaymentStep(
@@ -244,12 +247,28 @@ fun MenuSelectionStep(
         onProceedToPayment: () -> Unit,
         total: Double,
         itemCount: Int,
-        hideHeader: Boolean = false
+        hideHeader: Boolean = false,
+        navController: NavController? = null
 ) {
     val categories by menuViewModel.categories.collectAsStateWithLifecycle()
     val items by menuViewModel.menuItems.collectAsStateWithLifecycle()
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
+
+    // Observe barcode scan result returned from OcrScannerScreen via StateFlow
+    val scannedBarcode by (navController
+        ?.currentBackStackEntry
+        ?.savedStateHandle
+        ?.getStateFlow("scanned_barcode", "")
+        ?: kotlinx.coroutines.flow.MutableStateFlow(""))
+        .collectAsStateWithLifecycle()
+
+    LaunchedEffect(scannedBarcode) {
+        if (scannedBarcode.isNotEmpty()) {
+            billingViewModel.handleScannedBarcode(scannedBarcode)
+            navController?.currentBackStackEntry?.savedStateHandle?.set("scanned_barcode", "")
+        }
+    }
 
     val derivedItemCount by remember {
         derivedStateOf { cartItems.sumOf { it.quantity } }
@@ -426,14 +445,15 @@ fun MenuSelectionStep(
             }
         }
 
+        // Bottom bar: Scan barcode + Proceed
         Card(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 colors = CardDefaults.cardColors(containerColor = PrimaryGold),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Row(
-                    modifier = Modifier.padding(16.dp),
+                    modifier = Modifier.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -451,19 +471,39 @@ fun MenuSelectionStep(
                             fontSize = 22.sp
                     )
                 }
-                Button(
-                        onClick = onProceedToPayment,
-                        colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
-                        enabled = derivedItemCount > 0
-                ) {
-                    Text(
-                            "Proceed",
-                            color = PrimaryGold,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                    )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Barcode Scan Button
+                    if (navController != null) {
+                        OutlinedButton(
+                                onClick = { navController.navigate("ocr_scanner/billing") },
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.5.dp, DarkBrown1),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkBrown1),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)
+                        ) {
+                            Icon(
+                                    Icons.Default.QrCodeScanner,
+                                    contentDescription = "Scan Barcode",
+                                    modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Scan", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        }
+                    }
+                    Button(
+                            onClick = onProceedToPayment,
+                            colors = ButtonDefaults.buttonColors(containerColor = DarkBrown1),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                            enabled = derivedItemCount > 0
+                    ) {
+                        Text(
+                                "Proceed",
+                                color = PrimaryGold,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                        )
+                    }
                 }
             }
         }

@@ -291,80 +291,34 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
     }
 
     // --- OTP States ---
-    var showOtpDialog by remember { mutableStateOf(false) }
     var otpValue by remember { mutableStateOf("") }
     val otpStatus by authViewModel.otpVerificationStatus.collectAsState()
+
+    var otpSent by remember { mutableStateOf(false) }
+    var otpTimer by remember { mutableIntStateOf(120) }
+    var isOtpVerified by remember { mutableStateOf(false) }
 
     LaunchedEffect(otpStatus) {
         when (otpStatus) {
             is AuthViewModel.OtpVerificationResult.OtpSent -> {
-                showOtpDialog = true
+                otpSent = true
+                otpTimer = 120
+                Toast.makeText(context, "OTP Sent to your WhatsApp!", Toast.LENGTH_SHORT).show()
             }
             is AuthViewModel.OtpVerificationResult.Error -> {
-                Toast.makeText(context, (otpStatus as AuthViewModel.OtpVerificationResult.Error).message, Toast.LENGTH_SHORT).show()
+                val errorMsg = (otpStatus as AuthViewModel.OtpVerificationResult.Error).message
+                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
                 authViewModel.clearOtpStatus()
             }
             else -> {}
         }
     }
 
-    if (showOtpDialog) {
-        AlertDialog(
-            onDismissRequest = { 
-                showOtpDialog = false
-                authViewModel.clearOtpStatus()
-                otpValue = ""
-            },
-            title = { Text("Verify WhatsApp", color = PrimaryGold) },
-            text = {
-                Column {
-                    Text("OTP sent to $whatsapp via WhatsApp", color = TextGold, fontSize = 14.sp)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    ParchmentTextField(
-                        value = otpValue,
-                        onValueChange = { if (it.length <= 6) otpValue = it },
-                        label = "6-Digit OTP"
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (authViewModel.verifyOtp(otpValue)) {
-                            profile?.copy(
-                                shopName = name,
-                                shopAddress = address,
-                                whatsappNumber = whatsapp,
-                                email = email,
-                                logoPath = logoPath,
-                                emailInvoiceConsent = consent
-                            )?.let { 
-                                viewModel.saveProfile(it) 
-                            }
-                            showOtpDialog = false
-                            authViewModel.clearOtpStatus()
-                            otpValue = ""
-                            onBack()
-                        } else {
-                            Toast.makeText(context, "Invalid OTP", Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen)
-                ) {
-                    Text("Verify & Save", color = Color.White)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { 
-                    showOtpDialog = false
-                    authViewModel.clearOtpStatus()
-                    otpValue = ""
-                }) {
-                    Text("Cancel", color = DangerRed)
-                }
-            },
-            containerColor = DarkBrown1
-        )
+    LaunchedEffect(otpSent, otpTimer) {
+        if (otpSent && otpTimer > 0) {
+            kotlinx.coroutines.delay(1000)
+            otpTimer--
+        }
     }
 
     val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -401,8 +355,76 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             ParchmentTextField(value = name, onValueChange = { name = it }, label = "Shop Name")
             Spacer(modifier = Modifier.height(12.dp))
             ParchmentTextField(value = address, onValueChange = { address = it }, label = "Shop Address")
+            val isPhoneValid = isValidPhone(whatsapp)
+            val numberChanged = whatsapp != (profile?.whatsappNumber ?: "")
+
             Spacer(modifier = Modifier.height(12.dp))
-            ParchmentTextField(value = whatsapp, onValueChange = { if (it.length <= 10) whatsapp = it }, label = "Whatsapp Number")
+            ParchmentTextField(
+                value = whatsapp, 
+                onValueChange = { 
+                    if (it.length <= 10) {
+                        whatsapp = it
+                        if (it != (profile?.whatsappNumber ?: "")) {
+                            otpSent = false
+                            isOtpVerified = false
+                            otpValue = ""
+                        } else {
+                            // If user typed back the original number, they don't need OTP anymore
+                            isOtpVerified = true
+                        }
+                    } 
+                }, 
+                label = "Whatsapp Number",
+                isError = whatsapp.isNotEmpty() && !isPhoneValid,
+                supportingText = if (whatsapp.isNotEmpty() && !isPhoneValid) "Enter 10-digit number" else null,
+                trailingIcon = {
+                    if (numberChanged && (!otpSent || otpTimer == 0)) {
+                        Button(
+                            onClick = {
+                                if (isPhoneValid) authViewModel.sendOtp(whatsapp, "update_whatsapp")
+                            },
+                            modifier = Modifier.padding(end = 4.dp).height(36.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            enabled = isPhoneValid
+                        ) {
+                            Text("Send OTP", color = DarkBrown1, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            )
+
+            if (otpSent && numberChanged) {
+                Spacer(modifier = Modifier.height(12.dp))
+                ParchmentTextField(
+                    value = otpValue,
+                    onValueChange = {
+                        if (it.length <= 6) {
+                            otpValue = it
+                            if (it.length == 6) {
+                                isOtpVerified = authViewModel.verifyOtp(it)
+                                if (isOtpVerified) {
+                                    Toast.makeText(context, "Verified successfully!", Toast.LENGTH_SHORT).show()
+                                }
+                            } else {
+                                isOtpVerified = false
+                            }
+                        }
+                    },
+                    label = "Enter 6-digit OTP",
+                    isError = otpValue.length == 6 && !isOtpVerified,
+                    supportingText = if (otpValue.length == 6 && !isOtpVerified) "Invalid OTP code" else null,
+                    trailingIcon = {
+                        if (otpTimer > 0 && !isOtpVerified) {
+                            Text(String.format("%02d:%02d", otpTimer / 60, otpTimer % 60), color = TextLight, fontSize = 14.sp, modifier = Modifier.padding(end = 16.dp))
+                        } else if (isOtpVerified) {
+                            Icon(Icons.Default.Lock, contentDescription = "Verified", tint = SuccessGreen, modifier = Modifier.padding(end = 16.dp))
+                        }
+                    }
+                )
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
             ParchmentTextField(value = email, onValueChange = { email = it }, label = "Email")
             Spacer(modifier = Modifier.height(12.dp))
@@ -412,20 +434,23 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             }
             Spacer(modifier = Modifier.height(24.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { 
-                    if (whatsapp != (profile?.whatsappNumber ?: "")) {
-                        if (isValidPhone(whatsapp)) {
-                            authViewModel.sendOtp(whatsapp, "update_whatsapp")
+                Button(
+                    onClick = { 
+                        if (numberChanged && !isOtpVerified) {
+                            Toast.makeText(context, "Please verify the new WhatsApp number", Toast.LENGTH_SHORT).show()
                         } else {
-                            Toast.makeText(context, "Invalid WhatsApp Number", Toast.LENGTH_SHORT).show()
+                            profile?.copy(shopName = name, shopAddress = address, whatsappNumber = whatsapp, email = email, logoPath = logoPath, emailInvoiceConsent = consent)?.let { 
+                                viewModel.saveProfile(it) 
+                            }
+                            authViewModel.clearOtpStatus()
+                            onBack() 
                         }
-                    } else {
-                        profile?.copy(shopName = name, shopAddress = address, whatsappNumber = whatsapp, email = email, logoPath = logoPath, emailInvoiceConsent = consent)?.let { 
-                            viewModel.saveProfile(it) 
-                        }
-                        onBack() 
-                    }
-                }, modifier = Modifier.weight(1f).height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen), shape = RoundedCornerShape(24.dp)) { Text("Save", color = Color.White) }
+                    }, 
+                    modifier = Modifier.weight(1f).height(48.dp), 
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen), 
+                    shape = RoundedCornerShape(24.dp),
+                    enabled = !numberChanged || isOtpVerified
+                ) { Text("Save", color = Color.White) }
                 OutlinedButton(onClick = { viewModel.resetDailyCounter(); Toast.makeText(context, "Daily order counter reset", Toast.LENGTH_SHORT).show() }, modifier = Modifier.weight(1f).height(48.dp), border = BorderStroke(1.dp, DangerRed), colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed), shape = RoundedCornerShape(24.dp)) { Text("Reset Counter", fontSize = 11.sp) }
             }
         }

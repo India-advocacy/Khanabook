@@ -37,6 +37,8 @@ data class MenuItemEntity(
     val lowStockThreshold: Double = 10.0,
     @ColumnInfo(name = "created_at")
     val createdAt: String,
+    @ColumnInfo(name = "barcode", defaultValue = "NULL")
+    val barcode: String? = null,
 
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",

@@ -242,7 +242,9 @@ constructor(
                         else -> _signUpStatus.value = SignUpResult.OtpSent
                     }
                 } else {
-                    val errorMsg = "Failed to send WhatsApp OTP. Please try again."
+                    val apiError = response.errorBody()?.string() ?: "Unknown error"
+                    val errorMsg = "Failed to send WhatsApp OTP. Error: $apiError"
+                    Log.e(TAG, "WhatsApp API Error: $apiError")
                     generatedOtp = null
                     when (purpose) {
                         "reset" -> _resetPasswordStatus.value = ResetPasswordResult.Error(errorMsg)

@@ -21,6 +21,9 @@ interface MenuDao {
     @Query("SELECT * FROM menu_items WHERE name = :name LIMIT 1")
     suspend fun getItemByName(name: String): MenuItemEntity?
 
+    @Query("SELECT * FROM menu_items WHERE barcode = :barcode LIMIT 1")
+    suspend fun getItemByBarcode(barcode: String): MenuItemEntity?
+
     @Query("SELECT * FROM menu_items")
     suspend fun getAllMenuItemsOnce(): List<MenuItemEntity>
 

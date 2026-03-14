@@ -1,4 +1,4 @@
-﻿@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -23,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
 import com.khanabook.lite.pos.ui.theme.*
+import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 
@@ -33,7 +34,8 @@ fun SearchScreen(
         onBack: () -> Unit,
         modifier: Modifier = Modifier,
         viewModel: SearchViewModel = hiltViewModel(),
-        settingsViewModel: SettingsViewModel = hiltViewModel()
+        settingsViewModel: SettingsViewModel = hiltViewModel(),
+        billingViewModel: BillingViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var lifetimeQuery by remember { mutableStateOf("") }
@@ -406,7 +408,9 @@ fun SearchScreen(
                                 }
                                 OutlinedButton(
                                         onClick = {
-                                            result?.let { openBillToPrint(context, it, profile) }
+                                            result?.let {
+                                                directPrint(context, it, profile, billingViewModel.printerManager)
+                                            }
                                         },
                                         modifier = Modifier.weight(1f).height(40.dp),
                                         shape =

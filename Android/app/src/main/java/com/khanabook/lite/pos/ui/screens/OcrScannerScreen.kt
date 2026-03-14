@@ -81,14 +81,16 @@ import java.util.concurrent.Executors
 fun OcrScannerScreen(
     selectedCategoryName: String? = null,
     viewModel: com.khanabook.lite.pos.ui.viewmodel.MenuViewModel,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    navController: androidx.navigation.NavController? = null,
+    returnBarcode: Boolean = false
 ) {
     val context = LocalContext.current
     val uiState by viewModel.ocrImportUiState.collectAsState()
-    
-    // Automatically navigate back when processing is done and drafts are available
+
+    // Normal OCR mode: navigate back when drafts are ready
     LaunchedEffect(uiState.drafts) {
-        if (uiState.drafts.isNotEmpty() && !uiState.isProcessing) {
+        if (!returnBarcode && uiState.drafts.isNotEmpty() && !uiState.isProcessing) {
             onBack()
         }
     }
@@ -210,7 +212,27 @@ fun OcrScannerScreen(
                     },
                     onUsePhoto = {
                         capturedBitmap?.let { bitmap ->
-                            viewModel.processMenuImage(context, bitmap)
+                            if (returnBarcode) {
+                                // In billing barcode mode: extract text and return to caller
+                                val image = InputImage.fromBitmap(bitmap, 0)
+                                com.google.mlkit.vision.text.TextRecognition
+                                    .getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS)
+                                    .process(image)
+                                    .addOnSuccessListener { visionText ->
+                                        val result = visionText.text.trim()
+                                        if (result.isNotEmpty()) {
+                                            navController?.previousBackStackEntry
+                                                ?.savedStateHandle
+                                                ?.set("scanned_barcode", result)
+                                        }
+                                        navController?.popBackStack() ?: onBack()
+                                    }
+                                    .addOnFailureListener {
+                                        navController?.popBackStack() ?: onBack()
+                                    }
+                            } else {
+                                viewModel.processMenuImage(context, bitmap)
+                            }
                         }
                     },
                     onRetake = {
