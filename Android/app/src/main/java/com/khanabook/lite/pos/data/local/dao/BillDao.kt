@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.Flow
 interface BillDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertBill(bill: BillEntity): Long
 
+    @Update
+    suspend fun updateBill(bill: BillEntity)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBillItems(items: List<BillItemEntity>)
 

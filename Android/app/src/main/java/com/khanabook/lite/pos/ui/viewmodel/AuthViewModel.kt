@@ -176,12 +176,24 @@ constructor(
             try {
                 // Check if user exists for reset password
                 if (purpose == "reset") {
-                    val user = userRepository.getUserByEmail(phoneNumber)
+                    // 1. Check local DB first
+                    var user = userRepository.getUserByEmail(phoneNumber)
+                    
+                    // 2. If not found locally, try remote check (Crucial for new devices)
                     if (user == null) {
-                        _resetPasswordStatus.value =
-                                ResetPasswordResult.Error("No account found with this number")
-                        generatedOtp = null
-                        return@launch
+                        try {
+                            val exists = userRepository.checkUserExistsRemotely(phoneNumber)
+                            if (!exists) {
+                                _resetPasswordStatus.value = ResetPasswordResult.Error("No account found with this number")
+                                generatedOtp = null
+                                return@launch
+                            }
+                        } catch (e: Exception) {
+                            // If server is down and no local user, we can't reset
+                            _resetPasswordStatus.value = ResetPasswordResult.Error("Account not found locally and server is unreachable")
+                            generatedOtp = null
+                            return@launch
+                        }
                     }
                 }
 
@@ -326,14 +338,17 @@ constructor(
     fun resetPassword(phoneNumber: String, newPassword: String) {
         viewModelScope.launch {
             try {
+                // 1. Reset remotely on the server first
+                userRepository.remoteResetPassword(phoneNumber, newPassword)
+
+                // 2. Update locally if user exists in local DB
                 val user = userRepository.getUserByEmail(phoneNumber)
                 if (user != null) {
                     val newHash = authManager.hashPassword(newPassword)
                     userRepository.updatePasswordHash(user.id, newHash)
-                    _resetPasswordStatus.value = ResetPasswordResult.Success
-                } else {
-                    _resetPasswordStatus.value = ResetPasswordResult.Error("User not found")
                 }
+                
+                _resetPasswordStatus.value = ResetPasswordResult.Success
             } catch (e: Exception) {
                 _resetPasswordStatus.value =
                         ResetPasswordResult.Error(e.message ?: "Failed to reset password")

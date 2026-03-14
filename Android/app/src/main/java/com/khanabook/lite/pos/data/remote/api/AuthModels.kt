@@ -22,5 +22,7 @@ data class AuthResponse(
     val token: String,
     val restaurantId: Long,
     val userName: String,
+    val loginId: String? = null,
+    val whatsappNumber: String? = null,
     val role: String? = null
 )

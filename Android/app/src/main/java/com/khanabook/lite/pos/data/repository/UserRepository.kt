@@ -33,16 +33,18 @@ class UserRepository(
             val request = com.khanabook.lite.pos.data.remote.api.LoginRequest(phoneNumber, passwordPlain, deviceId)
             
             val response = api.login(request)
+            val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
 
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
 
-            var localUser = userDao.getUserByEmail(phoneNumber)
+            var localUser = userDao.getUserByEmail(loginId)
             if (localUser == null) {
                 localUser = UserEntity(
                     name = response.userName,
-                    email = phoneNumber,
+                    email = loginId,
                     passwordHash = localPasswordHash,
+                    whatsappNumber = response.whatsappNumber ?: phoneNumber,
                     restaurantId = response.restaurantId,
                     deviceId = deviceId,
                     isActive = true,
@@ -52,6 +54,9 @@ class UserRepository(
                 userDao.insertUser(localUser)
             } else {
                 localUser = localUser.copy(
+                    name = response.userName,
+                    email = loginId,
+                    whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
                     restaurantId = response.restaurantId,
                     isSynced = true
                 )
@@ -71,16 +76,18 @@ class UserRepository(
             val request = com.khanabook.lite.pos.data.remote.api.SignupRequest(phoneNumber, name, passwordPlain, deviceId)
             
             val response = api.signup(request)
+            val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
 
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
 
-            var localUser = userDao.getUserByEmail(phoneNumber)
+            var localUser = userDao.getUserByEmail(loginId)
             if (localUser == null) {
                 localUser = UserEntity(
                     name = name,
-                    email = phoneNumber,
+                    email = loginId,
                     passwordHash = localPasswordHash,
+                    whatsappNumber = response.whatsappNumber ?: phoneNumber,
                     restaurantId = response.restaurantId,
                     deviceId = deviceId,
                     isActive = true,
@@ -90,6 +97,9 @@ class UserRepository(
                 userDao.insertUser(localUser)
             } else {
                 localUser = localUser.copy(
+                    name = response.userName,
+                    email = loginId,
+                    whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
                     restaurantId = response.restaurantId,
                     isSynced = true
                 )
@@ -108,18 +118,20 @@ class UserRepository(
             val deviceId = sessionManager.getDeviceId() ?: "unknown_device"
             val request = com.khanabook.lite.pos.data.remote.api.GoogleLoginRequest(idToken, deviceId)
             val response = api.loginWithGoogle(request)
+            val loginId =
+                response.loginId?.takeIf { it.isNotBlank() }
+                    ?: throw IllegalStateException("Auth response missing login identifier")
 
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
 
-            // In Google login case, userName from token payload is likely the email
-            val email = response.userName 
-            var localUser = userDao.getUserByEmail(email)
+            var localUser = userDao.getUserByEmail(loginId)
             if (localUser == null) {
                 localUser = UserEntity(
                     name = response.userName,
-                    email = email,
+                    email = loginId,
                     passwordHash = "GOOGLE_AUTH",
+                    whatsappNumber = response.whatsappNumber,
                     restaurantId = response.restaurantId,
                     deviceId = deviceId,
                     isActive = true,
@@ -129,6 +141,9 @@ class UserRepository(
                 userDao.insertUser(localUser)
             } else {
                 localUser = localUser.copy(
+                    name = response.userName,
+                    email = loginId,
+                    whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
                     restaurantId = response.restaurantId,
                     isSynced = true
                 )
@@ -178,12 +193,29 @@ class UserRepository(
     }
 
     suspend fun updatePasswordHash(userId: Int, newHash: String) {
-        userDao.updatePasswordHash(userId, newHash)
+        userDao.updatePasswordHash(userId, newHash, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
-    suspend fun updateAdminPhoneNumber(newPhone: String) {
-        userDao.updateAdminPhoneNumber(newPhone)
+    suspend fun remoteResetPassword(phoneNumber: String, newPasswordPlain: String) {
+        api.resetPassword(phoneNumber, newPasswordPlain)
+    }
+
+    suspend fun checkUserExistsRemotely(phoneNumber: String): Boolean {
+        return try {
+            api.checkUser(phoneNumber)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    suspend fun updateWhatsappNumber(userId: Int, newPhone: String) {
+        userDao.updateWhatsappNumber(userId, newPhone, System.currentTimeMillis())
+        triggerBackgroundSync()
+    }
+
+    suspend fun updateAccountDetails(userId: Int, newEmail: String, newPhone: String) {
+        userDao.updateAccountDetails(userId, newEmail, newPhone, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
@@ -192,12 +224,12 @@ class UserRepository(
     }
 
     suspend fun setActivationStatus(userId: Int, isActive: Boolean) {
-        userDao.setActivationStatus(userId, isActive)
+        userDao.setActivationStatus(userId, isActive, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
     suspend fun deleteUser(user: UserEntity) {
-        userDao.deleteUser(user)
+        userDao.markDeleted(user.id, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 

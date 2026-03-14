@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -46,31 +47,29 @@ public class GenericSyncService {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // Assuming all records in a single payload come from the same device
-        String deviceId = payload.get(0).getDeviceId();
+        BaseSyncEntity firstRecord = payload.get(0);
+        String deviceId = firstRecord.getDeviceId();
         long serverTime = System.currentTimeMillis();
+        boolean singletonStylePayload =
+                payload.size() == 1 && (incomingLocalIds.isEmpty() || incomingLocalIds.contains(1));
 
         // 2. Fetch all existing records from the DB in ONE query (matching Tenant + EXACT Device + Local IDs)
         List<T> existingRecords = repository.findByRestaurantIdAndDeviceIdAndLocalIdIn(
                 tenantId, deviceId, incomingLocalIds);
 
-        // EXTRA FALLBACK FOR SINGLETONS (Restaurant Profiles):
-        // If the payload is RestaurantProfile and the exact device check missed,
-        // it means the user re-installed the app on another device but is editing the same store.
-        // Prevent "Duplicate Key Violations" by fetching ALL records for this tenant across devices to force an UPDATE.
-        if (payload.get(0).getClass().getSimpleName().equals("RestaurantProfile")) {
-            List<T> allTenantRecords = repository.findByRestaurantIdAndUpdatedAtGreaterThanAndDeviceIdNot(tenantId, 0L, "UNKNOWN_IMPOSSIBLE_DEVICE");
-            for(T t : allTenantRecords) {
-                boolean alreadyMatched = existingRecords.stream().anyMatch(e -> e.getLocalId().equals(t.getLocalId()) && e.getDeviceId().equals(t.getDeviceId()));
-                if(!alreadyMatched) {
-                    existingRecords.add(t);
+        // Singleton-style records use localId=1 across reinstalls, so allow a tenant+localId fallback.
+        if (singletonStylePayload) {
+            List<T> crossDeviceRecords = repository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1));
+            for (T record : crossDeviceRecords) {
+                boolean alreadyMatched = existingRecords.stream()
+                        .anyMatch(existing -> existing.getId() != null && existing.getId().equals(record.getId()));
+                if (!alreadyMatched) {
+                    existingRecords.add(record);
                 }
             }
         }
 
-        // 3. Map existing records by localId AND deviceId for absolute uniqueness to determine if it's an Update
-        // BUT for Singletons we merge by localId first to overwrite the old profile
-        // Here we just map by localId to force UI overwrites for the same Restaurant
+        // 3. Match exact device records by localId first. Singleton-style payloads also get a tenant-level fallback.
         Map<Integer, T> existingRecordMap = existingRecords.stream()
                 .collect(Collectors.toMap(
                         BaseSyncEntity::getLocalId,
@@ -79,14 +78,13 @@ public class GenericSyncService {
                 ));
 
         // Use a map for records to save to prevent multiple INSERT/UPDATE of same localId in one batch
-        Map<Integer, T> recordsToSaveMap = new java.util.HashMap<>();
+        Map<Integer, T> recordsToSaveMap = new HashMap<>();
 
         // 4. Process the payload in memory
         for (T incomingRecord : payload) {
             try {
                 if (incomingRecord.getLocalId() == null) {
-                    // Fallback to localId=1 for singletons like Restaurant Profile to guarantee smooth merge
-                    if (incomingRecord.getClass().getSimpleName().equals("RestaurantProfile")) {
+                    if (singletonStylePayload) {
                         incomingRecord.setLocalId(1);
                     } else {
                         System.err.println("[GenericSyncService] Skipping record with NULL localId!");
@@ -100,30 +98,14 @@ public class GenericSyncService {
                 T existingRecord = existingRecordMap.get(incomingRecord.getLocalId());
 
                 if (existingRecord != null) {
-                    // It exists, check if we need to update
-                    
-                    // IF it exists but belongs to a DIFFERENT device (e.g. they changed phones or wiped data)
-                    // We must OVERWRITE the old record rather than creating a new one with the same uniqueness constraints!
-                    if (!existingRecord.getDeviceId().equals(incomingRecord.getDeviceId())) {
-                         incomingRecord.setId(existingRecord.getId()); // Grab the real Server DB ID
-                         incomingRecord.setDeviceId(existingRecord.getDeviceId()); // Keep original device ID to satisfy Constraint OR change DB to allow
-                    } else {
-                         incomingRecord.setId(existingRecord.getId());
-                    }
-                    
+                    incomingRecord.setId(existingRecord.getId());
+
                     if (incomingRecord.getUpdatedAt() > existingRecord.getUpdatedAt()) {
                         T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
                         if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
                             recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);
                         }
                         successfulLocalIds.add(incomingRecord.getLocalId());
-                    } else if (!existingRecord.getDeviceId().equals(incomingRecord.getDeviceId())) {
-                         // Force update if crossing devices to merge latest state
-                         T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
-                         if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
-                             recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);
-                         }
-                         successfulLocalIds.add(incomingRecord.getLocalId());
                     }
                 } else {
                     // It doesn't exist, insert new
@@ -140,7 +122,7 @@ public class GenericSyncService {
 
         // 5. Save all records to the DB in a single batch
         if (!recordsToSaveMap.isEmpty()) {
-            repository.saveAll(recordsToSaveMap.values());
+            repository.saveAll(new ArrayList<>(recordsToSaveMap.values()));
         }
 
         System.out.println("\n[GenericSyncService] Successfully batch synced " + successfulLocalIds.size()

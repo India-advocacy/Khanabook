@@ -116,9 +116,10 @@ object DatabaseModule {
         @Singleton
         fun provideCategoryRepository(
                 categoryDao: CategoryDao,
+                menuDao: MenuDao,
                 sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
                 workManager: androidx.work.WorkManager
-        ) = CategoryRepository(categoryDao, sessionManager, workManager)
+        ) = CategoryRepository(categoryDao, menuDao, sessionManager, workManager)
 
         @Provides
         @Singleton

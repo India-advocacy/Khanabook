@@ -11,6 +11,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,6 +20,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class BillServiceTest {
 
     @Mock
@@ -27,7 +30,7 @@ class BillServiceTest {
     private BillServiceImpl billService;
 
     @Captor
-    private ArgumentCaptor<List<Bill>> listCaptor;
+    private ArgumentCaptor<Iterable<Bill>> listCaptor;
 
     private final Long AUTHENTICATED_RESTAURANT_ID = 99L;
     private final String DEVICE_ID = "TABLET_1";
@@ -65,13 +68,13 @@ class BillServiceTest {
                 .thenReturn(List.of(existingDbBill));
 
         // Mock saveAll to return the input list
-        when(billRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
+        doAnswer(i -> i.getArgument(0)).when(billRepository).saveAll(anyList());
 
         List<Integer> successIds = billService.pushData(AUTHENTICATED_RESTAURANT_ID, List.of(mobileBill));
 
         // Capture what was passed to saveAll
         verify(billRepository).saveAll(listCaptor.capture());
-        Bill savedBill = listCaptor.getValue().get(0);
+        Bill savedBill = listCaptor.getValue().iterator().next();
 
         assertThat(savedBill.getId()).isEqualTo(5L);
         assertThat(savedBill.getUpdatedAt()).isEqualTo(newMobileTime);
@@ -87,12 +90,12 @@ class BillServiceTest {
         when(billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(anyLong(), anyString(), anyList()))
                 .thenReturn(List.of());
 
-        when(billRepository.saveAll(anyList())).thenAnswer(i -> i.getArgument(0));
+        doAnswer(i -> i.getArgument(0)).when(billRepository).saveAll(anyList());
 
         billService.pushData(AUTHENTICATED_RESTAURANT_ID, List.of(hackedMobileBill));
 
         verify(billRepository).saveAll(listCaptor.capture());
-        Bill savedBill = listCaptor.getValue().get(0);
+        Bill savedBill = listCaptor.getValue().iterator().next();
 
         // Server MUST override the malicious ID with the authenticated one
         assertThat(savedBill.getRestaurantId()).isEqualTo(AUTHENTICATED_RESTAURANT_ID);

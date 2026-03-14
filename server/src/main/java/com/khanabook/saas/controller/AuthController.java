@@ -49,6 +49,17 @@ public class AuthController {
         return ResponseEntity.ok(authService.googleLogin(request));
     }
 
+    @GetMapping("/check-user")
+    public ResponseEntity<Boolean> checkUser(@RequestParam String phoneNumber) {
+        return ResponseEntity.ok(authService.checkUserExists(phoneNumber));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@RequestParam String phoneNumber, @RequestParam String newPassword) {
+        authService.resetPassword(phoneNumber, newPassword);
+        return ResponseEntity.ok().build();
+    }
+
     // ─── Request / Response DTOs ──────────────────────────────────────────────
 
     @Data @AllArgsConstructor @NoArgsConstructor
@@ -99,5 +110,7 @@ public class AuthController {
         private String token;
         private Long restaurantId;
         private String userName;
+        private String loginId;
+        private String whatsappNumber;
     }
 }

@@ -16,8 +16,10 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
     val requestBuilder = request.newBuilder()
     requestBuilder.addHeader("ngrok-skip-browser-warning", "true")
 
-    // 2. Skip adding the token for auth endpoints like login or Google sign-in
-    if (!(path.contains("/auth") || path.contains("login"))) {
+    // 2. Skip adding the token for auth endpoints or external APIs like Meta/Facebook
+    val isExternalApi = request.url.host.contains("facebook.com") || request.url.host.contains("google")
+    
+    if (!(path.contains("/auth") || path.contains("login") || isExternalApi)) {
         // 3. Fetch token blocking synchronously (interceptors run on background threads)
         val token = sessionManager.getAuthToken()
 

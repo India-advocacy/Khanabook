@@ -138,12 +138,16 @@ class SettingsViewModel @Inject constructor(
     fun saveProfile(profile: RestaurantProfileEntity) {
         viewModelScope.launch {
             restaurantRepository.saveProfile(profile)
-            userRepository.updateAdminPhoneNumber(profile.whatsappNumber ?: "")
             
             userRepository.currentUser.value?.let { current ->
-                // Only update whatsappNumber — never overwrite email (it is the login identifier)
+                val newNumber = profile.whatsappNumber ?: ""
+                // Update BOTH contact and login identifier (since we logged in with phone)
+                userRepository.updateAccountDetails(current.id, newNumber, newNumber)
+                
+                // Update local session to use the new number/email
                 userRepository.setCurrentUser(current.copy(
-                    whatsappNumber = profile.whatsappNumber
+                    email = newNumber,
+                    whatsappNumber = newNumber
                 ))
             }
         }

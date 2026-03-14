@@ -46,7 +46,13 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("User logged in: restaurantId={}", user.getRestaurantId());
         String token = jwtUtility.generateToken(user.getEmail(), user.getRestaurantId());
-        return new AuthResponse(token, user.getRestaurantId(), user.getName());
+        return new AuthResponse(
+                token,
+                user.getRestaurantId(),
+                user.getName(),
+                user.getEmail(),
+                user.getWhatsappNumber()
+        );
     }
 
     @Override
@@ -89,7 +95,13 @@ public class AuthServiceImpl implements AuthService {
 
         log.info("New user signed up: restaurantId={}", newRestaurantId);
         String token = jwtUtility.generateToken(user.getEmail(), newRestaurantId);
-        return new AuthResponse(token, newRestaurantId, user.getName());
+        return new AuthResponse(
+                token,
+                newRestaurantId,
+                user.getName(),
+                user.getEmail(),
+                user.getWhatsappNumber()
+        );
     }
 
     @Override
@@ -112,7 +124,13 @@ public class AuthServiceImpl implements AuthService {
                         throw new IllegalArgumentException("Account is disabled. Contact your administrator.");
                     }
                     String token = jwtUtility.generateToken(user.getEmail(), user.getRestaurantId());
-                    return new AuthResponse(token, user.getRestaurantId(), user.getName());
+                    return new AuthResponse(
+                            token,
+                            user.getRestaurantId(),
+                            user.getName(),
+                            user.getEmail(),
+                            user.getWhatsappNumber()
+                    );
                 }).orElseGet(() -> {
                     // Create new user if not exists
                     Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
@@ -129,6 +147,7 @@ public class AuthServiceImpl implements AuthService {
                     User user = new User();
                     user.setName(name != null ? name : "Google User");
                     user.setEmail(email);
+                    user.setWhatsappNumber(email);
                     user.setPasswordHash("GOOGLE_AUTH"); // Indicate Google auth
                     user.setRestaurantId(newRestaurantId);
                     user.setDeviceId(request.getDeviceId());
@@ -140,7 +159,13 @@ public class AuthServiceImpl implements AuthService {
                     userRepository.save(user);
 
                     String token = jwtUtility.generateToken(user.getEmail(), newRestaurantId);
-                    return new AuthResponse(token, newRestaurantId, user.getName());
+                    return new AuthResponse(
+                            token,
+                            newRestaurantId,
+                            user.getName(),
+                            user.getEmail(),
+                            user.getWhatsappNumber()
+                    );
                 });
             } else {
                 throw new IllegalArgumentException("Invalid Google ID token.");
@@ -149,5 +174,22 @@ public class AuthServiceImpl implements AuthService {
             log.error("Google login failed", e);
             throw new IllegalArgumentException("Google login failed: " + e.getMessage());
         }
+    }
+    @Override
+    @Transactional
+    public void resetPassword(String phoneNumber, String newPassword) {
+        User user = userRepository.findByEmail(phoneNumber)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(System.currentTimeMillis());
+        user.setServerUpdatedAt(System.currentTimeMillis());
+        userRepository.save(user);
+        log.info("Password reset successful for user: {}", phoneNumber);
+    }
+
+    @Override
+    public boolean checkUserExists(String phoneNumber) {
+        return userRepository.existsByEmail(phoneNumber);
     }
 }

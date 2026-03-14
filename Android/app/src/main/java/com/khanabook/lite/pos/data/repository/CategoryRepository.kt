@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 
 class CategoryRepository(
         private val categoryDao: CategoryDao,
+        private val menuDao: com.khanabook.lite.pos.data.local.dao.MenuDao,
         private val sessionManager: SessionManager,
         private val workManager: WorkManager
 ) {
@@ -53,12 +54,18 @@ class CategoryRepository(
     }
 
     suspend fun toggleActive(id: Int, isActive: Boolean) {
-        categoryDao.toggleActive(id, isActive)
-        triggerBackgroundSync()
+        val current = categoryDao.getCategoryById(id) ?: return
+        updateCategory(current.copy(isActive = isActive))
     }
 
     suspend fun deleteCategory(category: CategoryEntity) {
-        categoryDao.deleteCategory(category)
+        val now = System.currentTimeMillis()
+        categoryDao.markDeleted(category.id, now)
+        val itemIds = menuDao.getItemIdsByCategory(category.id)
+        menuDao.markItemsDeletedByCategory(category.id, now)
+        itemIds.forEach { itemId ->
+            menuDao.markVariantsDeletedByItem(itemId, now)
+        }
         triggerBackgroundSync()
     }
 

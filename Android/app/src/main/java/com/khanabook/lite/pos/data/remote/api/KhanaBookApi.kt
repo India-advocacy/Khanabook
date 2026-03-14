@@ -108,4 +108,10 @@ interface KhanaBookApi {
 
         @POST("sync/restaurantprofile/counters/increment")
         suspend fun incrementCounters(@Query("today") today: String): CounterResponse
+
+        @POST("auth/reset-password")
+        suspend fun resetPassword(@Query("phoneNumber") phoneNumber: String, @Query("newPassword") newPassword: String)
+
+        @GET("auth/check-user")
+        suspend fun checkUser(@Query("phoneNumber") phoneNumber: String): Boolean
 }

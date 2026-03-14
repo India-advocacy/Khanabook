@@ -11,4 +11,8 @@ public interface AuthService {
     AuthResponse signup(SignupRequest request);
 
     AuthResponse googleLogin(com.khanabook.saas.controller.AuthController.GoogleLoginRequest request);
+
+    void resetPassword(String phoneNumber, String newPassword);
+
+    boolean checkUserExists(String phoneNumber);
 }

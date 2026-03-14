@@ -12,6 +12,7 @@ import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class MenuRepository(
         private val menuDao: MenuDao,
@@ -63,8 +64,8 @@ class MenuRepository(
     }
 
     suspend fun updateStock(id: Int, delta: Double) {
-        menuDao.updateStock(id, delta)
-        triggerBackgroundSync()
+        val current = menuDao.getItemById(id) ?: return
+        updateItem(current.copy(currentStock = current.currentStock + delta))
     }
 
     fun getItemsByCategoryFlow(categoryId: Int): Flow<List<MenuItemEntity>> {
@@ -77,6 +78,7 @@ class MenuRepository(
 
     fun getMenuWithVariantsByCategoryFlow(categoryId: Int): Flow<List<MenuWithVariants>> {
         return menuDao.getMenuWithVariantsByCategoryFlow(categoryId)
+            .map { list -> list.map { it.copy(variants = it.variants.filterNot(ItemVariantEntity::isDeleted)) } }
     }
 
     fun searchItems(query: String): Flow<List<MenuItemEntity>> {
@@ -84,12 +86,14 @@ class MenuRepository(
     }
 
     suspend fun toggleItemAvailability(id: Int, isAvailable: Boolean) {
-        menuDao.toggleItemAvailability(id, isAvailable)
-        triggerBackgroundSync()
+        val current = menuDao.getItemById(id) ?: return
+        updateItem(current.copy(isAvailable = isAvailable))
     }
 
     suspend fun deleteItem(item: MenuItemEntity) {
-        menuDao.deleteItem(item)
+        val now = System.currentTimeMillis()
+        menuDao.markItemDeleted(item.id, now)
+        menuDao.markVariantsDeletedByItem(item.id, now)
         triggerBackgroundSync()
     }
 
@@ -113,12 +117,12 @@ class MenuRepository(
     }
 
     suspend fun updateVariantStock(id: Int, delta: Double) {
-        menuDao.updateVariantStock(id, delta)
-        triggerBackgroundSync()
+        val current = menuDao.getVariantById(id) ?: return
+        updateVariant(current.copy(currentStock = current.currentStock + delta))
     }
 
     suspend fun deleteVariant(variant: ItemVariantEntity) {
-        menuDao.deleteVariant(variant)
+        menuDao.markVariantDeleted(variant.id, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 

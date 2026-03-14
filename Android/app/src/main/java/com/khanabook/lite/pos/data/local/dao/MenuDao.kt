@@ -18,25 +18,25 @@ interface MenuDao {
     @Query("SELECT * FROM menu_items WHERE id = :id")
     suspend fun getItemById(id: Int): MenuItemEntity?
 
-    @Query("SELECT * FROM menu_items WHERE name = :name LIMIT 1")
+    @Query("SELECT * FROM menu_items WHERE name = :name AND is_deleted = 0 LIMIT 1")
     suspend fun getItemByName(name: String): MenuItemEntity?
 
-    @Query("SELECT * FROM menu_items WHERE barcode = :barcode LIMIT 1")
+    @Query("SELECT * FROM menu_items WHERE barcode = :barcode AND is_deleted = 0 LIMIT 1")
     suspend fun getItemByBarcode(barcode: String): MenuItemEntity?
 
-    @Query("SELECT * FROM menu_items")
+    @Query("SELECT * FROM menu_items WHERE is_deleted = 0")
     suspend fun getAllMenuItemsOnce(): List<MenuItemEntity>
 
-    @Query("SELECT * FROM item_variants")
+    @Query("SELECT * FROM item_variants WHERE is_deleted = 0")
     suspend fun getAllVariantsOnce(): List<ItemVariantEntity>
 
-    @Query("SELECT * FROM menu_items")
+    @Query("SELECT * FROM menu_items WHERE is_deleted = 0")
     fun getAllItemsFlow(): Flow<List<MenuItemEntity>>
 
-    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId ORDER BY name ASC")
+    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND is_deleted = 0 ORDER BY name ASC")
     fun getItemsByCategoryFlow(categoryId: Int): Flow<List<MenuItemEntity>>
 
-    @Query("SELECT * FROM menu_items WHERE name LIKE :query OR category_id IN (SELECT id FROM categories WHERE name LIKE :query)")
+    @Query("SELECT * FROM menu_items WHERE is_deleted = 0 AND (name LIKE :query OR category_id IN (SELECT id FROM categories WHERE name LIKE :query AND is_deleted = 0))")
     fun searchItems(query: String): Flow<List<MenuItemEntity>>
 
     @Query("UPDATE menu_items SET is_available = :isAvailable WHERE id = :id")
@@ -48,8 +48,18 @@ interface MenuDao {
     @Query("UPDATE menu_items SET low_stock_threshold = :threshold WHERE id = :id")
     suspend fun updateLowStockThreshold(id: Int, threshold: Double)
 
-    @Delete
-    suspend fun deleteItem(item: MenuItemEntity)
+    @Query(
+        "UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE id = :id"
+    )
+    suspend fun markItemDeleted(id: Int, updatedAt: Long)
+
+    @Query(
+        "UPDATE menu_items SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE category_id = :categoryId"
+    )
+    suspend fun markItemsDeletedByCategory(categoryId: Int, updatedAt: Long)
+
+    @Query("SELECT id FROM menu_items WHERE category_id = :categoryId")
+    suspend fun getItemIdsByCategory(categoryId: Int): List<Int>
 
     // Item Variants
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -67,14 +77,21 @@ interface MenuDao {
     @Query("UPDATE item_variants SET low_stock_threshold = :threshold WHERE id = :id")
     suspend fun updateVariantLowStockThreshold(id: Int, threshold: Double)
 
-    @Delete
-    suspend fun deleteVariant(variant: ItemVariantEntity)
+    @Query(
+        "UPDATE item_variants SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE id = :id"
+    )
+    suspend fun markVariantDeleted(id: Int, updatedAt: Long)
 
-    @Query("SELECT * FROM item_variants WHERE menu_item_id = :itemId ORDER BY sort_order ASC")
+    @Query(
+        "UPDATE item_variants SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE menu_item_id = :itemId"
+    )
+    suspend fun markVariantsDeletedByItem(itemId: Int, updatedAt: Long)
+
+    @Query("SELECT * FROM item_variants WHERE menu_item_id = :itemId AND is_deleted = 0 ORDER BY sort_order ASC")
     fun getVariantsForItemFlow(itemId: Int): Flow<List<ItemVariantEntity>>
 
     @Transaction
-    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId ORDER BY name ASC")
+    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND is_deleted = 0 ORDER BY name ASC")
     fun getMenuWithVariantsByCategoryFlow(categoryId: Int): Flow<List<MenuWithVariants>>
 
     @Query("SELECT * FROM menu_items WHERE is_synced = 0")

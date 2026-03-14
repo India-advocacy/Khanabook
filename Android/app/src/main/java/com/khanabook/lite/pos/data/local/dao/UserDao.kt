@@ -9,26 +9,39 @@ interface UserDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: UserEntity): Long
 
-    @Query("SELECT * FROM users WHERE email = :email LIMIT 1")
+    @Query("SELECT * FROM users WHERE email = :email AND is_deleted = 0 LIMIT 1")
     suspend fun getUserByEmail(email: String): UserEntity?
 
-    @Query("SELECT * FROM users LIMIT 1")
+    @Query("SELECT * FROM users WHERE is_deleted = 0 LIMIT 1")
     suspend fun getAnyUser(): UserEntity?
 
-    @Query("UPDATE users SET password_hash = :newHash WHERE id = :userId")
-    suspend fun updatePasswordHash(userId: Int, newHash: String)
+    @Query(
+        "UPDATE users SET password_hash = :newHash, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
+    )
+    suspend fun updatePasswordHash(userId: Int, newHash: String, updatedAt: Long)
 
-    @Query("UPDATE users SET email = :newPhone, whatsapp_number = :newPhone")
-    suspend fun updateAdminPhoneNumber(newPhone: String)
+    @Query(
+        "UPDATE users SET whatsapp_number = :newPhone, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
+    )
+    suspend fun updateWhatsappNumber(userId: Int, newPhone: String, updatedAt: Long)
 
-    @Query("SELECT * FROM users ORDER BY name ASC")
+    @Query(
+        "UPDATE users SET email = :newEmail, whatsapp_number = :newPhone, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
+    )
+    suspend fun updateAccountDetails(userId: Int, newEmail: String, newPhone: String, updatedAt: Long)
+
+    @Query("SELECT * FROM users WHERE is_deleted = 0 ORDER BY name ASC")
     fun getAllUsers(): Flow<List<UserEntity>>
 
-    @Query("UPDATE users SET is_active = :isActive WHERE id = :userId")
-    suspend fun setActivationStatus(userId: Int, isActive: Boolean)
+    @Query(
+        "UPDATE users SET is_active = :isActive, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
+    )
+    suspend fun setActivationStatus(userId: Int, isActive: Boolean, updatedAt: Long)
 
-    @Delete
-    suspend fun deleteUser(user: UserEntity)
+    @Query(
+        "UPDATE users SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
+    )
+    suspend fun markDeleted(userId: Int, updatedAt: Long)
 
     @Query("SELECT * FROM users WHERE is_synced = 0")
     suspend fun getUnsyncedUsers(): List<UserEntity>

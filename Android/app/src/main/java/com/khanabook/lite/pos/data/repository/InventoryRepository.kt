@@ -45,12 +45,26 @@ class InventoryRepository(
     }
 
     suspend fun updateThreshold(menuItemId: Int, threshold: Double) {
-        menuDao.updateLowStockThreshold(menuItemId, threshold)
+        val current = menuDao.getItemById(menuItemId) ?: return
+        menuDao.updateItem(
+            current.copy(
+                lowStockThreshold = threshold,
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
         triggerBackgroundSync()
     }
 
     suspend fun updateVariantThreshold(variantId: Int, threshold: Double) {
-        menuDao.updateVariantLowStockThreshold(variantId, threshold)
+        val current = menuDao.getVariantById(variantId) ?: return
+        menuDao.updateVariant(
+            current.copy(
+                lowStockThreshold = threshold,
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
         triggerBackgroundSync()
     }
 

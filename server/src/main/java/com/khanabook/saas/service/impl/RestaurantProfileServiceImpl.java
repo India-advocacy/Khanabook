@@ -22,7 +22,7 @@ public class RestaurantProfileServiceImpl implements RestaurantProfileService {
 
     @Override
     public List<RestaurantProfile> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
-        return repository.findByRestaurantIdAndUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp, deviceId);
+        return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp, deviceId);
     }
 
     @Override

@@ -12,20 +12,25 @@ interface CategoryDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertCategory(category: CategoryEntity): Long
 
-    @Query("SELECT * FROM categories ORDER BY sort_order ASC")
+    @Query("SELECT * FROM categories WHERE is_deleted = 0 ORDER BY sort_order ASC")
     fun getAllCategoriesFlow(): Flow<List<CategoryEntity>>
 
-    @Query("SELECT * FROM categories")
+    @Query("SELECT * FROM categories WHERE is_deleted = 0")
     suspend fun getAllCategoriesOnce(): List<CategoryEntity>
 
-    @Query("SELECT * FROM categories WHERE is_active = 1 ORDER BY sort_order ASC")
+    @Query("SELECT * FROM categories WHERE id = :id LIMIT 1")
+    suspend fun getCategoryById(id: Int): CategoryEntity?
+
+    @Query("SELECT * FROM categories WHERE is_active = 1 AND is_deleted = 0 ORDER BY sort_order ASC")
     fun getActiveCategoriesFlow(): Flow<List<CategoryEntity>>
 
     @Query("UPDATE categories SET is_active = :isActive WHERE id = :id")
     suspend fun toggleActive(id: Int, isActive: Boolean)
 
-    @Delete
-    suspend fun deleteCategory(category: CategoryEntity)
+    @Query(
+        "UPDATE categories SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE id = :id"
+    )
+    suspend fun markDeleted(id: Int, updatedAt: Long)
 
     @Update
     suspend fun updateCategory(category: CategoryEntity)
@@ -40,5 +45,3 @@ interface CategoryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedCategories(items: List<com.khanabook.lite.pos.data.local.entity.CategoryEntity>)
 }
-
-

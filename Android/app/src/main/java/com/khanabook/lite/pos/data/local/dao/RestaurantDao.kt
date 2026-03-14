@@ -15,26 +15,31 @@ interface RestaurantDao {
     @Query("SELECT * FROM restaurant_profile WHERE id = 1 LIMIT 1")
     fun getProfileFlow(): Flow<RestaurantProfileEntity?>
 
-    @Query("UPDATE restaurant_profile SET daily_order_counter = :counter, last_reset_date = :date WHERE id = 1")
-    suspend fun resetDailyCounter(counter: Int, date: String)
+    @Query(
+        "UPDATE restaurant_profile SET daily_order_counter = :counter, last_reset_date = :date, is_synced = 0, updated_at = :updatedAt WHERE id = 1"
+    )
+    suspend fun resetDailyCounter(counter: Int, date: String, updatedAt: Long)
 
-    @Query("UPDATE restaurant_profile SET daily_order_counter = daily_order_counter + 1, lifetime_order_counter = lifetime_order_counter + 1 WHERE id = 1")
-    suspend fun incrementOrderCounters()
+    @Query(
+        "UPDATE restaurant_profile SET daily_order_counter = daily_order_counter + 1, lifetime_order_counter = lifetime_order_counter + 1, is_synced = 0, updated_at = :updatedAt WHERE id = 1"
+    )
+    suspend fun incrementOrderCounters(updatedAt: Long)
 
     @Transaction
     suspend fun incrementAndGetCounters(today: String): Pair<Int, Int> {
         val profile = getProfile() ?: throw Exception("Profile not found")
         val isNewDay = profile.lastResetDate != today
+        val now = System.currentTimeMillis()
         
         val nextDaily = if (isNewDay) 1 else profile.dailyOrderCounter + 1
         val nextLifetime = profile.lifetimeOrderCounter + 1
         
         if (isNewDay) {
-            resetDailyCounter(nextDaily, today)
+            resetDailyCounter(nextDaily, today, now)
             // Still need to increment lifetime
-            updateLifetimeCounter(nextLifetime)
+            updateLifetimeCounter(nextLifetime, now)
         } else {
-            incrementOrderCounters()
+            incrementOrderCounters(now)
         }
         
         return Pair(nextDaily, nextLifetime)
@@ -52,14 +57,16 @@ interface RestaurantDao {
         ))
     }
 
-    @Query("UPDATE restaurant_profile SET lifetime_order_counter = :counter WHERE id = 1")
-    suspend fun updateLifetimeCounter(counter: Int)
+    @Query(
+        "UPDATE restaurant_profile SET lifetime_order_counter = :counter, is_synced = 0, updated_at = :updatedAt WHERE id = 1"
+    )
+    suspend fun updateLifetimeCounter(counter: Int, updatedAt: Long)
 
-    @Query("UPDATE restaurant_profile SET upi_qr_path = :path WHERE id = 1")
-    suspend fun updateUpiQrPath(path: String?)
+    @Query("UPDATE restaurant_profile SET upi_qr_path = :path, is_synced = 0, updated_at = :updatedAt WHERE id = 1")
+    suspend fun updateUpiQrPath(path: String?, updatedAt: Long)
 
-    @Query("UPDATE restaurant_profile SET logo_path = :path WHERE id = 1")
-    suspend fun updateLogoPath(path: String?)
+    @Query("UPDATE restaurant_profile SET logo_path = :path, is_synced = 0, updated_at = :updatedAt WHERE id = 1")
+    suspend fun updateLogoPath(path: String?, updatedAt: Long)
 
     @Query("SELECT * FROM restaurant_profile WHERE is_synced = 0")
     suspend fun getUnsyncedRestaurantProfiles(): List<RestaurantProfileEntity>

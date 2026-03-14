@@ -73,21 +73,45 @@ class BillRepository(
     }
 
     suspend fun updateOrderStatus(id: Int, status: String) {
-        billDao.updateOrderStatus(id, status)
+        val current = billDao.getBillById(id) ?: return
+        billDao.updateBill(
+            current.copy(
+                orderStatus = status,
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
         if (status.equals("completed", ignoreCase = true) ||
                         status.equals("paid", ignoreCase = true)
         ) {
             val billWithItems = billDao.getBillWithItemsById(id)
             billWithItems?.let { inventoryConsumptionManager?.consumeMaterialsForBill(it.items) }
         }
+        triggerBackgroundSync()
     }
 
     suspend fun updatePaymentMode(id: Int, mode: String) {
-        billDao.updatePaymentMode(id, mode)
+        val current = billDao.getBillById(id) ?: return
+        billDao.updateBill(
+            current.copy(
+                paymentMode = mode,
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+        triggerBackgroundSync()
     }
 
     suspend fun updatePaymentStatus(id: Int, status: String) {
-        billDao.updatePaymentStatus(id, status)
+        val current = billDao.getBillById(id) ?: return
+        billDao.updateBill(
+            current.copy(
+                paymentStatus = status,
+                isSynced = false,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+        triggerBackgroundSync()
     }
 
     fun getBillsByDateRange(startDate: String, endDate: String): Flow<List<BillEntity>> {

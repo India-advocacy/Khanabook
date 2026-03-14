@@ -38,12 +38,12 @@ class RestaurantRepository(
     }
 
     suspend fun resetDailyCounter(counter: Int, date: String) {
-        restaurantDao.resetDailyCounter(counter, date)
+        restaurantDao.resetDailyCounter(counter, date, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
     suspend fun incrementOrderCounters() {
-        restaurantDao.incrementOrderCounters()
+        restaurantDao.incrementOrderCounters(System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
@@ -60,12 +60,12 @@ class RestaurantRepository(
     }
 
     suspend fun updateUpiQrPath(path: String?) {
-        restaurantDao.updateUpiQrPath(path)
+        restaurantDao.updateUpiQrPath(path, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
     suspend fun updateLogoPath(path: String?) {
-        restaurantDao.updateLogoPath(path)
+        restaurantDao.updateLogoPath(path, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
