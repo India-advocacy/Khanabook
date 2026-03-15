@@ -34,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -95,6 +96,16 @@ fun OcrScannerScreen(
         }
     }
 
+    // PDF picker for image-as-PDF fallback
+    val pdfLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            viewModel.extractTextFromPdf(context, it)
+            onBack() // return to menu config to show result
+        }
+    }
+
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
@@ -148,7 +159,12 @@ fun OcrScannerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Scan Menu", color = PrimaryGold) },
+                title = {
+                    Text(
+                        if (returnBarcode) "Scan Barcode" else "Scan Menu",
+                        color = PrimaryGold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -159,6 +175,7 @@ fun OcrScannerScreen(
                     }
                 },
                 actions = {
+                    // Gallery picker
                     IconButton(
                         onClick = {
                             errorMessage = null
@@ -170,6 +187,18 @@ fun OcrScannerScreen(
                             contentDescription = "Gallery",
                             tint = PrimaryGold
                         )
+                    }
+                    // PDF picker (only in menu-scan mode, not barcode mode)
+                    if (!returnBarcode) {
+                        IconButton(
+                            onClick = { pdfLauncher.launch("application/pdf") }
+                        ) {
+                            Icon(
+                                Icons.Default.PictureAsPdf,
+                                contentDescription = "Upload PDF",
+                                tint = PrimaryGold
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBrown1)
@@ -200,7 +229,9 @@ fun OcrScannerScreen(
                     selectedCategoryName = selectedCategoryName,
                     hasCapturedPhoto = capturedBitmap != null,
                     isProcessing = isProcessing,
+                    processingLabel = uiState.processingLabel,
                     errorMessage = displayError,
+                    returnBarcode = returnBarcode,
                     onCapturePhoto = {
                         val frozenBitmap = previewViewState.value?.bitmap
                         if (frozenBitmap == null) {
@@ -305,7 +336,9 @@ private fun ScanControls(
     selectedCategoryName: String?,
     hasCapturedPhoto: Boolean,
     isProcessing: Boolean,
+    processingLabel: String,
     errorMessage: String?,
+    returnBarcode: Boolean = false,
     onCapturePhoto: () -> Unit,
     onUsePhoto: () -> Unit,
     onRetake: () -> Unit
@@ -321,29 +354,35 @@ private fun ScanControls(
         ) {
             Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                 Text(
-                    if (!hasCapturedPhoto) {
-                        buildString {
-                            append("Menu will add to ")
+                    when {
+                        !hasCapturedPhoto && !returnBarcode -> buildString {
+                            append("AI will extract menu items for ")
                             if (!selectedCategoryName.isNullOrBlank()) {
-                                append('"')
-                                append(selectedCategoryName)
-                                append('"')
+                                append('"'); append(selectedCategoryName); append('"')
                             } else {
                                 append("the selected category")
                             }
-                            append(".")
                         }
-                    } else if (isProcessing) {
-                        "Processing the captured menu photo."
-                    } else {
-                        "Photo captured. Use this photo or retake it."
+                        !hasCapturedPhoto && returnBarcode -> "Point at a barcode or text to scan."
+                        isProcessing -> processingLabel
+                        else -> "Photo captured. Use this or retake."
                     },
-                    color = Color.White,
-                    fontSize = 14.sp
+                    color = ParchmentBG,
+                    fontSize = 13.sp
                 )
 
+                // Tip hint when in menu-scan mode
+                if (!hasCapturedPhoto && !returnBarcode) {
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        "Tip: Ensure menu is fully in frame, well-lit, text in English.",
+                        color = PrimaryGold.copy(alpha = 0.55f),
+                        fontSize = 11.sp
+                    )
+                }
+
                 if (errorMessage != null) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         text = errorMessage,
                         color = Color(0xFFFFB4A9),
@@ -403,7 +442,7 @@ private fun ScanControls(
                                     strokeWidth = 2.dp
                                 )
                                 Spacer(modifier = Modifier.size(8.dp))
-                                Text("Processing...", fontWeight = FontWeight.Bold)
+                                Text("Analysing...", fontWeight = FontWeight.Bold)
                             } else {
                                 Text("Use Photo", fontWeight = FontWeight.Bold)
                             }

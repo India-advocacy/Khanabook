@@ -29,7 +29,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Inventory2
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -127,7 +126,6 @@ fun SettingsScreen(
                             SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration") { section = "payment" }
                             SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") { section = "printer" }
                             SettingsItem(icon = Icons.Filled.Settings, text = "Tax Configuration") { section = "tax" }
-                            SettingsItem(icon = Icons.Default.Inventory2, text = "Inventory Configuration") { section = "inventory" }
                             
                             Spacer(modifier = Modifier.height(16.dp))
                             
@@ -202,9 +200,6 @@ fun SettingsScreen(
                     }
                     "tax" -> {
                         TaxConfigView(profile, onSave = { viewModel.saveProfile(it); section = "menu" }, onBack = { section = "menu" })
-                    }
-                    "inventory" -> {
-                        InventoryConfigView(viewModel = viewModel, onBack = { section = "menu" })
                     }
                 }
             }
@@ -809,97 +804,4 @@ private fun loadBitmap(path: String): Bitmap? {
     return try { BitmapFactory.decodeFile(path) } catch (_: Exception) { null }
 }
 
-@Composable
-fun InventoryConfigView(viewModel: SettingsViewModel, onBack: () -> Unit) {
-    val categories by viewModel.categories.collectAsState()
-    var selectedTab by remember { mutableIntStateOf(0) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        if (categories.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No categories found", color = TextGold)
-            }
-        } else {
-            ScrollableTabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = DarkBrown1,
-                contentColor = PrimaryGold,
-                edgePadding = 16.dp,
-                divider = {},
-                indicator = { tabPositions ->
-                    if (selectedTab < tabPositions.size) {
-                        TabRowDefaults.Indicator(
-                            Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                            color = PrimaryGold
-                        )
-                    }
-                }
-            ) {
-                categories.forEachIndexed { index, category ->
-                    Tab(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        text = { Text(category.name, fontSize = 12.sp) }
-                    )
-                }
-            }
-
-            val categoryId = categories[selectedTab].id
-            val items by viewModel.getMenuWithVariantsByCategory(categoryId).collectAsState(emptyList())
-
-            LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                items(items) { menuWithVariants ->
-                    InventoryItemCard(menuWithVariants, viewModel)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun InventoryItemCard(menuWithVariants: MenuWithVariants, viewModel: SettingsViewModel) {
-    val item = menuWithVariants.menuItem
-    var stock by remember { mutableStateOf(item.currentStock.toString()) }
-    var threshold by remember { mutableStateOf(item.lowStockThreshold.toString()) }
-
-    ConfigCard {
-        Text(item.name, color = PrimaryGold, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Available Stock", color = TextGold, fontSize = 12.sp)
-                ParchmentTextField(
-                    value = stock,
-                    onValueChange = { stock = it },
-                    label = "Current Qty"
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = { viewModel.updateItemStock(item.id, stock.toDoubleOrNull() ?: 0.0) },
-                    modifier = Modifier.fillMaxWidth().height(36.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                    shape = RoundedCornerShape(18.dp)
-                ) {
-                    Text("Update Stock", fontSize = 10.sp, color = Color.White)
-                }
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text("Low Stock Alert", color = TextGold, fontSize = 12.sp)
-                ParchmentTextField(
-                    value = threshold,
-                    onValueChange = { threshold = it },
-                    label = "Threshold"
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(
-                    onClick = { viewModel.updateItemThreshold(item.id, threshold.toDoubleOrNull() ?: 0.0) },
-                    modifier = Modifier.fillMaxWidth().height(36.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-                    shape = RoundedCornerShape(18.dp)
-                ) {
-                    Text("Update Threshold", fontSize = 10.sp, color = DarkBrown1)
-                }
-            }
-        }
-    }
-}

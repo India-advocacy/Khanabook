@@ -26,8 +26,7 @@ class SettingsViewModel @Inject constructor(
     private val restaurantRepository: RestaurantRepository,
     private val categoryRepository: CategoryRepository,
     private val menuRepository: MenuRepository,
-    private val userRepository: UserRepository,
-    private val inventoryRepository: InventoryRepository
+    private val userRepository: UserRepository
 ) : ViewModel() {
 
     val profile: StateFlow<RestaurantProfileEntity?> = restaurantRepository.getProfileFlow()
@@ -211,21 +210,4 @@ class SettingsViewModel @Inject constructor(
         return menuRepository.getMenuWithVariantsByCategoryFlow(categoryId)
     }
 
-    fun updateItemThreshold(itemId: Int, threshold: Double) {
-        viewModelScope.launch {
-            inventoryRepository.updateThreshold(itemId, threshold)
-        }
-    }
-
-    fun updateItemStock(itemId: Int, stock: Double) {
-        viewModelScope.launch {
-            inventoryRepository.adjustStock(itemId, stock - (menuRepository.getItemOnce(itemId)?.currentStock ?: 0.0), "Manual adjustment in Settings")
-        }
-    }
-
-    fun updateVariantThreshold(variantId: Int, threshold: Double) {
-        viewModelScope.launch {
-            inventoryRepository.updateVariantThreshold(variantId, threshold)
-        }
-    }
 }

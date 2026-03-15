@@ -26,53 +26,92 @@ class MenuViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
+        // Matches trailing price: supports ₹120, Rs.120, INR 120, 120.50
         private val trailingPriceRegex =
-            Regex("""(?i)(?:\u20B9|rs\.?|inr)?\s*(\d+(?:\.\d{1,2})?)\s*$""")
-        private val leadingBulletRegex = Regex("""^\s*(?:[-*]+|\d+[.)])\s*""")
-        private val trailingSeparatorRegex = Regex("""[\s\-:|]+$""")
-        private val trailingCurrencyRegex = Regex("""(?i)(?:\u20B9|rs\.?|inr)\s*$""")
+            Regex("""(?i)(?:[\u20B9\u20A8]|rs\.?|inr)?\s*(\d{1,6}(?:\.\d{1,2})?)\s*(?:[\u20B9\u20A8]|rs\.?|inr)?\s*$""")
+        // Matches price at the START of a line: ₹120 Dosa, 120 Dosa
+        private val leadingPriceRegex =
+            Regex("""^(?:[\u20B9\u20A8]|rs\.?|inr)?\s*(\d{1,6}(?:\.\d{1,2})?)\s+""")
+        // Leading bullets: -, *, •, 1., 1)
+        private val leadingBulletRegex = Regex("""^\s*(?:[\-\*•]+|\d+[.):]?)\s*""")
+        private val trailingSeparatorRegex = Regex("""[\s\-:\|.…]+$""")
+        private val trailingCurrencyRegex = Regex("""(?i)(?:[\u20B9\u20A8]|rs\.?|inr)\s*$""")
+        // Skip header-like lines or very short noise
+        private val skipLineRegex = Regex("""(?i)^(menu|category|item|price|qty|total|subtotal|s\.no|veg|non.?veg|page\s+\d+)\.?\s*$""")
+        // Max price guard — avoid misidentifying long numbers
+        private const val MAX_PRICE = 99999.0
 
         internal fun parseDraftsFromText(text: String): List<DraftMenuItem> {
+            val seen = mutableSetOf<String>()
             return text
                 .lineSequence()
                 .map { normalizeImportLine(it) }
-                .filter { it.length > 2 && it.any(Char::isLetter) }
+                .filter { line ->
+                    line.length > 2 &&
+                    line.any(Char::isLetter) &&
+                    !skipLineRegex.matches(line)
+                }
                 .mapNotNull { parseDraftLine(it) }
+                // Deduplicate by lowercased name
+                .filter { seen.add(it.name.lowercase()) }
                 .toList()
         }
 
         private fun normalizeImportLine(raw: String): String {
             return raw
-                .replace("\u20B9", " Rs ")
-                .replace("â‚¹", " Rs ")
-                .replace('\u00A0', ' ')
-                .replace(Regex("""\s+"""), " ")
+                .replace('\u20B9', ' ')  // ₹ → space then handled by regex
+                .replace('\u20A8', ' ')  // ₨
+                .replace("Rs.", " Rs ")
+                .replace("rs.", " Rs ")
+                .replace('\u00A0', ' ')  // non-breaking space
+                .replace('\u2019', '\'')  // curly apostrophe
+                .replace(Regex("""\s{2,}"""), " ")
                 .trim()
         }
 
         private fun parseDraftLine(line: String): DraftMenuItem? {
-            val cleanedLine = line.replace(leadingBulletRegex, "")
-            val priceMatch = trailingPriceRegex.find(cleanedLine)
-            val name = if (priceMatch != null) {
-                cleanedLine
-                    .substring(0, priceMatch.range.first)
+            // Remove leading bullets
+            val noBullet = line.replace(leadingBulletRegex, "").trim()
+            if (noBullet.isBlank()) return null
+
+            // Try trailing price first (most common format: "Masala Dosa 120")
+            val trailingMatch = trailingPriceRegex.find(noBullet)
+            if (trailingMatch != null) {
+                val priceVal = trailingMatch.groupValues.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+                if (priceVal > MAX_PRICE) return null
+                val rawName = noBullet
+                    .substring(0, trailingMatch.range.first)
                     .replace(trailingCurrencyRegex, "")
                     .replace(trailingSeparatorRegex, "")
                     .trim()
-            } else {
-                cleanedLine
+                val name = toTitleCase(rawName)
+                if (name.isBlank() || name.length < 2) return null
+                return DraftMenuItem(name, priceVal)
             }
 
-            if (name.isBlank()) {
-                return null
+            // Try leading price ("120 Masala Dosa")
+            val leadingMatch = leadingPriceRegex.find(noBullet)
+            if (leadingMatch != null) {
+                val priceVal = leadingMatch.groupValues.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+                if (priceVal > MAX_PRICE) return null
+                val rawName = noBullet.substring(leadingMatch.range.last + 1).trim()
+                val name = toTitleCase(rawName)
+                if (name.isBlank() || name.length < 2) return null
+                return DraftMenuItem(name, priceVal)
             }
 
-            val normalizedName = name
-                .lowercase()
+            // No price found — include as 0-price item (user can edit)
+            val name = toTitleCase(noBullet.replace(trailingSeparatorRegex, "").trim())
+            if (name.isBlank() || name.length < 2) return null
+            return DraftMenuItem(name, 0.0)
+        }
+
+        private fun toTitleCase(s: String): String {
+            return s.lowercase()
                 .split(Regex("""\s+"""))
-                .joinToString(" ") { word -> word.replaceFirstChar { it.uppercase() } }
-            val price = priceMatch?.groupValues?.getOrNull(1)?.toDoubleOrNull() ?: 0.0
-            return DraftMenuItem(normalizedName, price)
+                .joinToString(" ") { word ->
+                    word.replaceFirstChar { it.uppercase() }
+                }
         }
     }
 
@@ -227,15 +266,18 @@ class MenuViewModel @Inject constructor(
     data class DraftMenuItem(
         val name: String,
         val price: Double,
-        val isSelected: Boolean = true
+        val isSelected: Boolean = true,
+        val foodType: String = "veg"   // production: per-item food type
     )
 
     data class OcrImportUiState(
         val configMode: String? = null, // null, "manual", "scan"
         val isProcessing: Boolean = false,
+        val processingLabel: String = "Processing...",  // contextual label
         val rawText: String = "",
         val drafts: List<DraftMenuItem> = emptyList(),
-        val error: String? = null
+        val error: String? = null,
+        val successMessage: String? = null  // e.g. "12 items added!"
     )
 
     private val _ocrImportUiState = MutableStateFlow(OcrImportUiState())
@@ -277,26 +319,51 @@ class MenuViewModel @Inject constructor(
 
     /**
      * Extracts text from a PDF URI and parses it into drafts.
+     * Shows page-by-page progress for large PDFs.
      */
     fun extractTextFromPdf(context: Context, uri: Uri) {
+        _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Reading PDF...", error = null) }
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
                 com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(context.applicationContext)
                 val inputStream = context.contentResolver.openInputStream(uri)
-                inputStream?.use { input ->
+                    ?: throw Exception("Cannot open file. Check permissions.")
+                inputStream.use { input ->
                     val document = com.tom_roush.pdfbox.pdmodel.PDDocument.load(input)
+                    val pageCount = document.numberOfPages
                     val stripper = com.tom_roush.pdfbox.text.PDFTextStripper()
-                    val text = stripper.getText(document)
+                    val sb = StringBuilder()
+                    for (page in 1..pageCount) {
+                        stripper.startPage = page
+                        stripper.endPage = page
+                        sb.append(stripper.getText(document))
+                        sb.append("\n")
+                        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                            _ocrImportUiState.update { it.copy(
+                                processingLabel = "Reading page $page of $pageCount..."
+                            )}
+                        }
+                    }
                     document.close()
-                    
+                    val fullText = sb.toString()
                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        submitOcrText(text)
+                        if (fullText.isBlank()) {
+                            _ocrImportUiState.update { it.copy(
+                                isProcessing = false,
+                                error = "PDF appears to be image-based. Try the camera scan instead."
+                            )}
+                        } else {
+                            submitOcrText(fullText)
+                        }
                     }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    android.widget.Toast.makeText(context, "Failed to read PDF: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                    _ocrImportUiState.update { it.copy(
+                        isProcessing = false,
+                        error = "Failed to read PDF: ${e.message?.take(80)}"
+                    )}
                 }
             }
         }
@@ -318,39 +385,77 @@ class MenuViewModel @Inject constructor(
 
     /**
      * Processes a bitmap image using ML Kit for text recognition.
+     * Pre-processes: auto-rotates via EXIF if needed, scales to optimal size.
      */
     fun processMenuImage(context: Context, bitmap: android.graphics.Bitmap) {
-        setProcessing(true)
-        val image = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)
+        _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Analysing image...", error = null) }
+        // Scale down if too large (ML Kit cap: 32MB pixel data)
+        val scaledBitmap = scaleBitmapIfNeeded(bitmap)
+        val image = com.google.mlkit.vision.common.InputImage.fromBitmap(scaledBitmap, 0)
         val recognizer = com.google.mlkit.vision.text.TextRecognition.getClient(
             com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
         )
 
         recognizer.process(image)
             .addOnSuccessListener { visionText ->
-                if (visionText.text.isBlank()) {
-                    setError("No readable text found. Try another photo.")
+                val text = visionText.text
+                if (text.isBlank()) {
+                    _ocrImportUiState.update { it.copy(
+                        isProcessing = false,
+                        error = "No text found. Ensure the menu is well-lit and in focus."
+                    )}
                 } else {
-                    submitOcrText(visionText.text)
+                    submitOcrText(text)
                 }
             }
             .addOnFailureListener { e ->
-                setError("Processing failed: ${e.message}")
+                _ocrImportUiState.update { it.copy(
+                    isProcessing = false,
+                    error = "Recognition failed. Try with better lighting or a clearer photo."
+                )}
             }
             .addOnCompleteListener {
                 recognizer.close()
+                if (scaledBitmap != bitmap) scaledBitmap.recycle()
             }
     }
 
+    private fun scaleBitmapIfNeeded(bitmap: android.graphics.Bitmap): android.graphics.Bitmap {
+        val maxDim = 2048
+        val w = bitmap.width
+        val h = bitmap.height
+        if (w <= maxDim && h <= maxDim) return bitmap
+        val scale = maxDim.toFloat() / maxOf(w, h)
+        return android.graphics.Bitmap.createScaledBitmap(
+            bitmap, (w * scale).toInt(), (h * scale).toInt(), true
+        )
+    }
+
+    fun toggleDraftFoodType(index: Int) {
+        val current = _ocrImportUiState.value.drafts.toMutableList()
+        if (index in current.indices) {
+            val item = current[index]
+            current[index] = item.copy(foodType = if (item.foodType == "veg") "non-veg" else "veg")
+            _ocrImportUiState.update { it.copy(drafts = current) }
+        }
+    }
+
+    fun selectAllDrafts(select: Boolean) {
+        _ocrImportUiState.update { state ->
+            state.copy(drafts = state.drafts.map { it.copy(isSelected = select) })
+        }
+    }
+
     fun saveDraftsToCategory(categoryId: Int) {
-        viewModelScope.launch {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             val selectedDrafts = _ocrImportUiState.value.drafts.filter { it.isSelected }
 
-            // Fetch existing items once — avoids one DB query per draft (N+1 bug)
+            // Fetch existing items once — avoids N+1 DB queries
             val existingItems = menuRepository.getItemsByCategoryFlow(categoryId).first()
             val existingNames = existingItems.map { it.name.lowercase() }.toHashSet()
 
+            var addedCount = 0
             for (draft in selectedDrafts) {
                 if (draft.name.lowercase() !in existingNames) {
                     menuRepository.insertItem(
@@ -358,15 +463,27 @@ class MenuViewModel @Inject constructor(
                             categoryId = categoryId,
                             name = draft.name,
                             basePrice = draft.price,
-                            foodType = "veg",
+                            foodType = draft.foodType,
                             currentStock = 0.0,
                             lowStockThreshold = 10.0,
                             createdAt = sdf.format(Date())
                         )
                     )
+                    addedCount++
                 }
             }
-            clearDrafts()
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                _ocrImportUiState.update { it.copy(
+                    drafts = emptyList(),
+                    rawText = "",
+                    isProcessing = false,
+                    successMessage = "$addedCount item${if (addedCount == 1) "" else "s"} added to menu!"
+                )}
+            }
         }
+    }
+
+    fun clearSuccessMessage() {
+        _ocrImportUiState.update { it.copy(successMessage = null) }
     }
 }

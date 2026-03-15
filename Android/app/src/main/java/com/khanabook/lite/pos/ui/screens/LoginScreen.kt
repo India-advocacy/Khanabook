@@ -256,6 +256,19 @@ fun LoginScreen(
                 }
             }
 
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // â”€â”€â”€ TEST CREDENTIALS SHORTCUT â”€â”€â”€
+            Text(
+                text = "Use Test Credentials",
+                color = PrimaryGold.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+                modifier = Modifier.clickable {
+                    email = "9150677849"
+                    password = "Shop@111"
+                }
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
         }
 

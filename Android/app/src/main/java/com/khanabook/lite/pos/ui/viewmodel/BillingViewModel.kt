@@ -7,7 +7,6 @@ import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
-import com.khanabook.lite.pos.data.repository.InventoryRepository
 
 import com.khanabook.lite.pos.domain.manager.BillCalculator
 import com.khanabook.lite.pos.domain.manager.OrderIdManager
@@ -26,7 +25,6 @@ class BillingViewModel @Inject constructor(
     private val billRepository: BillRepository,
     private val menuRepository: MenuRepository,
     private val restaurantRepository: RestaurantRepository,
-    private val inventoryRepository: InventoryRepository,
     private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
     val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 ) : ViewModel() {
@@ -66,45 +64,10 @@ class BillingViewModel @Inject constructor(
     fun addToCart(item: MenuItemEntity, variant: ItemVariantEntity? = null) {
         viewModelScope.launch {
             val latestItem = menuRepository.getItemById(item.id) ?: item
-            val current = _cartItems.value.toMutableList()
-            val existing = current.find { it.item.id == item.id && it.variant?.id == variant?.id }
-            
-            val currentQuantityInCart = existing?.quantity ?: 0
-            
-            val stockToCheck = if (variant != null) {
-                // For variants, we use the variant's own stock
-                variant.currentStock
-            } else {
-                // For base items, we use the item's stock
-                latestItem.currentStock
-            }
-
-            val thresholdToCheck = if (variant != null) {
-                variant.lowStockThreshold
-            } else {
-                latestItem.lowStockThreshold
-            }
-
-            if (currentQuantityInCart >= stockToCheck) {
-                _error.value = "Reached maximum stock for ${variant?.variantName ?: latestItem.name}"
-                return@launch
-            }
-
-            // Show warning if reaching or below threshold
-            val remainingAfterAdd = stockToCheck - (currentQuantityInCart + 1)
-            var warningMessage: String? = null
-            if (remainingAfterAdd <= thresholdToCheck && remainingAfterAdd > 0) {
-                warningMessage = "Running out of stock for ${variant?.variantName ?: latestItem.name}"
-            } else if (remainingAfterAdd == 0.0) {
-                warningMessage = "Reached maximum stock for ${variant?.variantName ?: latestItem.name}"
-            }
-
-            if (warningMessage != null) _error.value = warningMessage
-
             _cartItems.update { current ->
                 val mutable = current.toMutableList()
                 val existingInUpdate = mutable.find { it.item.id == item.id && it.variant?.id == variant?.id }
-                
+
                 if (existingInUpdate != null) {
                     val idx = mutable.indexOf(existingInUpdate)
                     mutable[idx] = existingInUpdate.copy(quantity = existingInUpdate.quantity + 1)
@@ -226,22 +189,6 @@ class BillingViewModel @Inject constructor(
 
     suspend fun completeOrder(status: PaymentStatus): Boolean {
         try {
-            if (status == PaymentStatus.SUCCESS) {
-                // Final stock check
-                for (cartItem in _cartItems.value) {
-                    if (cartItem.variant != null) {
-                        // Check variant stock (in real app, re-fetch from DB here)
-                        // For simplicity, we assume re-fetch is handled by adjustStock
-                    } else {
-                        val latestItem = menuRepository.getItemById(cartItem.item.id)
-                        if (latestItem == null || latestItem.currentStock < cartItem.quantity) {
-                            _error.value = "Insufficient stock for ${cartItem.item.name}. Available: ${latestItem?.currentStock ?: 0}"
-                            return false
-                        }
-                    }
-                }
-            }
-
             val profile = restaurantRepository.getProfile() ?: return false
             val today = OrderIdManager.getTodayString()
             

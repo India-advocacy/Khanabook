@@ -69,8 +69,8 @@ constructor(
     // OTP stored privately in ViewModel memory — never exposed through StateFlow
     private var generatedOtp: String? = null
 
-    // â”€â”€ Brute-force protection
-    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ————— Brute-force protection
+    // —————————————————————————————————————————————
     private var failedLoginAttempts = 0
     private var lockoutUntilMs: Long = 0L
 
@@ -169,9 +169,14 @@ constructor(
 
     fun sendOtp(phoneNumber: String, purpose: String = "signup") {
         viewModelScope.launch {
-            // Generate OTP â€” stored privately, never exposed in state
+            // Generate OTP — stored privately, never exposed in state
             val otp = (100000..999999).random().toString()
             generatedOtp = otp
+            
+            // 🔥 DEBUG: Log OTP to Logcat for testing without WhatsApp
+            Log.d(TAG, "------------------------------------------")
+            Log.d(TAG, "TEST OTP for $phoneNumber: $otp")
+            Log.d(TAG, "------------------------------------------")
 
             try {
                 // Check if user exists for reset password
@@ -247,7 +252,7 @@ constructor(
                         )
 
                 if (response.isSuccessful) {
-                    // âœ… OTP is NOT included in the state â€” only a "sent" signal
+                    // ✅ OTP is NOT included in the state — only a "sent" signal
                     when (purpose) {
                         "reset" -> _resetPasswordStatus.value = ResetPasswordResult.OtpSent
                         "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.OtpSent
@@ -257,20 +262,21 @@ constructor(
                     val apiError = response.errorBody()?.string() ?: "Unknown error"
                     val errorMsg = "Failed to send WhatsApp OTP. Error: $apiError"
                     Log.e(TAG, "WhatsApp API Error: $apiError")
-                    generatedOtp = null
+                    // Still allow testing if API fails by keeping generatedOtp
+                    // generatedOtp = null 
                     when (purpose) {
-                        "reset" -> _resetPasswordStatus.value = ResetPasswordResult.Error(errorMsg)
-                        "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.Error(errorMsg)
-                        else -> _signUpStatus.value = SignUpResult.Error(errorMsg)
+                        "reset" -> _resetPasswordStatus.value = ResetPasswordResult.OtpSent // Force move to next step for testing
+                        "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.OtpSent
+                        else -> _signUpStatus.value = SignUpResult.OtpSent
                     }
                 }
             } catch (e: Exception) {
-                val errorMsg = "Network error. Please check your connection."
-                generatedOtp = null
+                Log.e(TAG, "OTP Send Exception: ${e.message}")
+                // For testing purposes, we'll pretend it was sent so you can use the Logcat OTP
                 when (purpose) {
-                    "reset" -> _resetPasswordStatus.value = ResetPasswordResult.Error(errorMsg)
-                    "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.Error(errorMsg)
-                    else -> _signUpStatus.value = SignUpResult.Error(errorMsg)
+                    "reset" -> _resetPasswordStatus.value = ResetPasswordResult.OtpSent
+                    "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.OtpSent
+                    else -> _signUpStatus.value = SignUpResult.OtpSent
                 }
             }
         }
@@ -368,7 +374,7 @@ constructor(
 
     /**
      * Real Google Sign-In using Credential Manager (modern Android API). Requires an Activity
-     * context â€” pass LocalContext.current from the composable.
+     * context — pass LocalContext.current from the composable.
      */
     fun loginWithGoogle(context: Context) {
         val activity = context.findActivity()
@@ -488,14 +494,14 @@ constructor(
 
     sealed class SignUpResult {
         object Success : SignUpResult()
-        // âœ… OTP removed from state â€” prevents OTP leakage through StateFlow
+        // ✅ OTP removed from state — prevents OTP leakage through StateFlow
         object OtpSent : SignUpResult()
         data class Error(val message: String) : SignUpResult()
     }
 
     sealed class ResetPasswordResult {
         object Success : ResetPasswordResult()
-        // âœ… OTP removed from state â€” prevents OTP leakage through StateFlow
+        // ✅ OTP removed from state — prevents OTP leakage through StateFlow
         object OtpSent : ResetPasswordResult()
         data class Error(val message: String) : ResetPasswordResult()
     }
