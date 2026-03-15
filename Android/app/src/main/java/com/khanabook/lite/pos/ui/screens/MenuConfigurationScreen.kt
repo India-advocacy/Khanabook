@@ -323,8 +323,8 @@ fun ReviewScannedItemsSheet(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.6f))
-                .imePadding(),
-            contentAlignment = Alignment.BottomCenter
+                .windowInsetsPadding(WindowInsets.safeDrawing),
+            contentAlignment = Alignment.Center
         ) {
             Column(
                 modifier = Modifier
@@ -489,12 +489,12 @@ fun ReviewScannedItemsSheet(
                 // Bottom action bar
                 Surface(
                     color = DarkBrown2,
-                    border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f))
+                    border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f)),
+                    modifier = Modifier.navigationBarsPadding()
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .navigationBarsPadding()
                             .padding(horizontal = 20.dp, vertical = 16.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
