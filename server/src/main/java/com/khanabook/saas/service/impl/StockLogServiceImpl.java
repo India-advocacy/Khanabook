@@ -13,9 +13,12 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +30,7 @@ public class StockLogServiceImpl implements StockLogService {
     private final GenericSyncService genericSyncService;
 
     @Override
+    @Transactional
     public PushSyncResponse pushData(Long tenantId, List<StockLog> payload) {
         List<StockLog> toSync = new ArrayList<>(payload);
         List<Integer> failedLocalIds = new ArrayList<>();
@@ -43,7 +47,6 @@ public class StockLogServiceImpl implements StockLogService {
                 if (menuItem.isPresent()) {
                     log.setServerMenuItemId(menuItem.get().getId());
                 } else {
-                    // FALLBACK: Try resolving by Server ID directly.
                     Optional<MenuItem> serverMenuItem = menuItemRepository.findById(log.getMenuItemId().longValue());
                     if (serverMenuItem.isPresent() && serverMenuItem.get().getRestaurantId().equals(tenantId)) {
                         log.setServerMenuItemId(serverMenuItem.get().getId());
@@ -72,7 +75,27 @@ public class StockLogServiceImpl implements StockLogService {
                 }
             }
         }
+        
         PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
+        
+        // Post-Sync: Recalculate Stock levels for affected items/variants
+        Set<Long> affectedMenuItems = new HashSet<>();
+        Set<Long> affectedVariants = new HashSet<>();
+        
+        for (StockLog log : toSync) {
+            if (response.getSuccessfulLocalIds().contains(log.getLocalId())) {
+                if (log.getServerMenuItemId() != null) affectedMenuItems.add(log.getServerMenuItemId());
+                if (log.getServerVariantId() != null) affectedVariants.add(log.getServerVariantId());
+            }
+        }
+        
+        for (Long menuId : affectedMenuItems) {
+            menuItemRepository.recalculateStock(menuId);
+        }
+        for (Long varId : affectedVariants) {
+            itemVariantRepository.recalculateStock(varId);
+        }
+
         response.getFailedLocalIds().addAll(failedLocalIds);
         return response;
     }

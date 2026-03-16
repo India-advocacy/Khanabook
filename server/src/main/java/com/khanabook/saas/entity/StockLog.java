@@ -15,10 +15,9 @@ import lombok.Setter;
 })
 @Getter
 @Setter
-
 public class StockLog extends BaseSyncEntity {
 
-    @Column(name = "menu_item_id")
+    @Column(name = "menu_item_id", nullable = false)
     private Integer menuItemId;
 
     @Column(name = "server_menu_item_id")
@@ -30,12 +29,9 @@ public class StockLog extends BaseSyncEntity {
     @Column(name = "server_variant_id")
     private Long serverVariantId;
 
-    @Column(name = "delta", columnDefinition = "NUMERIC(12,4)")
+    @Column(name = "delta", columnDefinition = "NUMERIC(12,4)", nullable = false)
     private java.math.BigDecimal delta;
 
-    @Column(name = "reason")
+    @Column(name = "reason", nullable = false)
     private String reason; // 'sale', 'adjustment', 'initial'
-
-    @Column(name = "created_at")
-    private String createdAt;
 }

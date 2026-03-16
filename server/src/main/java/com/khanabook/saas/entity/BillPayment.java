@@ -17,15 +17,15 @@ import lombok.Setter;
 @Setter
 public class BillPayment extends BaseSyncEntity {
 
-    @Column(name = "bill_id", nullable = true)
+    @Column(name = "bill_id", nullable = false)
     private Integer billId;
 
-    @Column(name = "server_bill_id", nullable = true)
+    @Column(name = "server_bill_id")
     private Long serverBillId;
 
-    @Column(name = "payment_mode")
+    @Column(name = "payment_mode", nullable = false)
     private String paymentMode;
 
-    @Column(name = "amount", columnDefinition = "NUMERIC(12,2)")
+    @Column(name = "amount", columnDefinition = "NUMERIC(12,2)", nullable = false)
     private java.math.BigDecimal amount;
 }

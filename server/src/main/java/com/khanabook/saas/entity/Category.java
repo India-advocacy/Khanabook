@@ -17,18 +17,15 @@ import lombok.Setter;
 @Setter
 public class Category extends BaseSyncEntity {
 
-    @Column(name = "name")
+    @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "is_veg")
-    private Boolean isVeg;
+    @Column(name = "is_veg", nullable = false)
+    private Boolean isVeg = false;
 
     @Column(name = "sort_order")
     private Integer sortOrder;
 
-    @Column(name = "is_active")
-    private Boolean isActive;
-
-    @Column(name = "created_at")
-    private String createdAt;
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 }

@@ -106,6 +106,12 @@ public class GenericSyncService {
                 incomingRecord.setRestaurantId(tenantId);
                 incomingRecord.setServerUpdatedAt(serverTime); // Enforce Server Time
 
+                // Ensure createdAt is populated (default to updatedAt if null)
+                if (incomingRecord.getCreatedAt() == null) {
+                    incomingRecord.setCreatedAt(incomingRecord.getUpdatedAt() != null ? 
+                        incomingRecord.getUpdatedAt() : serverTime);
+                }
+
                 T existingRecord = existingRecordMap.get(incomingRecord.getLocalId());
 
                 if (existingRecord != null) {

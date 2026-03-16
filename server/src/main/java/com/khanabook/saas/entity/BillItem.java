@@ -17,37 +17,37 @@ import lombok.Setter;
 @Setter
 public class BillItem extends BaseSyncEntity {
 
-    @Column(name = "bill_id", nullable = true)
+    @Column(name = "bill_id", nullable = false)
     private Integer billId;
 
-    @Column(name = "server_bill_id", nullable = true)
+    @Column(name = "server_bill_id")
     private Long serverBillId;
 
-    @Column(name = "menu_item_id", nullable = true)
+    @Column(name = "menu_item_id", nullable = false)
     private Integer menuItemId;
 
-    @Column(name = "server_menu_item_id", nullable = true)
+    @Column(name = "server_menu_item_id")
     private Long serverMenuItemId;
 
-    @Column(name = "item_name")
+    @Column(name = "item_name", nullable = false)
     private String itemName;
 
-    @Column(name = "variant_id", nullable = true)
+    @Column(name = "variant_id")
     private Integer variantId;
 
-    @Column(name = "server_variant_id", nullable = true)
+    @Column(name = "server_variant_id")
     private Long serverVariantId;
 
     @Column(name = "variant_name")
     private String variantName;
 
-    @Column(name = "price", columnDefinition = "NUMERIC(12,2)")
+    @Column(name = "price", columnDefinition = "NUMERIC(12,2)", nullable = false)
     private java.math.BigDecimal price;
 
-    @Column(name = "quantity")
+    @Column(name = "quantity", nullable = false)
     private Integer quantity;
 
-    @Column(name = "item_total", columnDefinition = "NUMERIC(12,2)")
+    @Column(name = "item_total", columnDefinition = "NUMERIC(12,2)", nullable = false)
     private java.math.BigDecimal itemTotal;
 
     @Column(name = "special_instruction")

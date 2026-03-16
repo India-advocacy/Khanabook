@@ -40,4 +40,8 @@ public abstract class BaseSyncEntity {
     @Column(name = "server_updated_at", nullable = false)
     @JsonProperty("serverUpdatedAt")
     private Long serverUpdatedAt = 0L;
+
+    @Column(name = "created_at", nullable = false)
+    @JsonProperty("createdAt")
+    private Long createdAt; // Audit: when the record was first created on client
 }

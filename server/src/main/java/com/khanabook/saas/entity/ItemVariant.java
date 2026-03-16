@@ -17,17 +17,20 @@ import lombok.Setter;
 @Setter
 public class ItemVariant extends BaseSyncEntity {
 
-    @Column(name = "menu_item_id")
+    @Column(name = "menu_item_id", nullable = false)
     private Integer menuItemId;
 
-    @Column(name = "variant_name")
+    @Column(name = "server_menu_item_id")
+    private Long serverMenuItemId;
+
+    @Column(name = "variant_name", nullable = false)
     private String variantName;
 
-    @Column(name = "price", columnDefinition = "NUMERIC(12,2)")
+    @Column(name = "price", columnDefinition = "NUMERIC(12,2)", nullable = false)
     private java.math.BigDecimal price;
 
-    @Column(name = "is_available")
-    private Boolean isAvailable;
+    @Column(name = "is_available", nullable = false)
+    private Boolean isAvailable = true;
 
     @Column(name = "sort_order")
     private Integer sortOrder;

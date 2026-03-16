@@ -17,13 +17,16 @@ import lombok.Setter;
 @Setter
 public class MenuItem extends BaseSyncEntity {
 
-    @Column(name = "category_id")
+    @Column(name = "category_id", nullable = false)
     private Integer categoryId;
 
-    @Column(name = "name")
+    @Column(name = "server_category_id")
+    private Long serverCategoryId;
+
+    @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "base_price", columnDefinition = "NUMERIC(12,2)")
+    @Column(name = "base_price", columnDefinition = "NUMERIC(12,2)", nullable = false)
     private java.math.BigDecimal basePrice;
 
     @Column(name = "food_type")
@@ -32,8 +35,8 @@ public class MenuItem extends BaseSyncEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "is_available")
-    private Boolean isAvailable;
+    @Column(name = "is_available", nullable = false)
+    private Boolean isAvailable = true;
 
     @Column(name = "current_stock", columnDefinition = "NUMERIC(12,2)")
     private java.math.BigDecimal currentStock;
@@ -56,7 +59,4 @@ public class MenuItem extends BaseSyncEntity {
         }
         return StockStatus.IN_STOCK;
     }
-
-    @Column(name = "created_at")
-    private String createdAt;
 }

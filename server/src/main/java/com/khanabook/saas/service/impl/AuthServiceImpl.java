@@ -15,8 +15,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.UUID;
 
 @Service
@@ -100,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
         user.setIsActive(true);
         user.setUpdatedAt(System.currentTimeMillis());
         user.setServerUpdatedAt(System.currentTimeMillis());
-        user.setCreatedAt(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+        user.setCreatedAt(System.currentTimeMillis());
         userRepository.save(user);
 
         log.info("New user signed up: restaurantId={}", newRestaurantId);
@@ -166,7 +164,7 @@ public class AuthServiceImpl implements AuthService {
                     user.setIsActive(true);
                     user.setUpdatedAt(System.currentTimeMillis());
                     user.setServerUpdatedAt(System.currentTimeMillis());
-                    user.setCreatedAt(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()));
+                    user.setCreatedAt(System.currentTimeMillis());
                     userRepository.save(user);
 
                     String token = jwtUtility.generateToken(user.getEmail(), newRestaurantId);
