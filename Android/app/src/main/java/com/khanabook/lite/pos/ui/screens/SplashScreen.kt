@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.ui.screens
+package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -6,6 +6,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -16,10 +18,18 @@ import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
 import com.khanabook.lite.pos.ui.theme.TextGold
-import kotlinx.coroutines.delay
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.khanabook.lite.pos.ui.viewmodel.SplashViewModel
 
 @Composable
-fun SplashScreen(onTimeout: () -> Unit) {
+fun SplashScreen(
+    onNavigateToLogin: () -> Unit,
+    onNavigateToMain: () -> Unit,
+    onNavigateToInitialSync: () -> Unit,
+    viewModel: SplashViewModel = hiltViewModel()
+) {
+    val state by viewModel.state.collectAsState()
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -49,9 +59,13 @@ fun SplashScreen(onTimeout: () -> Unit) {
         }
     }
 
-    LaunchedEffect(Unit) {
-        delay(2000)
-        onTimeout()
+    LaunchedEffect(state) {
+        when (state) {
+            is SplashViewModel.SplashState.NavigateToLogin -> onNavigateToLogin()
+            is SplashViewModel.SplashState.NavigateToMain -> onNavigateToMain()
+            is SplashViewModel.SplashState.NavigateToInitialSync -> onNavigateToInitialSync()
+            else -> {}
+        }
     }
 }
 

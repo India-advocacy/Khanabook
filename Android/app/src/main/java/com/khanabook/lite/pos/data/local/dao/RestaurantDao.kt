@@ -26,8 +26,11 @@ interface RestaurantDao {
     suspend fun incrementOrderCounters(updatedAt: Long)
 
     @Transaction
-    suspend fun incrementAndGetCounters(today: String): Pair<Int, Int> {
+    suspend fun incrementAndGetCounters(): Pair<Int, Int> {
         val profile = getProfile() ?: throw Exception("Profile not found")
+        // Server now handles date derivation, but local daily counter still needs a reset check.
+        // For simplicity during transition, we'll use system date locally.
+        val today = java.time.LocalDate.now().toString()
         val isNewDay = profile.lastResetDate != today
         val now = System.currentTimeMillis()
         
@@ -46,8 +49,9 @@ interface RestaurantDao {
     }
 
     @Transaction
-    suspend fun updateCounters(daily: Int, lifetime: Int, today: String) {
+    suspend fun updateCounters(daily: Int, lifetime: Int) {
         val current = getProfile() ?: return
+        val today = java.time.LocalDate.now().toString()
         saveProfile(current.copy(
             dailyOrderCounter = daily,
             lifetimeOrderCounter = lifetime,

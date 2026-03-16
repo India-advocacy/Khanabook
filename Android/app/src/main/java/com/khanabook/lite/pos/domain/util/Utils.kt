@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.domain.util
+package com.khanabook.lite.pos.domain.util
 
 import android.content.Context
 import android.content.ContextWrapper
@@ -16,15 +16,36 @@ import java.util.*
 
 object DateUtils {
     private const val DISPLAY_FORMAT = "dd MMM yyyy, hh:mm a"
-    private const val DB_FORMAT = "yyyy-MM-dd HH:mm:ss"
 
-    fun formatDisplay(date: Date): String = SimpleDateFormat(DISPLAY_FORMAT, Locale.getDefault()).format(date)
-    fun formatDb(date: Date): String = SimpleDateFormat(DB_FORMAT, Locale.getDefault()).format(date)
-    
-    fun parseDb(dateStr: String): Date? = try {
-        SimpleDateFormat(DB_FORMAT, Locale.getDefault()).parse(dateStr)
-    } catch (e: Exception) {
-        null
+    fun formatDisplay(timestamp: Long): String {
+        return java.time.Instant.ofEpochMilli(timestamp)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern(DISPLAY_FORMAT))
+    }
+
+    fun formatDisplayWithZone(timestamp: Long, zoneId: String): String {
+        return java.time.Instant.ofEpochMilli(timestamp)
+            .atZone(java.time.ZoneId.of(zoneId))
+            .format(java.time.format.DateTimeFormatter.ofPattern(DISPLAY_FORMAT))
+    }
+
+    fun parseDb(timestamp: Long): Date {
+        return Date(timestamp)
+    }
+
+    fun getStartOfDay(date: String, timezone: String = "Asia/Kolkata"): Long {
+        return java.time.LocalDate.parse(date)
+            .atStartOfDay(java.time.ZoneId.of(timezone))
+            .toInstant()
+            .toEpochMilli()
+    }
+
+    fun getEndOfDay(date: String, timezone: String = "Asia/Kolkata"): Long {
+        return java.time.LocalDate.parse(date)
+            .atTime(java.time.LocalTime.MAX)
+            .atZone(java.time.ZoneId.of(timezone))
+            .toInstant()
+            .toEpochMilli()
     }
 }
 
@@ -34,15 +55,6 @@ object CurrencyUtils {
     }
 }
 
-object ValidationUtils {
-    fun isValidEmail(email: String): Boolean {
-        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
-    }
-
-    fun isValidPhone(phone: String): Boolean {
-        return phone.length >= 10
-    }
-}
 
 fun Context.findActivity(): ComponentActivity? = when (this) {
     is ComponentActivity -> this

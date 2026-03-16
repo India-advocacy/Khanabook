@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.data.local.dao
+package com.khanabook.lite.pos.data.local.dao
 
 import androidx.room.*
 import com.khanabook.lite.pos.data.local.entity.BillEntity
@@ -26,14 +26,14 @@ interface BillDao {
     suspend fun getBillByLifetimeId(id: Int): BillEntity?
 
     @Query(
-            "SELECT * FROM bills WHERE daily_order_display = :displayId AND created_at LIKE :datePrefix || '%'"
+            "SELECT * FROM bills WHERE daily_order_display = :displayId AND created_at BETWEEN :startTime AND :endTime"
     )
-    suspend fun getBillByDailyIdAndDate(displayId: String, datePrefix: String): BillEntity?
+    suspend fun getBillByDailyIdAndDate(displayId: String, startTime: Long, endTime: Long): BillEntity?
 
     @Query(
-            "SELECT * FROM bills WHERE daily_order_id = :dailyId AND created_at LIKE :datePrefix || '%'"
+            "SELECT * FROM bills WHERE daily_order_id = :dailyId AND created_at BETWEEN :startTime AND :endTime"
     )
-    suspend fun getBillByDailyIntIdAndDate(dailyId: Int, datePrefix: String): BillEntity?
+    suspend fun getBillByDailyIntIdAndDate(dailyId: Int, startTime: Long, endTime: Long): BillEntity?
 
     @Query("SELECT * FROM bills WHERE order_status = 'draft'")
     fun getDraftBills(): Flow<List<BillEntity>>
@@ -48,9 +48,9 @@ interface BillDao {
     suspend fun updatePaymentStatus(id: Int, status: String)
 
     @Query(
-            "SELECT * FROM bills WHERE created_at BETWEEN :startDate AND :endDate ORDER BY created_at DESC"
+            "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis ORDER BY created_at DESC"
     )
-    fun getBillsByDateRange(startDate: String, endDate: String): Flow<List<BillEntity>>
+    fun getBillsByDateRange(startMillis: Long, endMillis: Long): Flow<List<BillEntity>>
 
     @Transaction
     @Query("SELECT * FROM bills WHERE id = :id")

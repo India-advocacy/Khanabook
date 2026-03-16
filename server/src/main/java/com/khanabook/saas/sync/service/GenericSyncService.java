@@ -115,9 +115,15 @@ public class GenericSyncService {
                 T existingRecord = existingRecordMap.get(incomingRecord.getLocalId());
 
                 if (existingRecord != null) {
-                    incomingRecord.setId(existingRecord.getId());
-
                     if (incomingRecord.getUpdatedAt() > existingRecord.getUpdatedAt()) {
+                        // CRIT-05 security: User entities should never have their passwordHash cleared by sync
+                        if (incomingRecord instanceof User user && existingRecord instanceof User existingUser) {
+                            if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
+                                user.setPasswordHash(existingUser.getPasswordHash());
+                            }
+                        }
+                        incomingRecord.setId(existingRecord.getId());
+
                         T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
                         if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
                             recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);

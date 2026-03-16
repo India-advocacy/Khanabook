@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.data.local.entity
+package com.khanabook.lite.pos.data.local.entity
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -21,7 +21,7 @@ data class CategoryEntity(
     @ColumnInfo(name = "is_active", defaultValue = "1")
     val isActive: Boolean = true,
     @ColumnInfo(name = "created_at")
-    val createdAt: String,
+    val createdAt: Long = System.currentTimeMillis(),
 
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",

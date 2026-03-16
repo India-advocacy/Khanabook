@@ -20,12 +20,15 @@ public class BillServiceImpl implements BillService {
     private final BillRepository repository;
     private final GenericSyncService genericSyncService;
     private final RestaurantProfileRepository profileRepository;
+    private final java.util.Map<Long, String> timezoneCache = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Override
     public PushSyncResponse pushData(Long tenantId, List<Bill> payload) {
-        String timezone = profileRepository.findByRestaurantId(tenantId)
+        String timezone = timezoneCache.computeIfAbsent(tenantId, tid -> 
+            profileRepository.findByRestaurantId(tid)
                 .map(RestaurantProfile::getTimezone)
-                .orElse("Asia/Kolkata");
+                .orElse("Asia/Kolkata")
+        );
         ZoneId zoneId = ZoneId.of(timezone);
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
 

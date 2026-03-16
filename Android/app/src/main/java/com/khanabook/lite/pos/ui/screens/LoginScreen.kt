@@ -1,4 +1,4 @@
-﻿@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -41,7 +41,7 @@ fun LoginScreen(
 
         viewModel: AuthViewModel = hiltViewModel()
 ) {
-    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var showForgotDialog by remember { mutableStateOf(false) }
@@ -93,8 +93,8 @@ fun LoginScreen(
 
             // Email/Phone Input
             TextField(
-                    value = email,
-                    onValueChange = { email = it },
+                    value = phone,
+                    onValueChange = { if (it.length <= 10) phone = it },
                     placeholder = { Text("Phone Number", color = Color.Gray) },
                     leadingIcon = {
                         Icon(
@@ -118,7 +118,7 @@ fun LoginScreen(
                             ),
                     textStyle = LocalTextStyle.current.copy(color = TextLight),
                     singleLine = true,
-                    isError = email.isBlank() && loginStatus is AuthViewModel.LoginResult.Error
+                    isError = phone.isBlank() && loginStatus is AuthViewModel.LoginResult.Error
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -191,9 +191,9 @@ fun LoginScreen(
             }
 
             // Log In Button
-            val isLoginEnabled = email.isNotBlank() && password.isNotBlank()
+            val isLoginEnabled = phone.length == 10 && password.isNotBlank()
             Button(
-                    onClick = { if (isLoginEnabled) viewModel.login(email, password) },
+                    onClick = { if (isLoginEnabled) viewModel.login(phone, password) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors =
                             ButtonDefaults.buttonColors(
@@ -259,15 +259,17 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             // â”€â”€â”€ TEST CREDENTIALS SHORTCUT â”€â”€â”€
-            Text(
-                text = "Use Test Credentials",
-                color = PrimaryGold.copy(alpha = 0.7f),
-                fontSize = 12.sp,
-                modifier = Modifier.clickable {
-                    email = "9150677849"
-                    password = "Shop@111"
-                }
-            )
+            if (com.khanabook.lite.pos.BuildConfig.DEBUG) {
+                Text(
+                    text = "Use Test Credentials (DEBUG ONLY)",
+                    color = PrimaryGold.copy(alpha = 0.7f),
+                    fontSize = 12.sp,
+                    modifier = Modifier.clickable {
+                        phone = "9150677849"
+                        password = "Shop@111"
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
         }

@@ -26,7 +26,7 @@ data class UserEntity(
     val isActive: Boolean = true,
 
     @ColumnInfo(name = "created_at")
-    val createdAt: String,
+    val createdAt: Long = System.currentTimeMillis(),
 
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",

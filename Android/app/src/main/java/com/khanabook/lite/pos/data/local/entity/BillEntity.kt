@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.data.local.entity
+package com.khanabook.lite.pos.data.local.entity
 
 import androidx.room.*
 import com.google.gson.annotations.SerializedName
@@ -47,8 +47,8 @@ data class BillEntity(
         @ColumnInfo(name = "order_status")
         val orderStatus: String, // 'draft' | 'completed' | 'cancelled'
         @ColumnInfo(name = "created_by") val createdBy: Int? = null,
-        @ColumnInfo(name = "created_at") val createdAt: String,
-        @ColumnInfo(name = "paid_at") val paidAt: String? = null,
+        @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
+        @ColumnInfo(name = "paid_at") val paidAt: Long? = null,
 
         // Cloud Sync Metadata
         @ColumnInfo(name = "is_synced", defaultValue = "0") val isSynced: Boolean = false,

@@ -20,6 +20,7 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
     saveCrashLog(stackTrace)
 
     // 3. Prevent the system "App has stopped" dialog if possible, or just restart
+    // WARNING: Immediate restart can cause loops if crash is on startup.
     try {
       restartApp()
     } catch (e: Exception) {

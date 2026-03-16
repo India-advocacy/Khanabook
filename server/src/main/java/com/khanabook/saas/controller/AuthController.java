@@ -55,9 +55,18 @@ public class AuthController {
     }
 
     @PostMapping("/reset-password")
-    public ResponseEntity<Void> resetPassword(@RequestParam String phoneNumber, @RequestParam String newPassword) {
-        authService.resetPassword(phoneNumber, newPassword);
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getPhoneNumber(), request.getNewPassword());
         return ResponseEntity.ok().build();
+    }
+
+    @Data @AllArgsConstructor @NoArgsConstructor
+    public static class ResetPasswordRequest {
+        @NotBlank(message = "Phone number is required")
+        private String phoneNumber;
+        @NotBlank(message = "New password is required")
+        @Size(min = 6, max = 128)
+        private String newPassword;
     }
 
     // ─── Request / Response DTOs ──────────────────────────────────────────────
@@ -66,7 +75,7 @@ public class AuthController {
     public static class LoginRequest {
         @NotBlank(message = "Phone number is required")
         @Pattern(regexp = "^\\+?[1-9]\\d{6,19}$", message = "Phone number must be valid format")
-        @Size(max = 15)
+        @Size(max = 20)
         @JsonAlias("email")
         private String phoneNumber;
 
@@ -90,7 +99,7 @@ public class AuthController {
     public static class SignupRequest {
         @NotBlank(message = "Phone number is required")
         @Pattern(regexp = "^\\+?[1-9]\\d{6,19}$", message = "Phone number must be valid format")
-        @Size(max = 15)
+        @Size(max = 20)
         @JsonAlias("email")
         private String phoneNumber;
 

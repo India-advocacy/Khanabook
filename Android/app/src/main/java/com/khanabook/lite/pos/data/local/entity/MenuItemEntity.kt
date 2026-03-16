@@ -36,7 +36,7 @@ data class MenuItemEntity(
     @ColumnInfo(name = "low_stock_threshold", defaultValue = "10.0")
     val lowStockThreshold: Double = 10.0,
     @ColumnInfo(name = "created_at")
-    val createdAt: String,
+    val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "barcode", defaultValue = "NULL")
     val barcode: String? = null,
 

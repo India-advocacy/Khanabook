@@ -22,9 +22,8 @@ object OrderIdManager {
         return profile.lifetimeOrderCounter + 1
     }
 
-    fun getTodayString(): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        return sdf.format(Date())
+    fun getTodayString(timezone: String = "Asia/Kolkata"): String {
+        return java.time.LocalDate.now(java.time.ZoneId.of(timezone)).toString()
     }
 }
 

@@ -60,12 +60,16 @@ class BillRepository(
         return billDao.getBillWithItemsByLifetimeId(id)
     }
 
-    suspend fun getBillByDailyIdAndDate(displayId: String, datePrefix: String): BillEntity? {
-        return billDao.getBillByDailyIdAndDate(displayId, datePrefix)
+    suspend fun getBillByDailyIdAndDate(displayId: String, date: String): BillEntity? {
+        val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(date)
+        val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(date)
+        return billDao.getBillByDailyIdAndDate(displayId, start, end)
     }
 
-    suspend fun getBillByDailyIntIdAndDate(dailyId: Int, datePrefix: String): BillEntity? {
-        return billDao.getBillByDailyIntIdAndDate(dailyId, datePrefix)
+    suspend fun getBillByDailyIntIdAndDate(dailyId: Int, date: String): BillEntity? {
+        val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(date)
+        val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(date)
+        return billDao.getBillByDailyIntIdAndDate(dailyId, start, end)
     }
 
     fun getDraftBills(): Flow<List<BillEntity>> {
@@ -115,7 +119,24 @@ class BillRepository(
     }
 
     fun getBillsByDateRange(startDate: String, endDate: String): Flow<List<BillEntity>> {
-        return billDao.getBillsByDateRange(startDate, endDate)
+        // Range parsing logic
+        val startMillis = try { 
+            if (startDate.contains(":")) {
+               java.time.LocalDateTime.parse(startDate.replace(" ", "T")).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            } else {
+               com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(startDate)
+            }
+        } catch (e: Exception) { 0L }
+        
+        val endMillis = try {
+            if (endDate.contains(":")) {
+               java.time.LocalDateTime.parse(endDate.replace(" ", "T")).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+            } else {
+               com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(endDate)
+            }
+        } catch (e: Exception) { Long.MAX_VALUE }
+        
+        return billDao.getBillsByDateRange(startMillis, endMillis)
     }
 
     fun getUnsyncedCount(): Flow<Int> {

@@ -198,7 +198,8 @@ class UserRepository(
     }
 
     suspend fun remoteResetPassword(phoneNumber: String, newPasswordPlain: String) {
-        api.resetPassword(phoneNumber, newPasswordPlain)
+        val request = com.khanabook.lite.pos.data.remote.ResetPasswordRequest(phoneNumber, newPasswordPlain)
+        api.resetPassword(request)
     }
 
     suspend fun checkUserExistsRemotely(phoneNumber: String): Boolean {

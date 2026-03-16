@@ -190,10 +190,27 @@ class BillingViewModel @Inject constructor(
     suspend fun completeOrder(status: PaymentStatus): Boolean {
         try {
             val profile = restaurantRepository.getProfile() ?: return false
-            val today = OrderIdManager.getTodayString()
             
+            // Force final summary calculation to avoid 300ms debounce race condition
+            val subtotal = BillCalculator.calculateSubtotal(_cartItems.value.map { 
+                (it.variant?.price ?: it.item.basePrice) to it.quantity 
+            })
+            var cgst = 0.0
+            var sgst = 0.0
+            var customTax = 0.0
+            if (profile.gstEnabled) {
+                val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage)
+                cgst = gst.cgst
+                sgst = gst.sgst
+            } else if (profile.customTaxPercentage > 0) {
+                customTax = BillCalculator.calculateCustomTax(subtotal, profile.customTaxPercentage)
+            }
+            val total = BillCalculator.calculateTotal(subtotal, cgst, sgst, customTax)
+            val finalSummary = BillSummary(subtotal, cgst, sgst, customTax, total)
+
             // Atomically increment and get next counters
-            val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters(today)
+            val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
+            val today = java.time.LocalDate.now().toString() // Local fallback for display ID
             val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
             
             val bill = BillEntity(
@@ -205,19 +222,19 @@ class BillingViewModel @Inject constructor(
                 orderType = "order",
                 customerName = _customerName.value.ifBlank { null },
                 customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
-                subtotal = _billSummary.value.subtotal,
+                subtotal = finalSummary.subtotal,
                 gstPercentage = profile.gstPercentage,
-                cgstAmount = _billSummary.value.cgst,
-                sgstAmount = _billSummary.value.sgst,
-                customTaxAmount = _billSummary.value.customTax,
-                totalAmount = _billSummary.value.total,
+                cgstAmount = finalSummary.cgst,
+                sgstAmount = finalSummary.sgst,
+                customTaxAmount = finalSummary.customTax,
+                totalAmount = finalSummary.total,
                 paymentMode = _paymentMode.value.dbValue,
                 partAmount1 = _partAmount1.value,
                 partAmount2 = _partAmount2.value,
                 paymentStatus = status.dbValue,
                 orderStatus = if (status == PaymentStatus.SUCCESS) OrderStatus.COMPLETED.dbValue else OrderStatus.CANCELLED.dbValue,
-                createdAt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()),
-                paidAt = if (status == PaymentStatus.SUCCESS) SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()) else null
+                createdAt = System.currentTimeMillis(),
+                paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null
             )
             
             val items = _cartItems.value.map { cartItem ->

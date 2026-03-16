@@ -1,6 +1,8 @@
 package com.khanabook.lite.pos.data.remote.api
 
 import com.khanabook.lite.pos.data.local.entity.*
+import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
+import com.khanabook.lite.pos.data.remote.dto.*
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -18,7 +20,7 @@ interface KhanaBookApi {
         suspend fun loginWithGoogle(@Body request: GoogleLoginRequest): AuthResponse
 
         @POST("sync/bills/push")
-        suspend fun pushBills(@Body bills: List<BillEntity>): List<Int>
+        suspend fun pushBills(@Body bills: List<BillEntity>): PushSyncResponse
 
         @GET("sync/bills/pull")
         suspend fun pullBills(
@@ -27,7 +29,7 @@ interface KhanaBookApi {
         ): List<BillEntity>
 
         @POST("sync/bills/items/push")
-        suspend fun pushBillItems(@Body items: List<BillItemEntity>): List<Int>
+        suspend fun pushBillItems(@Body items: List<BillItemEntity>): PushSyncResponse
 
         @GET("sync/bills/items/pull")
         suspend fun pullBillItems(
@@ -36,7 +38,7 @@ interface KhanaBookApi {
         ): List<BillItemEntity>
 
         @POST("sync/bills/payments/push")
-        suspend fun pushBillPayments(@Body payments: List<BillPaymentEntity>): List<Int>
+        suspend fun pushBillPayments(@Body payments: List<BillPaymentEntity>): PushSyncResponse
 
         @GET("sync/bills/payments/pull")
         suspend fun pullBillPayments(
@@ -46,7 +48,7 @@ interface KhanaBookApi {
 
         // Config Endpoints
         @POST("sync/restaurantprofile/push")
-        suspend fun pushRestaurantProfiles(@Body profiles: List<RestaurantProfileEntity>): List<Int>
+        suspend fun pushRestaurantProfiles(@Body profiles: List<RestaurantProfileEntity>): PushSyncResponse
 
         @GET("sync/restaurantprofile/pull")
         suspend fun pullRestaurantProfiles(
@@ -55,7 +57,7 @@ interface KhanaBookApi {
         ): List<RestaurantProfileEntity>
 
         @POST("sync/config/users/push")
-        suspend fun pushUsers(@Body users: List<UserEntity>): List<Int>
+        suspend fun pushUsers(@Body users: List<UserEntity>): PushSyncResponse
 
         @GET("sync/config/users/pull")
         suspend fun pullUsers(
@@ -65,7 +67,7 @@ interface KhanaBookApi {
 
         // Menu Endpoints
         @POST("sync/menu/categories/push")
-        suspend fun pushCategories(@Body categories: List<CategoryEntity>): List<Int>
+        suspend fun pushCategories(@Body categories: List<CategoryEntity>): PushSyncResponse
 
         @GET("sync/menu/categories/pull")
         suspend fun pullCategories(
@@ -74,7 +76,7 @@ interface KhanaBookApi {
         ): List<CategoryEntity>
 
         @POST("sync/menuitem/push")
-        suspend fun pushMenuItems(@Body items: List<MenuItemEntity>): List<Int>
+        suspend fun pushMenuItems(@Body items: List<MenuItemEntity>): PushSyncResponse
 
         @GET("sync/menuitem/pull")
         suspend fun pullMenuItems(
@@ -83,7 +85,7 @@ interface KhanaBookApi {
         ): List<MenuItemEntity>
 
         @POST("sync/itemvariant/push")
-        suspend fun pushItemVariants(@Body variants: List<ItemVariantEntity>): List<Int>
+        suspend fun pushItemVariants(@Body variants: List<ItemVariantEntity>): PushSyncResponse
 
         @GET("sync/itemvariant/pull")
         suspend fun pullItemVariants(
@@ -92,7 +94,7 @@ interface KhanaBookApi {
         ): List<ItemVariantEntity>
 
         @POST("sync/stocklog/push")
-        suspend fun pushStockLogs(@Body logs: List<StockLogEntity>): List<Int>
+        suspend fun pushStockLogs(@Body logs: List<StockLogEntity>): PushSyncResponse
 
         @GET("sync/stocklog/pull")
         suspend fun pullStockLogs(
@@ -107,10 +109,10 @@ interface KhanaBookApi {
         ): MasterSyncResponse
 
         @POST("sync/restaurantprofile/counters/increment")
-        suspend fun incrementCounters(@Query("today") today: String): CounterResponse
+        suspend fun incrementCounters(): CounterResponse
 
         @POST("auth/reset-password")
-        suspend fun resetPassword(@Query("phoneNumber") phoneNumber: String, @Query("newPassword") newPassword: String)
+        suspend fun resetPassword(@Body request: ResetPasswordRequest)
 
         @GET("auth/check-user")
         suspend fun checkUser(@Query("phoneNumber") phoneNumber: String): Boolean

@@ -62,44 +62,27 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                val navigateToMainTab: (Int) -> Unit = { tab ->
-                    navController.navigate("main/$tab") {
-                        launchSingleTop = true
-                        popUpTo("main/{tab}") { saveState = true }
-                        restoreState = true
-                    }
-                }
 
-                val startDestination = remember {
-                    val token = sessionManager.getAuthToken()
-                    val isSyncCompleted = sessionManager.isInitialSyncCompleted()
-                    when {
-                        token == null -> "splash"
-                        !isSyncCompleted -> "initial_sync"
-                        else -> "splash"
-                    }
-                }
+                val startDestination = "splash"
 
                 NavHost(navController = navController, startDestination = startDestination) {
                     composable("splash") {
                         SplashScreen(
-                                onTimeout = {
-                                    if (currentUser != null || sessionManager.getAuthToken() != null) {
-                                        if (sessionManager.isInitialSyncCompleted()) {
-                                            navController.navigate("main/0") {
-                                                popUpTo("splash") { inclusive = true }
-                                            }
-                                        } else {
-                                            navController.navigate("initial_sync") {
-                                                popUpTo("splash") { inclusive = true }
-                                            }
-                                        }
-                                    } else {
-                                        navController.navigate("login") {
-                                            popUpTo("splash") { inclusive = true }
-                                        }
-                                    }
+                            onNavigateToLogin = {
+                                navController.navigate("login") {
+                                    popUpTo("splash") { inclusive = true }
                                 }
+                            },
+                            onNavigateToMain = {
+                                navController.navigate("main/0") {
+                                    popUpTo("splash") { inclusive = true }
+                                }
+                            },
+                            onNavigateToInitialSync = {
+                                navController.navigate("initial_sync") {
+                                    popUpTo("splash") { inclusive = true }
+                                }
+                            }
                         )
                     }
                     composable("initial_sync") {

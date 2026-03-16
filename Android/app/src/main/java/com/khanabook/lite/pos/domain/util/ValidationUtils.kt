@@ -1,46 +1,45 @@
-﻿package com.khanabook.lite.pos.domain.util
+package com.khanabook.lite.pos.domain.util
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+object ValidationUtils {
+    
+    fun isValidPhone(phone: String): Boolean {
+        return phone.matches(Regex("^\\+?[1-9]\\d{6,19}$"))
+    }
 
-fun isValidPhone(phone: String): Boolean {
-    return phone.length == 10 && phone.all { it.isDigit() }
-}
+    fun isValidEmail(email: String): Boolean {
+        if (email.isBlank()) return true
+        return android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()
+    }
 
-fun isValidEmail(email: String): Boolean {
-    if (email.isBlank()) return true // Email is often optional
-    val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[a-z]{2,}$".toRegex()
-    return email.matches(emailRegex)
-}
+    fun isValidGst(gst: String): Boolean {
+        if (gst.isBlank()) return false
+        val gstRegex = "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$".toRegex()
+        return gst.matches(gstRegex)
+    }
 
-fun isValidGst(gst: String): Boolean {
-    if (gst.isBlank()) return false
-    val gstRegex = "^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$".toRegex()
-    return gst.matches(gstRegex)
-}
+    fun isValidName(name: String): Boolean {
+        return name.isNotBlank() && name.length >= 2
+    }
 
-fun isValidName(name: String): Boolean {
-    return name.isNotBlank() && name.length >= 2
-}
+    fun isValidPassword(password: String): Boolean {
+        if (password.length < 8) return false
+        val hasUpper = password.any { it.isUpperCase() }
+        val hasDigit = password.any { it.isDigit() }
+        val hasSpecial = password.any { !it.isLetterOrDigit() }
+        return hasUpper && hasDigit && hasSpecial
+    }
 
-fun isValidPassword(password: String): Boolean {
-    if (password.length < 8) return false
-    val hasUpper = password.any { it.isUpperCase() }
-    val hasDigit = password.any { it.isDigit() }
-    val hasSpecial = password.any { !it.isLetterOrDigit() }
-    return hasUpper && hasDigit && hasSpecial
-}
+    fun passwordStrengthMessage(): String =
+        "Password must be at least 8 characters and contain uppercase, digit, and special character"
 
-fun passwordStrengthMessage(): String =
-    "Password must be at least 8 characters and contain uppercase, digit, and special character"
+    fun isValidOtp(otp: String): Boolean {
+        return otp.length == 6 && otp.all { it.isDigit() }
+    }
 
-fun isValidOtp(otp: String): Boolean {
-    return otp.length == 6 && otp.all { it.isDigit() }
-}
-
-fun isValidTaxPercentage(percentage: String): Boolean {
-    val value = percentage.toDoubleOrNull() ?: return false
-    return value in 0.0..100.0
+    fun isValidTaxPercentage(percentage: String): Boolean {
+        val value = percentage.toDoubleOrNull() ?: return false
+        return value in 0.0..100.0
+    }
 }
 
 

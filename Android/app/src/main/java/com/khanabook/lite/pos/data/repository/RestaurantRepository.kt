@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.data.repository
+package com.khanabook.lite.pos.data.repository
 
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -47,13 +47,13 @@ class RestaurantRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun incrementAndGetCounters(today: String): Pair<Int, Int> {
+    suspend fun incrementAndGetCounters(): Pair<Int, Int> {
         return try {
-            val response = api.incrementCounters(today)
-            restaurantDao.updateCounters(response.dailyCounter, response.lifetimeCounter, today)
+            val response = api.incrementCounters()
+            restaurantDao.updateCounters(response.dailyCounter, response.lifetimeCounter)
             Pair(response.dailyCounter, response.lifetimeCounter)
         } catch (e: Exception) {
-            val counters = restaurantDao.incrementAndGetCounters(today)
+            val counters = restaurantDao.incrementAndGetCounters()
             triggerBackgroundSync()
             counters
         }
