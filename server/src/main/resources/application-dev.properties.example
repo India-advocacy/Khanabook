@@ -7,7 +7,10 @@ spring.datasource.password=your_local_dev_password_here
 
 jwt.secret=replace_with_a_strong_random_secret_of_at_least_64_chars_xxxxxxxxxxxxxxxxxxxxxxxxx
 
+# Flyway should manage schema even in dev
+spring.flyway.enabled=true
+spring.jpa.hibernate.ddl-auto=validate
+
 # Enable SQL logging only in dev
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
-spring.jpa.hibernate.ddl-auto=update

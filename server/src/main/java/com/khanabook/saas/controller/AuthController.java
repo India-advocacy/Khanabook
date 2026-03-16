@@ -45,7 +45,7 @@ public class AuthController {
      * Google login
      */
     @PostMapping("/google")
-    public ResponseEntity<AuthResponse> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
+    public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
         return ResponseEntity.ok(authService.googleLogin(request));
     }
 
@@ -81,6 +81,7 @@ public class AuthController {
 
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class GoogleLoginRequest {
+        @NotBlank(message = "idToken is required")
         private String idToken;
         private String deviceId;
     }

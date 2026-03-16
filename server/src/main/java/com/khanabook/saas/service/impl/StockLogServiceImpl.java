@@ -19,41 +19,49 @@ import java.util.Optional;
 import java.util.ArrayList;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Iterator;
 
 @Service
 @RequiredArgsConstructor
 public class StockLogServiceImpl implements StockLogService {
-    private static final Logger log_logger = LoggerFactory.getLogger(StockLogServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(StockLogServiceImpl.class);
     private final StockLogRepository repository;
     private final MenuItemRepository menuItemRepository;
     private final ItemVariantRepository itemVariantRepository;
     private final GenericSyncService genericSyncService;
 
+    /**
+     * Pushes stock logs and recalculates current stock levels.
+     * 
+     * NOTE: Stock logs are the canonical source of truth for stock levels.
+     * currentStock on MenuItem/ItemVariant is a denormalized value recalculated 
+     * from logs to ensure multi-device consistency without LWW race conditions.
+     */
     @Override
     @Transactional
     public PushSyncResponse pushData(Long tenantId, List<StockLog> payload) {
         List<StockLog> toSync = new ArrayList<>(payload);
         List<Integer> failedLocalIds = new ArrayList<>();
-        java.util.Iterator<StockLog> iterator = toSync.iterator();
+        Iterator<StockLog> iterator = toSync.iterator();
 
         while (iterator.hasNext()) {
-            StockLog log = iterator.next();
+            StockLog stockLog = iterator.next();
             
             // 1. Resolve MenuItem
-            if (log.getServerMenuItemId() == null && log.getMenuItemId() != null) {
+            if (stockLog.getServerMenuItemId() == null && stockLog.getMenuItemId() != null) {
                 Optional<MenuItem> menuItem = menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(
-                        tenantId, log.getDeviceId(), log.getMenuItemId());
+                        tenantId, stockLog.getDeviceId(), stockLog.getMenuItemId());
                 
                 if (menuItem.isPresent()) {
-                    log.setServerMenuItemId(menuItem.get().getId());
+                    stockLog.setServerMenuItemId(menuItem.get().getId());
                 } else {
-                    Optional<MenuItem> serverMenuItem = menuItemRepository.findById(log.getMenuItemId().longValue());
+                    Optional<MenuItem> serverMenuItem = menuItemRepository.findById(stockLog.getMenuItemId().longValue());
                     if (serverMenuItem.isPresent() && serverMenuItem.get().getRestaurantId().equals(tenantId)) {
-                        log.setServerMenuItemId(serverMenuItem.get().getId());
+                        stockLog.setServerMenuItemId(serverMenuItem.get().getId());
                     } else {
-                        log_logger.warn("Skipping StockLog push. Could not resolve serverMenuItemId for localId: {} on device: {}", 
-                                log.getMenuItemId(), log.getDeviceId());
-                        failedLocalIds.add(log.getLocalId());
+                        log.warn("Skipping StockLog push. Could not resolve serverMenuItemId for localId: {} on device: {}", 
+                                stockLog.getMenuItemId(), stockLog.getDeviceId());
+                        failedLocalIds.add(stockLog.getLocalId());
                         iterator.remove();
                         continue;
                     }
@@ -61,16 +69,16 @@ public class StockLogServiceImpl implements StockLogService {
             }
 
             // 2. Resolve Variant (if applicable)
-            if (log.getServerVariantId() == null && log.getVariantId() != null && log.getVariantId() > 0) {
+            if (stockLog.getServerVariantId() == null && stockLog.getVariantId() != null && stockLog.getVariantId() > 0) {
                 Optional<ItemVariant> variant = itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalId(
-                        tenantId, log.getDeviceId(), log.getVariantId());
+                        tenantId, stockLog.getDeviceId(), stockLog.getVariantId());
                 
                 if (variant.isPresent()) {
-                    log.setServerVariantId(variant.get().getId());
+                    stockLog.setServerVariantId(variant.get().getId());
                 } else {
-                    Optional<ItemVariant> serverVariant = itemVariantRepository.findById(log.getVariantId().longValue());
+                    Optional<ItemVariant> serverVariant = itemVariantRepository.findById(stockLog.getVariantId().longValue());
                     if (serverVariant.isPresent() && serverVariant.get().getRestaurantId().equals(tenantId)) {
-                        log.setServerVariantId(serverVariant.get().getId());
+                        stockLog.setServerVariantId(serverVariant.get().getId());
                     }
                 }
             }
@@ -82,10 +90,10 @@ public class StockLogServiceImpl implements StockLogService {
         Set<Long> affectedMenuItems = new HashSet<>();
         Set<Long> affectedVariants = new HashSet<>();
         
-        for (StockLog log : toSync) {
-            if (response.getSuccessfulLocalIds().contains(log.getLocalId())) {
-                if (log.getServerMenuItemId() != null) affectedMenuItems.add(log.getServerMenuItemId());
-                if (log.getServerVariantId() != null) affectedVariants.add(log.getServerVariantId());
+        for (StockLog stockLog : toSync) {
+            if (response.getSuccessfulLocalIds().contains(stockLog.getLocalId())) {
+                if (stockLog.getServerMenuItemId() != null) affectedMenuItems.add(stockLog.getServerMenuItemId());
+                if (stockLog.getServerVariantId() != null) affectedVariants.add(stockLog.getServerVariantId());
             }
         }
         
