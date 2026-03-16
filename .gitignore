@@ -1,0 +1,16 @@
+##########################
+# Repository-wide ignores
+##########################
+# Backend build artifacts
+/server/target/
+/server/*.log
+/server/*.pid
+
+# Backend IDE metadata (Eclipse)
+/server/.settings/
+/server/.classpath
+/server/.factorypath
+/server/.project
+
+# Java class files (just in case another directory sneaks them in)
+*.class
