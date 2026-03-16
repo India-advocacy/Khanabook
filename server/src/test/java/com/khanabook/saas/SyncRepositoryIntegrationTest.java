@@ -1,0 +1,267 @@
+package com.khanabook.saas;
+
+import com.khanabook.saas.entity.Bill;
+import com.khanabook.saas.entity.BillItem;
+import com.khanabook.saas.entity.Category;
+import com.khanabook.saas.entity.MenuItem;
+import com.khanabook.saas.repository.BillItemRepository;
+import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.CategoryRepository;
+import com.khanabook.saas.repository.MenuItemRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.*;
+
+/**
+ * Tests real SQL queries against a live PostgreSQL container.
+ * Validates: pull watermark logic, tenant isolation at DB level, FK constraints.
+ */
+@Transactional
+class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
+
+    @Autowired BillRepository billRepo;
+    @Autowired BillItemRepository billItemRepo;
+    @Autowired CategoryRepository categoryRepo;
+    @Autowired MenuItemRepository menuItemRepo;
+
+    private static final Long TENANT_A = 1001L;
+    private static final Long TENANT_B = 1002L;
+
+    @BeforeEach
+    void clean() {
+        billItemRepo.deleteAll();
+        billRepo.deleteAll();
+        menuItemRepo.deleteAll();
+        categoryRepo.deleteAll();
+    }
+
+    // ─── Pull watermark ───────────────────────────────────────────────────────
+
+    @Test
+    void pullByServerUpdatedAt_returnsOnlyNewerRecords() {
+        Bill old = bill(TENANT_A, "DEV_A", 1, 1000L, 1000L);
+        Bill recent = bill(TENANT_A, "DEV_A", 2, 5000L, 5000L);
+        billRepo.saveAll(List.of(old, recent));
+
+        List<Bill> pulled = billRepo
+            .findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(TENANT_A, 2000L, "OTHER");
+
+        assertThat(pulled).hasSize(1);
+        assertThat(pulled.get(0).getLocalId()).isEqualTo(2);
+    }
+
+    @Test
+    void pull_excludesRequestingDevice() {
+        // Same device that pushed should NOT receive its own records back
+        Bill b = bill(TENANT_A, "TABLET_1", 1, 1000L, 1000L);
+        billRepo.save(b);
+
+        List<Bill> pulled = billRepo
+            .findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(TENANT_A, 0L, "TABLET_1");
+
+        assertThat(pulled).isEmpty();
+    }
+
+    @Test
+    void pull_includesOtherDevicesRecords() {
+        Bill fromDeviceB = bill(TENANT_A, "TABLET_2", 1, 1000L, 1000L);
+        billRepo.save(fromDeviceB);
+
+        List<Bill> pulled = billRepo
+            .findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(TENANT_A, 0L, "TABLET_1");
+
+        assertThat(pulled).hasSize(1);
+    }
+
+    // ─── Tenant isolation ─────────────────────────────────────────────────────
+
+    @Test
+    void pull_strictlyIsolatedByTenant() {
+        Bill tenantABill = bill(TENANT_A, "DEV_A", 1, 1000L, 1000L);
+        Bill tenantBBill = bill(TENANT_B, "DEV_B", 1, 1000L, 1000L);
+        billRepo.saveAll(List.of(tenantABill, tenantBBill));
+
+        List<Bill> tenantAPull = billRepo
+            .findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(TENANT_A, 0L, "OTHER");
+        List<Bill> tenantBPull = billRepo
+            .findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(TENANT_B, 0L, "OTHER");
+
+        assertThat(tenantAPull).hasSize(1);
+        assertThat(tenantBPull).hasSize(1);
+        assertThat(tenantAPull.get(0).getRestaurantId()).isEqualTo(TENANT_A);
+        assertThat(tenantBPull.get(0).getRestaurantId()).isEqualTo(TENANT_B);
+    }
+
+    @Test
+    void upsertLookup_findByRestaurantAndDeviceAndLocalId_exactMatch() {
+        Bill b = bill(TENANT_A, "TABLET_1", 42, 1000L, 1000L);
+        billRepo.save(b);
+
+        var found = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_A, "TABLET_1", 42);
+        assertThat(found).isPresent();
+
+        // Wrong tenant — must not find
+        var wrongTenant = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_B, "TABLET_1", 42);
+        assertThat(wrongTenant).isEmpty();
+
+        // Wrong device — must not find
+        var wrongDevice = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_A, "TABLET_X", 42);
+        assertThat(wrongDevice).isEmpty();
+    }
+
+    // ─── FK constraints ───────────────────────────────────────────────────────
+
+    @Test
+    void billItem_withNullServerBillId_savesSuccessfully() {
+        // serverBillId is nullable — a bill item may arrive before its parent bill is resolved
+        BillItem item = billItem(TENANT_A, "DEV_A", 1, null);
+        assertThatNoException().isThrownBy(() -> billItemRepo.save(item));
+    }
+
+    @Test
+    void billItem_withValidServerBillId_savesSuccessfully() {
+        Bill parent = bill(TENANT_A, "DEV_A", 1, 1000L, 1000L);
+        Bill saved = billRepo.save(parent);
+
+        BillItem item = billItem(TENANT_A, "DEV_A", 1, saved.getId());
+        assertThatNoException().isThrownBy(() -> billItemRepo.save(item));
+    }
+
+    @Test
+    void billItem_withInvalidServerBillId_violatesFkConstraint() {
+        Long nonExistentBillId = 999999L;
+        BillItem item = billItem(TENANT_A, "DEV_A", 1, nonExistentBillId);
+
+        // Deferred FK constraint fires at transaction commit
+        assertThatThrownBy(() -> {
+            billItemRepo.save(item);
+            billItemRepo.flush(); // force immediate constraint check
+        }).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    // ─── Category → MenuItem FK ───────────────────────────────────────────────
+
+    @Test
+    void menuItem_withValidServerCategoryId_savesSuccessfully() {
+        Category cat = category(TENANT_A, "DEV_A", 1);
+        Category savedCat = categoryRepo.save(cat);
+
+        MenuItem item = menuItem(TENANT_A, "DEV_A", 1, savedCat.getId());
+        assertThatNoException().isThrownBy(() -> menuItemRepo.save(item));
+    }
+
+    @Test
+    void menuItem_withInvalidServerCategoryId_violatesFkConstraint() {
+        MenuItem item = menuItem(TENANT_A, "DEV_A", 1, 999999L);
+
+        assertThatThrownBy(() -> {
+            menuItemRepo.save(item);
+            menuItemRepo.flush();
+        }).isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    // ─── Batch lookup ─────────────────────────────────────────────────────────
+
+    @Test
+    void findByLocalIdIn_returnsAllMatchingRecords() {
+        Bill b1 = bill(TENANT_A, "DEV_A", 1, 1000L, 1000L);
+        Bill b2 = bill(TENANT_A, "DEV_A", 2, 2000L, 2000L);
+        Bill b3 = bill(TENANT_A, "DEV_A", 3, 3000L, 3000L);
+        billRepo.saveAll(List.of(b1, b2, b3));
+
+        List<Bill> found = billRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(
+            TENANT_A, "DEV_A", List.of(1, 3));
+
+        assertThat(found).hasSize(2);
+        assertThat(found.stream().map(Bill::getLocalId))
+            .containsExactlyInAnyOrder(1, 3);
+    }
+
+    @Test
+    void findByLocalIdIn_emptyList_returnsEmpty() {
+        List<Bill> found = billRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(
+            TENANT_A, "DEV_A", List.of());
+        assertThat(found).isEmpty();
+    }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    private Bill bill(Long tenantId, String deviceId, int localId, long updatedAt, long serverUpdatedAt) {
+        Bill b = new Bill();
+        b.setRestaurantId(tenantId);
+        b.setDeviceId(deviceId);
+        b.setLocalId(localId);
+        b.setUpdatedAt(updatedAt);
+        b.setServerUpdatedAt(serverUpdatedAt);
+        b.setCreatedAt(updatedAt);
+        b.setDailyOrderId(localId);
+        b.setLifetimeOrderId(localId);
+        b.setOrderType("DINE_IN");
+        b.setSubtotal(BigDecimal.TEN);
+        b.setTotalAmount(BigDecimal.TEN);
+        b.setPaymentMode("CASH");
+        b.setPaymentStatus("PAID");
+        b.setOrderStatus("COMPLETED");
+        b.setIsDeleted(false);
+        b.setLastResetDate("2026-03-16");
+        return b;
+    }
+
+    private BillItem billItem(Long tenantId, String deviceId, int localId, Long serverBillId) {
+        BillItem bi = new BillItem();
+        bi.setRestaurantId(tenantId);
+        bi.setDeviceId(deviceId);
+        bi.setLocalId(localId);
+        bi.setUpdatedAt(1000L);
+        bi.setServerUpdatedAt(1000L);
+        bi.setCreatedAt(1000L);
+        bi.setIsDeleted(false);
+        bi.setBillId(1);
+        bi.setServerBillId(serverBillId);
+        bi.setMenuItemId(1);
+        bi.setItemName("Chai");
+        bi.setQuantity(1);
+        bi.setPrice(BigDecimal.TEN);
+        bi.setItemTotal(BigDecimal.TEN);
+        return bi;
+    }
+
+    private Category category(Long tenantId, String deviceId, int localId) {
+        Category c = new Category();
+        c.setRestaurantId(tenantId);
+        c.setDeviceId(deviceId);
+        c.setLocalId(localId);
+        c.setUpdatedAt(1000L);
+        c.setServerUpdatedAt(1000L);
+        c.setCreatedAt(1000L);
+        c.setIsDeleted(false);
+        c.setName("Beverages");
+        c.setIsVeg(true);
+        c.setIsActive(true);
+        return c;
+    }
+
+    private MenuItem menuItem(Long tenantId, String deviceId, int localId, Long serverCategoryId) {
+        MenuItem m = new MenuItem();
+        m.setRestaurantId(tenantId);
+        m.setDeviceId(deviceId);
+        m.setLocalId(localId);
+        m.setUpdatedAt(1000L);
+        m.setServerUpdatedAt(1000L);
+        m.setCreatedAt(1000L);
+        m.setIsDeleted(false);
+        m.setCategoryId(1);
+        m.setServerCategoryId(serverCategoryId);
+        m.setName("Chai");
+        m.setBasePrice(BigDecimal.TEN);
+        m.setIsAvailable(true);
+        return m;
+    }
+}

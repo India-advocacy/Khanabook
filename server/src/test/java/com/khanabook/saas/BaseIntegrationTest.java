@@ -1,0 +1,39 @@
+package com.khanabook.saas;
+
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+
+/**
+ * Base class for all integration tests.
+ * Starts a single PostgreSQL container shared across all subclasses —
+ * Testcontainers reuses it via the static field, so startup cost is paid once.
+ * Flyway migrations run automatically on first context load.
+ */
+@SpringBootTest
+@Testcontainers
+public abstract class BaseIntegrationTest {
+
+    @Container
+    static final PostgreSQLContainer<?> postgres =
+        new PostgreSQLContainer<>("postgres:15-alpine")
+            .withDatabaseName("khanabook_test")
+            .withUsername("test")
+            .withPassword("test");
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url",      postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+        // Required env vars — no defaults in application.properties
+        registry.add("JWT_SECRET",       () -> "integration-test-secret-64-chars-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+        registry.add("GOOGLE_CLIENT_ID", () -> "test-google-client-id");
+        // Let Flyway manage schema; Hibernate validates only
+        registry.add("spring.flyway.enabled",             () -> "true");
+        registry.add("spring.jpa.hibernate.ddl-auto",    () -> "validate");
+    }
+}

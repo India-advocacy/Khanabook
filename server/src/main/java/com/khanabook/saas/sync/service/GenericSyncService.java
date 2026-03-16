@@ -64,8 +64,8 @@ public class GenericSyncService {
                 payload.size() == 1 && (incomingLocalIds.isEmpty() || incomingLocalIds.contains(1));
 
         // 2. Fetch all existing records from the DB in ONE query (matching Tenant + EXACT Device + Local IDs)
-        List<T> existingRecords = repository.findByRestaurantIdAndDeviceIdAndLocalIdIn(
-                tenantId, deviceId, incomingLocalIds);
+        List<T> existingRecords = new ArrayList<>(repository.findByRestaurantIdAndDeviceIdAndLocalIdIn(
+                tenantId, deviceId, incomingLocalIds));
 
         // Singleton-style records use localId=1 across reinstalls, so allow a tenant+localId fallback.
         if (singletonStylePayload) {
