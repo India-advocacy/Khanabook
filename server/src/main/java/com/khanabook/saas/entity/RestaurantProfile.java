@@ -131,4 +131,7 @@ public class RestaurantProfile extends BaseSyncEntity {
 
     @Column(name = "session_timeout_minutes")
     private Integer sessionTimeoutMinutes;
+
+    @Column(name = "timezone")
+    private String timezone = "Asia/Kolkata";
 }

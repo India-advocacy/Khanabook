@@ -58,12 +58,12 @@ class AuthServiceImplTest {
 
     @Test
     void login_success() {
-        User user = activeUser("9876543210", "hashed", 100L);
-        when(userRepository.findByEmail("9876543210")).thenReturn(Optional.of(user));
+        User user = activeUser("+919876543210", "hashed", 100L);
+        when(userRepository.findByEmail("+919876543210")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("pass123", "hashed")).thenReturn(true);
         when(jwtUtility.generateToken(anyString(), anyLong())).thenReturn("jwt-token");
 
-        AuthResponse resp = authService.login(loginRequest("9876543210", "pass123"));
+        AuthResponse resp = authService.login(loginRequest("+919876543210", "pass123"));
 
         assertThat(resp.getToken()).isEqualTo("jwt-token");
         assertThat(resp.getRestaurantId()).isEqualTo(100L);
@@ -71,11 +71,11 @@ class AuthServiceImplTest {
 
     @Test
     void login_wrongPassword_throwsIllegalArgument() {
-        User user = activeUser("9876543210", "hashed", 100L);
-        when(userRepository.findByEmail("9876543210")).thenReturn(Optional.of(user));
+        User user = activeUser("+919876543210", "hashed", 100L);
+        when(userRepository.findByEmail("+919876543210")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
-        assertThatThrownBy(() -> authService.login(loginRequest("9876543210", "wrong")))
+        assertThatThrownBy(() -> authService.login(loginRequest("+919876543210", "wrong")))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid phone number or password");
     }
@@ -84,18 +84,18 @@ class AuthServiceImplTest {
     void login_userNotFound_throwsIllegalArgument() {
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> authService.login(loginRequest("9999999999", "pass")))
+        assertThatThrownBy(() -> authService.login(loginRequest("+919999999999", "pass")))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
     void login_inactiveUser_throwsIllegalArgument() {
-        User user = activeUser("9876543210", "hashed", 100L);
+        User user = activeUser("+919876543210", "hashed", 100L);
         user.setIsActive(false);
-        when(userRepository.findByEmail("9876543210")).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail("+919876543210")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
 
-        assertThatThrownBy(() -> authService.login(loginRequest("9876543210", "pass")))
+        assertThatThrownBy(() -> authService.login(loginRequest("+919876543210", "pass")))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("disabled");
     }
@@ -104,11 +104,11 @@ class AuthServiceImplTest {
 
     @Test
     void signup_newUser_createsProfileAndUser() {
-        when(userRepository.findByEmail("9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("+919876543210")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass123")).thenReturn("bcrypt-hash");
         when(jwtUtility.generateToken(anyString(), anyLong())).thenReturn("signup-token");
 
-        SignupRequest req = new SignupRequest("9876543210", "Nandha", "pass123", "DEVICE_A");
+        SignupRequest req = new SignupRequest("+919876543210", "Nandha", "pass123", "DEVICE_A");
         AuthResponse resp = authService.signup(req);
 
         assertThat(resp.getToken()).isEqualTo("signup-token");
@@ -131,9 +131,9 @@ class AuthServiceImplTest {
 
     @Test
     void signup_existingPhoneNumber_throwsIllegalArgument() {
-        when(userRepository.findByEmail("9876543210")).thenReturn(Optional.of(new User()));
+        when(userRepository.findByEmail("+919876543210")).thenReturn(Optional.of(new User()));
 
-        assertThatThrownBy(() -> authService.signup(new SignupRequest("9876543210", "A", "pass123", "D")))
+        assertThatThrownBy(() -> authService.signup(new SignupRequest("+919876543210", "A", "pass123", "D")))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("already exists");
     }
@@ -144,8 +144,8 @@ class AuthServiceImplTest {
         when(passwordEncoder.encode(anyString())).thenReturn("hash");
         when(jwtUtility.generateToken(anyString(), anyLong())).thenReturn("t");
 
-        AuthResponse r1 = authService.signup(new SignupRequest("1111111111", "A", "p", "D1"));
-        AuthResponse r2 = authService.signup(new SignupRequest("2222222222", "B", "p", "D2"));
+        AuthResponse r1 = authService.signup(new SignupRequest("+911111111111", "A", "p", "D1"));
+        AuthResponse r2 = authService.signup(new SignupRequest("+912222222222", "B", "p", "D2"));
 
         // IDs should be different and large (UUID-based, not sequential 1, 2, 3)
         assertThat(r1.getRestaurantId()).isNotEqualTo(r2.getRestaurantId());
@@ -156,11 +156,11 @@ class AuthServiceImplTest {
 
     @Test
     void resetPassword_updatesHashAndTimestamp() {
-        User user = activeUser("9876543210", "old-hash", 100L);
-        when(userRepository.findByEmail("9876543210")).thenReturn(Optional.of(user));
+        User user = activeUser("+919876543210", "old-hash", 100L);
+        when(userRepository.findByEmail("+919876543210")).thenReturn(Optional.of(user));
         when(passwordEncoder.encode("newpass")).thenReturn("new-hash");
 
-        authService.resetPassword("9876543210", "newpass");
+        authService.resetPassword("+919876543210", "newpass");
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
@@ -170,8 +170,8 @@ class AuthServiceImplTest {
 
     @Test
     void resetPassword_userNotFound_throwsIllegalArgument() {
-        when(userRepository.findByEmail("0000000000")).thenReturn(Optional.empty());
-        assertThatThrownBy(() -> authService.resetPassword("0000000000", "x"))
+        when(userRepository.findByEmail("+910000000000")).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> authService.resetPassword("+910000000000", "x"))
             .isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -179,14 +179,14 @@ class AuthServiceImplTest {
 
     @Test
     void checkUserExists_returnsTrue_whenFound() {
-        when(userRepository.existsByEmail("9876543210")).thenReturn(true);
-        assertThat(authService.checkUserExists("9876543210")).isTrue();
+        when(userRepository.existsByEmail("+919876543210")).thenReturn(true);
+        assertThat(authService.checkUserExists("+919876543210")).isTrue();
     }
 
     @Test
     void checkUserExists_returnsFalse_whenNotFound() {
-        when(userRepository.existsByEmail("0000000000")).thenReturn(false);
-        assertThat(authService.checkUserExists("0000000000")).isFalse();
+        when(userRepository.existsByEmail("+910000000000")).thenReturn(false);
+        assertThat(authService.checkUserExists("+910000000000")).isFalse();
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

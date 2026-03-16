@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -28,8 +30,13 @@ public class RestaurantProfileServiceImpl implements RestaurantProfileService {
 
     @Override
     @Transactional
-    public RestaurantProfileService.CounterResponse incrementAndGetCounters(Long tenantId, String today) {
+    public RestaurantProfileService.CounterResponse incrementAndGetCounters(Long tenantId) {
         Long now = System.currentTimeMillis();
+        String timezone = repository.findByRestaurantId(tenantId)
+                .map(RestaurantProfile::getTimezone)
+                .orElse("Asia/Kolkata");
+        String today = LocalDate.now(ZoneId.of(timezone)).toString();
+
         int updated = repository.incrementCountersAtomic(tenantId, today, now);
         
         if (updated == 0) {

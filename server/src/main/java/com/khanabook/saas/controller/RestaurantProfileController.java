@@ -29,7 +29,7 @@ public class RestaurantProfileController {
     }
 
     @PostMapping("/counters/increment")
-    public ResponseEntity<RestaurantProfileService.CounterResponse> incrementCounters(@RequestParam String today) {
-        return ResponseEntity.ok(service.incrementAndGetCounters(TenantContext.getCurrentTenant(), today));
+    public ResponseEntity<RestaurantProfileService.CounterResponse> incrementCounters() {
+        return ResponseEntity.ok(service.incrementAndGetCounters(TenantContext.getCurrentTenant()));
     }
 }

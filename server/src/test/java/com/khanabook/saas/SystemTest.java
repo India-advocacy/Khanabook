@@ -103,7 +103,7 @@ class SystemTest extends BaseIntegrationTest {
             new SignupRequest(phone, "User", "pass123", "D"), String.class);
 
         ResponseEntity<Boolean> resp =
-            rest.getForEntity("/api/v1/auth/check-user?phoneNumber=" + phone, Boolean.class);
+            rest.getForEntity("/api/v1/auth/check-user?phoneNumber=%2B" + phone.substring(1), Boolean.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).isTrue();
     }
@@ -111,7 +111,7 @@ class SystemTest extends BaseIntegrationTest {
     @Test
     void checkUser_unknownPhone_returnsFalse() {
         ResponseEntity<Boolean> resp =
-            rest.getForEntity("/api/v1/auth/check-user?phoneNumber=9999999999", Boolean.class);
+            rest.getForEntity("/api/v1/auth/check-user?phoneNumber=%2B919999999999", Boolean.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(resp.getBody()).isFalse();
     }
@@ -137,7 +137,7 @@ class SystemTest extends BaseIntegrationTest {
     void resetPassword_noToken_returns401() {
         // reset-password is behind JWT — must not be publicly accessible
         ResponseEntity<String> resp = rest.exchange(
-            "/api/v1/auth/reset-password?phoneNumber=1234567890&newPassword=x",
+            "/api/v1/auth/reset-password?phoneNumber=%2B911234567890&newPassword=x",
             HttpMethod.POST, HttpEntity.EMPTY, String.class);
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
@@ -220,6 +220,6 @@ class SystemTest extends BaseIntegrationTest {
 
     private static long phoneCounter = 7000000000L;
     private static synchronized String uniquePhone() {
-        return String.valueOf(phoneCounter++);
+        return "+91" + (phoneCounter++);
     }
 }

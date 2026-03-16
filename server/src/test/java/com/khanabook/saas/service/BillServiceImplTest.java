@@ -1,7 +1,9 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Bill;
+import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.service.impl.BillServiceImpl;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
@@ -15,8 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +30,7 @@ import static org.mockito.Mockito.*;
 class BillServiceImplTest {
 
     @Mock private BillRepository billRepository;
+    @Mock private RestaurantProfileRepository profileRepository;
 
     private GenericSyncService genericSyncService;
     private BillServiceImpl billService;
@@ -40,7 +43,7 @@ class BillServiceImplTest {
     @BeforeEach
     void setUp() {
         genericSyncService = new GenericSyncService();
-        billService = new BillServiceImpl(billRepository, genericSyncService);
+        billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository);
     }
 
     @Test
@@ -51,6 +54,10 @@ class BillServiceImplTest {
         bill.setRestaurantId(TENANT_ID);
         bill.setCreatedAt(1704106800000L); // 2024-01-01 11:00:00 UTC
         bill.setUpdatedAt(1704106800000L);
+
+        RestaurantProfile profile = new RestaurantProfile();
+        profile.setTimezone("Asia/Kolkata");
+        when(profileRepository.findByRestaurantId(TENANT_ID)).thenReturn(Optional.of(profile));
 
         when(billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
             .thenReturn(List.of());
@@ -71,8 +78,13 @@ class BillServiceImplTest {
         bill.setLocalId(1);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
-        bill.setUpdatedAt(1704193200000L); // 2024-01-02 11:00:00 UTC
+        long now = System.currentTimeMillis();
+        bill.setUpdatedAt(now);
         // createdAt is null!
+
+        RestaurantProfile profile = new RestaurantProfile();
+        profile.setTimezone("Asia/Kolkata");
+        when(profileRepository.findByRestaurantId(TENANT_ID)).thenReturn(Optional.of(profile));
 
         when(billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
             .thenReturn(List.of());
@@ -83,6 +95,36 @@ class BillServiceImplTest {
         verify(billRepository).saveAll(billSaveCaptor.capture());
         Bill saved = billSaveCaptor.getValue().iterator().next();
         
-        assertThat(saved.getLastResetDate()).startsWith("2024-01-02");
+        String expectedDate = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")
+            .withZone(java.time.ZoneId.of("Asia/Kolkata"))
+            .format(java.time.Instant.ofEpochMilli(now));
+            
+        assertThat(saved.getLastResetDate()).isEqualTo(expectedDate);
+    }
+
+    @Test
+    void pushData_withNewYorkTimezone_derivesCorrectDate() {
+        Bill bill = new Bill();
+        bill.setLocalId(1);
+        bill.setDeviceId(DEVICE);
+        bill.setRestaurantId(TENANT_ID);
+        // Epoch: Jan 1 2024 02:00:00 UTC
+        // In New York (EST): Dec 31 2023 21:00:00
+        bill.setCreatedAt(1704074400000L); 
+
+        RestaurantProfile profile = new RestaurantProfile();
+        profile.setTimezone("America/New_York");
+        when(profileRepository.findByRestaurantId(TENANT_ID)).thenReturn(Optional.of(profile));
+
+        when(billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
+            .thenReturn(List.of());
+        doAnswer(i -> i.getArgument(0)).when(billRepository).saveAll(any());
+
+        billService.pushData(TENANT_ID, List.of(bill));
+
+        verify(billRepository).saveAll(billSaveCaptor.capture());
+        Bill saved = billSaveCaptor.getValue().iterator().next();
+        
+        assertThat(saved.getLastResetDate()).startsWith("2023-12-31");
     }
 }

@@ -1,7 +1,9 @@
 package com.khanabook.saas.service;
 
 import com.khanabook.saas.entity.Bill;
+import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.BillRepository;
+import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.service.impl.BillServiceImpl;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
@@ -15,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -26,6 +29,9 @@ class BillServiceTest {
 
     @Mock
     private BillRepository billRepository;
+    
+    @Mock
+    private RestaurantProfileRepository profileRepository;
 
     private GenericSyncService genericSyncService;
     private BillServiceImpl billService;
@@ -39,7 +45,7 @@ class BillServiceTest {
     @BeforeEach
     void setUp() {
         genericSyncService = new GenericSyncService();
-        billService = new BillServiceImpl(billRepository, genericSyncService);
+        billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository);
     }
 
     private Bill createMobileBill(Integer localId, Long updatedAt) {
@@ -62,6 +68,10 @@ class BillServiceTest {
         existingDbBill.setLocalId(101);
 
         Bill mobileBill = createMobileBill(101, newMobileTime);
+
+        RestaurantProfile profile = new RestaurantProfile();
+        profile.setTimezone("Asia/Kolkata");
+        when(profileRepository.findByRestaurantId(AUTHENTICATED_RESTAURANT_ID)).thenReturn(Optional.of(profile));
 
         // Mock the BATCH lookup (findByRestaurantIdAndDeviceIdAndLocalIdIn)
         when(billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(
@@ -87,6 +97,10 @@ class BillServiceTest {
         Long maliciousRestaurantId = 666L;
         Bill hackedMobileBill = createMobileBill(202, 1000L);
         hackedMobileBill.setRestaurantId(maliciousRestaurantId);
+
+        RestaurantProfile profile = new RestaurantProfile();
+        profile.setTimezone("Asia/Kolkata");
+        when(profileRepository.findByRestaurantId(AUTHENTICATED_RESTAURANT_ID)).thenReturn(Optional.of(profile));
 
         when(billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(anyLong(), anyString(), anyList()))
                 .thenReturn(List.of());

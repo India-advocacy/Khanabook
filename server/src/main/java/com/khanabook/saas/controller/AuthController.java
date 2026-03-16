@@ -65,7 +65,7 @@ public class AuthController {
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class LoginRequest {
         @NotBlank(message = "Phone number is required")
-        @Pattern(regexp = "^\\d{10,15}$", message = "Phone number must contain 10 to 15 digits")
+        @Pattern(regexp = "^\\+?[1-9]\\d{6,19}$", message = "Phone number must be valid format")
         @Size(max = 15)
         @JsonAlias("email")
         private String phoneNumber;
@@ -89,7 +89,7 @@ public class AuthController {
     @Data @AllArgsConstructor @NoArgsConstructor
     public static class SignupRequest {
         @NotBlank(message = "Phone number is required")
-        @Pattern(regexp = "^\\d{10,15}$", message = "Phone number must contain 10 to 15 digits")
+        @Pattern(regexp = "^\\+?[1-9]\\d{6,19}$", message = "Phone number must be valid format")
         @Size(max = 15)
         @JsonAlias("email")
         private String phoneNumber;
