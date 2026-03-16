@@ -23,8 +23,8 @@ public class MenuItem extends BaseSyncEntity {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "base_price")
-    private Double basePrice;
+    @Column(name = "base_price", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal basePrice;
 
     @Column(name = "food_type")
     private String foodType;
@@ -35,11 +35,11 @@ public class MenuItem extends BaseSyncEntity {
     @Column(name = "is_available")
     private Boolean isAvailable;
 
-    @Column(name = "current_stock")
-    private Double currentStock;
+    @Column(name = "current_stock", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal currentStock;
 
-    @Column(name = "low_stock_threshold")
-    private Double lowStockThreshold;
+    @Column(name = "low_stock_threshold", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal lowStockThreshold;
 
     public enum StockStatus {
         IN_STOCK,
@@ -48,10 +48,10 @@ public class MenuItem extends BaseSyncEntity {
     }
 
     public StockStatus getStockStatus() {
-        if (currentStock == null || currentStock <= 0) {
+        if (currentStock == null || currentStock.compareTo(java.math.BigDecimal.ZERO) <= 0) {
             return StockStatus.OUT_OF_STOCK;
         }
-        if (lowStockThreshold != null && currentStock <= lowStockThreshold) {
+        if (lowStockThreshold != null && currentStock.compareTo(lowStockThreshold) <= 0) {
             return StockStatus.RUNNING_LOW;
         }
         return StockStatus.IN_STOCK;

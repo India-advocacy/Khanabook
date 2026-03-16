@@ -1,7 +1,11 @@
 package com.khanabook.saas.sync.service;
 
+import com.khanabook.saas.entity.RestaurantProfile;
+import com.khanabook.saas.entity.User;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.sync.repository.SyncRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +18,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class GenericSyncService {
+    private static final Logger log = LoggerFactory.getLogger(GenericSyncService.class);
 
     @Transactional
     public <T extends BaseSyncEntity> List<Integer> handlePushSync(
@@ -50,7 +55,10 @@ public class GenericSyncService {
         BaseSyncEntity firstRecord = payload.get(0);
         String deviceId = firstRecord.getDeviceId();
         long serverTime = System.currentTimeMillis();
-        boolean singletonStylePayload =
+        
+        // CRIT-05 fix: Only certain entities should allow singleton-style tenant-level matching
+        boolean isSingletonType = firstRecord instanceof RestaurantProfile || firstRecord instanceof User;
+        boolean singletonStylePayload = isSingletonType &&
                 payload.size() == 1 && (incomingLocalIds.isEmpty() || incomingLocalIds.contains(1));
 
         // 2. Fetch all existing records from the DB in ONE query (matching Tenant + EXACT Device + Local IDs)
@@ -87,7 +95,7 @@ public class GenericSyncService {
                     if (singletonStylePayload) {
                         incomingRecord.setLocalId(1);
                     } else {
-                        System.err.println("[GenericSyncService] Skipping record with NULL localId!");
+                        log.warn("Skipping record with NULL localId for device: {}", deviceId);
                         continue;
                     }
                 }
@@ -106,6 +114,10 @@ public class GenericSyncService {
                             recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);
                         }
                         successfulLocalIds.add(incomingRecord.getLocalId());
+                    } else {
+                        // CRIT-06 fix: Acknowledge the record even if the server version is newer.
+                        // This prevents the client from infinitely retrying a record that lost the LWW race.
+                        successfulLocalIds.add(incomingRecord.getLocalId());
                     }
                 } else {
                     // It doesn't exist, insert new
@@ -116,7 +128,7 @@ public class GenericSyncService {
                     successfulLocalIds.add(incomingRecord.getLocalId());
                 }
             } catch (Exception e) {
-                System.err.println("Sync Error for device " + incomingRecord.getDeviceId() + " : " + e.getMessage());
+                log.error("Sync Error for device {}: {}", incomingRecord.getDeviceId(), e.getMessage());
             }
         }
 
@@ -125,8 +137,7 @@ public class GenericSyncService {
             repository.saveAll(new ArrayList<>(recordsToSaveMap.values()));
         }
 
-        System.out.println("\n[GenericSyncService] Successfully batch synced " + successfulLocalIds.size()
-                + " records for Tenant ID: " + tenantId);
+        log.info("Successfully batch synced {} records for Tenant ID: {}", successfulLocalIds.size(), tenantId);
         
         return successfulLocalIds;
     }

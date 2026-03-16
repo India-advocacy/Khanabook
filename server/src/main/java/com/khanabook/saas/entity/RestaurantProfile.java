@@ -54,8 +54,8 @@ public class RestaurantProfile extends BaseSyncEntity {
     @Column(name = "is_tax_inclusive")
     private Boolean isTaxInclusive;
 
-    @Column(name = "gst_percentage")
-    private Double gstPercentage;
+    @Column(name = "gst_percentage", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal gstPercentage;
 
     @Column(name = "custom_tax_name")
     private String customTaxName;
@@ -63,8 +63,8 @@ public class RestaurantProfile extends BaseSyncEntity {
     @Column(name = "custom_tax_number")
     private String customTaxNumber;
 
-    @Column(name = "custom_tax_percentage")
-    private Double customTaxPercentage;
+    @Column(name = "custom_tax_percentage", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal customTaxPercentage;
 
     // Payment
     @Column(name = "currency")

@@ -35,9 +35,12 @@ public class SecurityConfig {
             // Stateless — no HTTP sessions
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // Only auth endpoints are public
-                .requestMatchers("/auth/**").permitAll()
-                // Everything else (all sync endpoints) requires a valid JWT
+                // Only auth endpoints (login, signup, check-user, google login) are public.
+                // NOTE: paths are relative to context-path (/api/v1). 
+                // Public: /api/v1/auth/login, /api/v1/auth/signup, etc.
+                .requestMatchers("/auth/login", "/auth/signup", "/auth/google", "/auth/check-user").permitAll()
+                // password reset now requires authentication for security (Change Password flow)
+                // TODO: For "Forgot Password" (unauthenticated), implement OTP-gated logic.
                 .anyRequest().authenticated()
             )
             // Run our JWT filter before Spring's username/password filter

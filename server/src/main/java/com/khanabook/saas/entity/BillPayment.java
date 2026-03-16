@@ -26,6 +26,6 @@ public class BillPayment extends BaseSyncEntity {
     @Column(name = "payment_mode")
     private String paymentMode;
 
-    @Column(name = "amount")
-    private Double amount;
+    @Column(name = "amount", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal amount;
 }

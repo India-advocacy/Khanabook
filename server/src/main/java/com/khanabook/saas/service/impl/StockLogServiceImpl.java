@@ -9,6 +9,8 @@ import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.service.StockLogService;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +18,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class StockLogServiceImpl implements StockLogService {
+    private static final Logger log_logger = LoggerFactory.getLogger(StockLogServiceImpl.class);
     private final StockLogRepository repository;
     private final MenuItemRepository menuItemRepository;
     private final ItemVariantRepository itemVariantRepository;
@@ -40,8 +43,8 @@ public class StockLogServiceImpl implements StockLogService {
                     if (serverMenuItem.isPresent() && serverMenuItem.get().getRestaurantId().equals(tenantId)) {
                         log.setServerMenuItemId(serverMenuItem.get().getId());
                     } else {
-                        System.err.println("WARNING: Skipping StockLog push. Could not resolve serverMenuItemId for localId: " 
-                                + log.getMenuItemId() + " on device: " + log.getDeviceId());
+                        log_logger.warn("Skipping StockLog push. Could not resolve serverMenuItemId for localId: {} on device: {}", 
+                                log.getMenuItemId(), log.getDeviceId());
                         iterator.remove();
                         continue;
                     }

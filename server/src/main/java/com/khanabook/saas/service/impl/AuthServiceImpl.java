@@ -30,6 +30,9 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtility jwtUtility;
     private final PasswordEncoder passwordEncoder;
 
+    @org.springframework.beans.factory.annotation.Value("${google.client.id:}")
+    private String googleClientId;
+
     @Override
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getPhoneNumber())
@@ -111,6 +114,7 @@ public class AuthServiceImpl implements AuthService {
             com.google.api.client.http.HttpTransport transport = new com.google.api.client.http.javanet.NetHttpTransport();
             com.google.api.client.json.JsonFactory jsonFactory = new com.google.api.client.json.gson.GsonFactory();
             com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier verifier = new com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier.Builder(transport, jsonFactory)
+                    .setAudience(java.util.Collections.singletonList(googleClientId))
                     .build();
 
             com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = verifier.verify(request.getIdToken());
@@ -170,14 +174,17 @@ public class AuthServiceImpl implements AuthService {
             } else {
                 throw new IllegalArgumentException("Invalid Google ID token.");
             }
+        } catch (IllegalArgumentException e) {
+            throw e; // Rethrow business exceptions as-is
         } catch (Exception e) {
             log.error("Google login failed", e);
-            throw new IllegalArgumentException("Google login failed: " + e.getMessage());
+            throw new IllegalArgumentException("Google login failed. Please ensure you are using a valid Google account.");
         }
     }
     @Override
     @Transactional
     public void resetPassword(String phoneNumber, String newPassword) {
+        // Authenticated user path (Change Password)
         User user = userRepository.findByEmail(phoneNumber)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         
@@ -185,7 +192,7 @@ public class AuthServiceImpl implements AuthService {
         user.setUpdatedAt(System.currentTimeMillis());
         user.setServerUpdatedAt(System.currentTimeMillis());
         userRepository.save(user);
-        log.info("Password reset successful for user: {}", phoneNumber);
+        log.info("Password changed successful for user: {}", phoneNumber);
     }
 
     @Override

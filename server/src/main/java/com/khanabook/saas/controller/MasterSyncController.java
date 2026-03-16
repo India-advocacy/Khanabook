@@ -29,6 +29,7 @@ public class MasterSyncController {
   private final BillItemService billItemService;
   private final BillPaymentService billPaymentService;
 
+  @org.springframework.transaction.annotation.Transactional(readOnly = true)
   @GetMapping("/pull")
   public ResponseEntity<MasterSyncResponse> pullMasterSync(
       @RequestParam Long lastSyncTimestamp,

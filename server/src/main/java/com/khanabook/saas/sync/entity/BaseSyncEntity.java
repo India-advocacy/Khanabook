@@ -1,5 +1,10 @@
 package com.khanabook.saas.sync.entity;
 
+public class InnerBaseSyncEntity {
+
+    
+}package com.khanabook.saas.sync.entity;
+
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
@@ -15,7 +20,7 @@ public abstract class BaseSyncEntity {
     @JsonProperty("serverId")
     private Long id;
 
-    @Column(name = "local_id", nullable = true) // Temporary nullable to debug
+    @Column(name = "local_id", nullable = false)
     @JsonProperty("localId")
     @JsonAlias({"id", "localId"})
     private Integer localId;

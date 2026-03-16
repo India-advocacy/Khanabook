@@ -21,6 +21,9 @@ public class JwtUtility {
     @Value("${jwt.secret:YourDefaultSecretKeyThatIsAtLeast32CharsLong}")
     private String secret;
 
+    @Value("${jwt.expiration.ms:36000000}")
+    private long expirationMs;
+
     private SecretKey getSigningKey() {
         byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
         if (secretBytes.length >= 32) {
@@ -63,7 +66,7 @@ public class JwtUtility {
                 .setSubject(username)
                 .claim("restaurantId", restaurantId)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 10))
+                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getSigningKey())
                 .compact();
     }

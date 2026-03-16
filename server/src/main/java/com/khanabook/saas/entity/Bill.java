@@ -35,32 +35,32 @@ public class Bill extends BaseSyncEntity {
     @Column(name = "customer_whatsapp")
     private String customerWhatsapp;
 
-    @Column(name = "subtotal")
-    private Double subtotal;
+    @Column(name = "subtotal", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal subtotal;
 
-    @Column(name = "gst_percentage")
-    private Double gstPercentage;
+    @Column(name = "gst_percentage", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal gstPercentage;
 
-    @Column(name = "cgst_amount")
-    private Double cgstAmount;
+    @Column(name = "cgst_amount", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal cgstAmount;
 
-    @Column(name = "sgst_amount")
-    private Double sgstAmount;
+    @Column(name = "sgst_amount", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal sgstAmount;
 
-    @Column(name = "custom_tax_amount")
-    private Double customTaxAmount;
+    @Column(name = "custom_tax_amount", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal customTaxAmount;
 
-    @Column(name = "total_amount")
-    private Double totalAmount;
+    @Column(name = "total_amount", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal totalAmount;
 
     @Column(name = "payment_mode")
     private String paymentMode;
 
-    @Column(name = "part_amount_1")
-    private Double partAmount1;
+    @Column(name = "part_amount_1", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal partAmount1;
 
-    @Column(name = "part_amount_2")
-    private Double partAmount2;
+    @Column(name = "part_amount_2", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal partAmount2;
 
     @Column(name = "payment_status")
     private String paymentStatus;

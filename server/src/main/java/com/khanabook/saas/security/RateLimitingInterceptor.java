@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Refill;
@@ -18,7 +17,15 @@ import java.time.Duration;
 @Component
 public class RateLimitingInterceptor implements HandlerInterceptor {
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    // Use a simple LRU cache (bounded to 1000 IPs) to prevent memory exhaustion (Issue 8)
+    private final Map<String, Bucket> buckets = java.util.Collections.synchronizedMap(
+        new java.util.LinkedHashMap<String, Bucket>(1001, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, Bucket> eldest) {
+                return size() > 1000;
+            }
+        }
+    );
 
     private Bucket createNewBucket() {
         // 5 requests per minute per IP

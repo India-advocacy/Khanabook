@@ -41,14 +41,14 @@ public class BillItem extends BaseSyncEntity {
     @Column(name = "variant_name")
     private String variantName;
 
-    @Column(name = "price")
-    private Double price;
+    @Column(name = "price", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal price;
 
     @Column(name = "quantity")
     private Integer quantity;
 
-    @Column(name = "item_total")
-    private Double itemTotal;
+    @Column(name = "item_total", columnDefinition = "NUMERIC(12,2)")
+    private java.math.BigDecimal itemTotal;
 
     @Column(name = "special_instruction")
     private String specialInstruction;
