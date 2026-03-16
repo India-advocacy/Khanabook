@@ -7,6 +7,7 @@ import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.StockLogRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.service.StockLogService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 @Service
 @RequiredArgsConstructor
@@ -25,8 +27,11 @@ public class StockLogServiceImpl implements StockLogService {
     private final GenericSyncService genericSyncService;
 
     @Override
-    public List<Integer> pushData(Long tenantId, List<StockLog> payload) {
-        java.util.Iterator<StockLog> iterator = payload.iterator();
+    public PushSyncResponse pushData(Long tenantId, List<StockLog> payload) {
+        List<StockLog> toSync = new ArrayList<>(payload);
+        List<Integer> failedLocalIds = new ArrayList<>();
+        java.util.Iterator<StockLog> iterator = toSync.iterator();
+
         while (iterator.hasNext()) {
             StockLog log = iterator.next();
             
@@ -45,6 +50,7 @@ public class StockLogServiceImpl implements StockLogService {
                     } else {
                         log_logger.warn("Skipping StockLog push. Could not resolve serverMenuItemId for localId: {} on device: {}", 
                                 log.getMenuItemId(), log.getDeviceId());
+                        failedLocalIds.add(log.getLocalId());
                         iterator.remove();
                         continue;
                     }
@@ -66,7 +72,9 @@ public class StockLogServiceImpl implements StockLogService {
                 }
             }
         }
-        return genericSyncService.handlePushSync(tenantId, payload, repository);
+        PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
+        response.getFailedLocalIds().addAll(failedLocalIds);
+        return response;
     }
 
     @Override

@@ -5,8 +5,10 @@ import com.khanabook.saas.entity.BillPayment;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.repository.BillPaymentRepository;
 import com.khanabook.saas.service.BillPaymentService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import java.util.Optional;
+import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -19,8 +21,12 @@ public class BillPaymentServiceImpl implements BillPaymentService {
     private final GenericSyncService genericSyncService;
 
     @Override
-    public List<Integer> pushData(Long tenantId, List<BillPayment> payload) {
+    public PushSyncResponse pushData(Long tenantId, List<BillPayment> payload) {
+        List<BillPayment> toSync = new ArrayList<>();
+        List<Integer> failedLocalIds = new ArrayList<>();
+
         for (BillPayment payment : payload) {
+            boolean resolved = true;
             if (payment.getServerBillId() == null && payment.getBillId() != null) {
                 Optional<Bill> bill = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(
                         tenantId, payment.getDeviceId(), payment.getBillId());
@@ -32,8 +38,19 @@ public class BillPaymentServiceImpl implements BillPaymentService {
                         .ifPresent(b -> payment.setServerBillId(b.getId()));
                 }
             }
+
+            if (payment.getServerBillId() == null) {
+                failedLocalIds.add(payment.getLocalId());
+                resolved = false;
+            }
+
+            if (resolved) {
+                toSync.add(payment);
+            }
         }
-        return genericSyncService.handlePushSync(tenantId, payload, repository);
+        PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
+        response.getFailedLocalIds().addAll(failedLocalIds);
+        return response;
     }
 
     @Override

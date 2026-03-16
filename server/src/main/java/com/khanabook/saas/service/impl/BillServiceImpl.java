@@ -3,6 +3,7 @@ package com.khanabook.saas.service.impl;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.service.BillService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ public class BillServiceImpl implements BillService {
     private final GenericSyncService genericSyncService;
 
     @Override
-    public List<Integer> pushData(Long tenantId, List<Bill> payload) {
+    public PushSyncResponse pushData(Long tenantId, List<Bill> payload) {
         return genericSyncService.handlePushSync(tenantId, payload, repository);
     }
 

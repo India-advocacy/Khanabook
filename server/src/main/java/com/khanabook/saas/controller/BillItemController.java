@@ -2,6 +2,7 @@ package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.BillItem;
 import com.khanabook.saas.service.BillItemService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,14 +19,9 @@ public class BillItemController {
     private final BillItemService service;
 
     @PostMapping("/push")
-    public ResponseEntity<?> push(@RequestBody List<BillItem> payload) {
-        try {
-            log.info("Received bill items push for {} items for Tenant: {}", payload.size(), TenantContext.getCurrentTenant());
-            return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
-        } catch (Exception e) {
-            log.error("Error pushing bill items data", e);
-            return ResponseEntity.internalServerError().body("An error occurred while processing the sync request.");
-        }
+    public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillItem> payload) {
+        log.info("Received bill items push for {} items for Tenant: {}", payload.size(), TenantContext.getCurrentTenant());
+        return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
     }
 
     @GetMapping("/pull")

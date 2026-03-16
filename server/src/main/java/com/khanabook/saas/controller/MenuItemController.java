@@ -2,6 +2,7 @@ package com.khanabook.saas.controller;
 
 import com.khanabook.saas.entity.MenuItem;
 import com.khanabook.saas.service.MenuItemService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +16,7 @@ public class MenuItemController {
     private final MenuItemService service;
 
     @PostMapping("/push")
-    public ResponseEntity<List<Integer>> push(@RequestBody List<MenuItem> payload) {
+    public ResponseEntity<PushSyncResponse> push(@RequestBody List<MenuItem> payload) {
         // TenantId automatically extracted by JwtFilter
         return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
     }

@@ -9,8 +9,10 @@ import com.khanabook.saas.repository.MenuItemRepository;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.repository.BillItemRepository;
 import com.khanabook.saas.service.BillItemService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import java.util.Optional;
+import java.util.ArrayList;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -25,8 +27,12 @@ public class BillItemServiceImpl implements BillItemService {
     private final GenericSyncService genericSyncService;
 
     @Override
-    public List<Integer> pushData(Long tenantId, List<BillItem> payload) {
+    public PushSyncResponse pushData(Long tenantId, List<BillItem> payload) {
+        List<BillItem> toSync = new ArrayList<>();
+        List<Integer> failedLocalIds = new ArrayList<>();
+
         for (BillItem item : payload) {
+            boolean resolved = true;
             // 1. Resolve Bill
             if (item.getServerBillId() == null && item.getBillId() != null) {
                 Optional<Bill> bill = billRepository.findByRestaurantIdAndDeviceIdAndLocalId(
@@ -66,8 +72,20 @@ public class BillItemServiceImpl implements BillItemService {
                         .ifPresent(v -> item.setServerVariantId(v.getId()));
                 }
             }
+
+            if (item.getServerBillId() == null || item.getServerMenuItemId() == null) {
+                // Critical dependency missing
+                failedLocalIds.add(item.getLocalId());
+                resolved = false;
+            }
+
+            if (resolved) {
+                toSync.add(item);
+            }
         }
-        return genericSyncService.handlePushSync(tenantId, payload, repository);
+        PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
+        response.getFailedLocalIds().addAll(failedLocalIds);
+        return response;
     }
 
     @Override

@@ -30,8 +30,8 @@ public class StockLog extends BaseSyncEntity {
     @Column(name = "server_variant_id")
     private Long serverVariantId;
 
-    @Column(name = "delta")
-    private Double delta; // Changed to Double to support weight-based items
+    @Column(name = "delta", columnDefinition = "NUMERIC(12,4)")
+    private java.math.BigDecimal delta;
 
     @Column(name = "reason")
     private String reason; // 'sale', 'adjustment', 'initial'

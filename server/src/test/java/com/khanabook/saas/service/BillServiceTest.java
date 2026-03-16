@@ -3,6 +3,7 @@ package com.khanabook.saas.service;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.repository.BillRepository;
 import com.khanabook.saas.service.impl.BillServiceImpl;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -70,7 +71,7 @@ class BillServiceTest {
         // Mock saveAll to return the input list
         doAnswer(i -> i.getArgument(0)).when(billRepository).saveAll(anyList());
 
-        List<Integer> successIds = billService.pushData(AUTHENTICATED_RESTAURANT_ID, List.of(mobileBill));
+        PushSyncResponse response = billService.pushData(AUTHENTICATED_RESTAURANT_ID, List.of(mobileBill));
 
         // Capture what was passed to saveAll
         verify(billRepository).saveAll(listCaptor.capture());
@@ -78,7 +79,7 @@ class BillServiceTest {
 
         assertThat(savedBill.getId()).isEqualTo(5L);
         assertThat(savedBill.getUpdatedAt()).isEqualTo(newMobileTime);
-        assertThat(successIds).containsExactly(101);
+        assertThat(response.getSuccessfulLocalIds()).containsExactly(101);
     }
 
     @Test

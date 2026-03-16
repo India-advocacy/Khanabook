@@ -3,6 +3,7 @@ package com.khanabook.saas.service.impl;
 import com.khanabook.saas.entity.ItemVariant;
 import com.khanabook.saas.repository.ItemVariantRepository;
 import com.khanabook.saas.service.ItemVariantService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ public class ItemVariantServiceImpl implements ItemVariantService {
     private final GenericSyncService genericSyncService;
 
     @Override
-    public List<Integer> pushData(Long tenantId, List<ItemVariant> payload) {
+    public PushSyncResponse pushData(Long tenantId, List<ItemVariant> payload) {
         return genericSyncService.handlePushSync(tenantId, payload, repository);
     }
 

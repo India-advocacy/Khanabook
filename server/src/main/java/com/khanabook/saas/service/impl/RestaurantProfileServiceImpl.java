@@ -3,6 +3,7 @@ package com.khanabook.saas.service.impl;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.service.RestaurantProfileService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,7 @@ public class RestaurantProfileServiceImpl implements RestaurantProfileService {
     private final GenericSyncService genericSyncService;
 
     @Override
-    public List<Integer> pushData(Long tenantId, List<RestaurantProfile> payload) {
+    public PushSyncResponse pushData(Long tenantId, List<RestaurantProfile> payload) {
         return genericSyncService.handlePushSync(tenantId, payload, repository);
     }
 
@@ -27,7 +28,7 @@ public class RestaurantProfileServiceImpl implements RestaurantProfileService {
 
     @Override
     @Transactional
-    public CounterResponse incrementAndGetCounters(Long tenantId, String today) {
+    public RestaurantProfileService.CounterResponse incrementAndGetCounters(Long tenantId, String today) {
         Long now = System.currentTimeMillis();
         int updated = repository.incrementCountersAtomic(tenantId, today, now);
         
@@ -40,7 +41,7 @@ public class RestaurantProfileServiceImpl implements RestaurantProfileService {
             throw new RuntimeException("Failed to retrieve updated counters");
         }
 
-        CounterResponse response = new CounterResponse();
+        RestaurantProfileService.CounterResponse response = new RestaurantProfileService.CounterResponse();
         Object[] row = result.get(0);
         response.setDailyCounter(((Number) row[0]).intValue());
         response.setLifetimeCounter(((Number) row[1]).intValue());

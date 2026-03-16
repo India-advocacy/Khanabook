@@ -3,6 +3,7 @@ package com.khanabook.saas.service.impl;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.repository.CategoryRepository;
 import com.khanabook.saas.service.CategoryService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final GenericSyncService genericSyncService;
 
     @Override
-    public List<Integer> pushData(Long tenantId, List<Category> payload) {
+    public PushSyncResponse pushData(Long tenantId, List<Category> payload) {
         return genericSyncService.handlePushSync(tenantId, payload, repository);
     }
 

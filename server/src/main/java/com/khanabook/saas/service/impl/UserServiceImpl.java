@@ -3,6 +3,7 @@ package com.khanabook.saas.service.impl;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.service.UserService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.service.GenericSyncService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ public class UserServiceImpl implements UserService {
     private final GenericSyncService genericSyncService;
 
     @Override
-    public List<Integer> pushData(Long tenantId, List<User> payload) {
+    public PushSyncResponse pushData(Long tenantId, List<User> payload) {
         return genericSyncService.handlePushSync(tenantId, payload, repository);
     }
 

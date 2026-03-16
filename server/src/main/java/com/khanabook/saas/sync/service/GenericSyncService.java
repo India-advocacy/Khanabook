@@ -2,6 +2,7 @@ package com.khanabook.saas.sync.service;
 
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.sync.repository.SyncRepository;
 import org.slf4j.Logger;
@@ -21,7 +22,7 @@ public class GenericSyncService {
     private static final Logger log = LoggerFactory.getLogger(GenericSyncService.class);
 
     @Transactional
-    public <T extends BaseSyncEntity> List<Integer> handlePushSync(
+    public <T extends BaseSyncEntity> PushSyncResponse handlePushSync(
             Long tenantId,
             List<T> payload,
             SyncRepository<T, Long> repository) {
@@ -31,10 +32,11 @@ public class GenericSyncService {
         }
 
         if (payload == null || payload.isEmpty()) {
-            return new ArrayList<>();
+            return new PushSyncResponse(new ArrayList<>(), new ArrayList<>());
         }
 
         List<Integer> successfulLocalIds = new ArrayList<>();
+        List<Integer> failedLocalIds = new ArrayList<>();
         
         // 0. PRE-PROCESSING: Apply recovery logic to ensure localIds are populated
         // This MUST happen before we collect incomingLocalIds, otherwise they are omitted if null in JSON.
@@ -96,6 +98,7 @@ public class GenericSyncService {
                         incomingRecord.setLocalId(1);
                     } else {
                         log.warn("Skipping record with NULL localId for device: {}", deviceId);
+                        // We can't really report this back by ID if the ID is NULL, but we acknowledge it's skipped.
                         continue;
                     }
                 }
@@ -139,6 +142,6 @@ public class GenericSyncService {
 
         log.info("Successfully batch synced {} records for Tenant ID: {}", successfulLocalIds.size(), tenantId);
         
-        return successfulLocalIds;
+        return new PushSyncResponse(successfulLocalIds, failedLocalIds);
     }
 }

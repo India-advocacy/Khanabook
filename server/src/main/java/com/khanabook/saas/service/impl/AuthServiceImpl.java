@@ -30,8 +30,15 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtility jwtUtility;
     private final PasswordEncoder passwordEncoder;
 
-    @org.springframework.beans.factory.annotation.Value("${google.client.id:}")
+    @org.springframework.beans.factory.annotation.Value("${google.client.id}")
     private String googleClientId;
+
+    @jakarta.annotation.PostConstruct
+    public void validateConfig() {
+        if (googleClientId == null || googleClientId.isBlank()) {
+            throw new IllegalStateException("google.client.id must be configured via GOOGLE_CLIENT_ID environment variable");
+        }
+    }
 
     @Override
     public AuthResponse login(LoginRequest request) {

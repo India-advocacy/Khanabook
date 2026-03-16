@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.CategoryService;
+import com.khanabook.saas.sync.dto.PushSyncResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -23,7 +24,7 @@ public class CategoryController {
     private final CategoryService service;
 
     @PostMapping("/push")
-    public ResponseEntity<List<Integer>> push(@RequestBody List<Category> payload) {
+    public ResponseEntity<PushSyncResponse> push(@RequestBody List<Category> payload) {
         // TenantId automatically extracted by JwtFilter
         return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
     }
