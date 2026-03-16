@@ -35,7 +35,13 @@ public class RestaurantProfileServiceImpl implements RestaurantProfileService {
         String timezone = repository.findByRestaurantId(tenantId)
                 .map(RestaurantProfile::getTimezone)
                 .orElse("Asia/Kolkata");
-        String today = LocalDate.now(ZoneId.of(timezone)).toString();
+        ZoneId zoneId;
+        try {
+            zoneId = ZoneId.of(timezone);
+        } catch (Exception e) {
+            zoneId = ZoneId.of("Asia/Kolkata");
+        }
+        String today = LocalDate.now(zoneId).toString();
 
         int updated = repository.incrementCountersAtomic(tenantId, today, now);
         

@@ -27,16 +27,16 @@ class MasterSyncProcessor @Inject constructor(
             val unsyncedProfiles = restaurantDao.getUnsyncedRestaurantProfiles()
             if (unsyncedProfiles.isNotEmpty()) {
                 unsyncedProfiles.chunked(50).forEach { batch ->
-                    val syncedIds = api.pushRestaurantProfiles(batch)
-                    restaurantDao.markRestaurantProfilesAsSynced(syncedIds)
+                    val response = api.pushRestaurantProfiles(batch)
+                    restaurantDao.markRestaurantProfilesAsSynced(response.successfulLocalIds)
                 }
             }
 
             val unsyncedUsers = userDao.getUnsyncedUsers()
             if (unsyncedUsers.isNotEmpty()) {
                 unsyncedUsers.chunked(50).forEach { batch ->
-                    val syncedIds = api.pushUsers(batch)
-                    userDao.markUsersAsSynced(syncedIds)
+                    val response = api.pushUsers(batch)
+                    userDao.markUsersAsSynced(response.successfulLocalIds)
                 }
             }
 
@@ -44,24 +44,24 @@ class MasterSyncProcessor @Inject constructor(
             val unsyncedCategories = categoryDao.getUnsyncedCategories()
             if (unsyncedCategories.isNotEmpty()) {
                 unsyncedCategories.chunked(50).forEach { batch ->
-                    val syncedIds = api.pushCategories(batch)
-                    categoryDao.markCategoriesAsSynced(syncedIds)
+                    val response = api.pushCategories(batch)
+                    categoryDao.markCategoriesAsSynced(response.successfulLocalIds)
                 }
             }
 
             val unsyncedMenuItems = menuDao.getUnsyncedMenuItems()
             if (unsyncedMenuItems.isNotEmpty()) {
                 unsyncedMenuItems.chunked(50).forEach { batch ->
-                    val syncedIds = api.pushMenuItems(batch)
-                    menuDao.markMenuItemsAsSynced(syncedIds)
+                    val response = api.pushMenuItems(batch)
+                    menuDao.markMenuItemsAsSynced(response.successfulLocalIds)
                 }
             }
 
             val unsyncedVariants = menuDao.getUnsyncedItemVariants()
             if (unsyncedVariants.isNotEmpty()) {
                 unsyncedVariants.chunked(50).forEach { batch ->
-                    val syncedIds = api.pushItemVariants(batch)
-                    menuDao.markItemVariantsAsSynced(syncedIds)
+                    val response = api.pushItemVariants(batch)
+                    menuDao.markItemVariantsAsSynced(response.successfulLocalIds)
                 }
             }
 
@@ -69,8 +69,8 @@ class MasterSyncProcessor @Inject constructor(
             val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs()
             if (unsyncedStockLogs.isNotEmpty()) {
                 unsyncedStockLogs.chunked(50).forEach { batch ->
-                    val syncedIds = api.pushStockLogs(batch)
-                    inventoryDao.markStockLogsAsSynced(syncedIds)
+                    val response = api.pushStockLogs(batch)
+                    inventoryDao.markStockLogsAsSynced(response.successfulLocalIds)
                 }
             }
 
@@ -78,24 +78,24 @@ class MasterSyncProcessor @Inject constructor(
             val unsyncedBills = billDao.getUnsyncedBills()
             if (unsyncedBills.isNotEmpty()) {
                 unsyncedBills.chunked(50).forEach { batch ->
-                    val syncedIds = api.pushBills(batch)
-                    billDao.markBillsAsSynced(syncedIds)
+                    val response = api.pushBills(batch)
+                    billDao.markBillsAsSynced(response.successfulLocalIds)
                 }
             }
 
             val unsyncedBillItems = billDao.getUnsyncedBillItems()
             if (unsyncedBillItems.isNotEmpty()) {
                 unsyncedBillItems.chunked(50).forEach { batch ->
-                    val syncedIds = api.pushBillItems(batch)
-                    billDao.markBillItemsAsSynced(syncedIds)
+                    val response = api.pushBillItems(batch)
+                    billDao.markBillItemsAsSynced(response.successfulLocalIds)
                 }
             }
 
             val unsyncedBillPayments = billDao.getUnsyncedBillPayments()
             if (unsyncedBillPayments.isNotEmpty()) {
                 unsyncedBillPayments.chunked(50).forEach { batch ->
-                    val syncedIds = api.pushBillPayments(batch)
-                    billDao.markBillPaymentsAsSynced(syncedIds)
+                    val response = api.pushBillPayments(batch)
+                    billDao.markBillPaymentsAsSynced(response.successfulLocalIds)
                 }
             }
 
@@ -176,7 +176,7 @@ class MasterSyncProcessor @Inject constructor(
                         passwordHash = resolvedPasswordHash,
                         whatsappNumber = remoteUser.whatsappNumber ?: localUser?.whatsappNumber ?: "",
                         isActive = remoteUser.isActive ?: true,
-                        createdAt = remoteUser.createdAt.orFallback(""),
+                        createdAt = remoteUser.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteUser.restaurantId ?: 0L,
                         deviceId = remoteUser.deviceId.orFallback(""),
                         isSynced = true
@@ -193,7 +193,7 @@ class MasterSyncProcessor @Inject constructor(
                         name = remoteCategory.name.orFallback("Category"),
                         isVeg = remoteCategory.isVeg,
                         sortOrder = remoteCategory.sortOrder ?: 0,
-                        createdAt = remoteCategory.createdAt.orFallback(""),
+                        createdAt = remoteCategory.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteCategory.restaurantId ?: 0L,
                         deviceId = remoteCategory.deviceId.orFallback(""),
                         isSynced = true,
@@ -217,7 +217,7 @@ class MasterSyncProcessor @Inject constructor(
                         isAvailable = remoteMenuItem.isAvailable ?: true,
                         currentStock = remoteMenuItem.currentStock ?: 0.0,
                         lowStockThreshold = remoteMenuItem.lowStockThreshold ?: 0.0,
-                        createdAt = remoteMenuItem.createdAt.orFallback(""),
+                        createdAt = remoteMenuItem.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteMenuItem.restaurantId ?: 0L,
                         deviceId = remoteMenuItem.deviceId.orFallback(""),
                         isSynced = true,
@@ -259,7 +259,7 @@ class MasterSyncProcessor @Inject constructor(
                         variantId = remoteStockLog.variantId,
                         delta = remoteStockLog.delta ?: 0.0,
                         reason = remoteStockLog.reason.orFallback("adjustment"),
-                        createdAt = remoteStockLog.createdAt.orFallback(""),
+                        createdAt = remoteStockLog.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteStockLog.restaurantId ?: 0L,
                         deviceId = remoteStockLog.deviceId.orFallback(""),
                         isSynced = true,
@@ -295,7 +295,7 @@ class MasterSyncProcessor @Inject constructor(
                         paymentStatus = remoteBill.paymentStatus.orFallback("success"),
                         orderStatus = remoteBill.orderStatus.orFallback("completed"),
                         createdBy = remoteBill.createdBy?.toInt(),
-                        createdAt = remoteBill.createdAt.orFallback(""),
+                        createdAt = remoteBill.createdAt ?: System.currentTimeMillis(),
                         paidAt = remoteBill.paidAt,
                         isSynced = true,
                         updatedAt = remoteBill.updatedAt,

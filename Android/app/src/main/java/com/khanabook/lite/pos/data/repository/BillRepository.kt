@@ -142,4 +142,8 @@ class BillRepository(
     fun getUnsyncedCount(): Flow<Int> {
         return billDao.getUnsyncedCount()
     }
+
+    suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int): List<com.khanabook.lite.pos.domain.model.TopSellingItem> {
+        return billDao.getTopSellingItemsInRange(startMillis, endMillis, limit)
+    }
 }

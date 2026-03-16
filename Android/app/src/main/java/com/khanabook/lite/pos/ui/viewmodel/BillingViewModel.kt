@@ -210,7 +210,12 @@ class BillingViewModel @Inject constructor(
 
             // Atomically increment and get next counters
             val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
-            val today = java.time.LocalDate.now().toString() // Local fallback for display ID
+            val zoneId = try {
+                java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
+            } catch (e: Exception) {
+                java.time.ZoneId.of("Asia/Kolkata")
+            }
+            val today = java.time.LocalDate.now(zoneId).toString()
             val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
             
             val bill = BillEntity(
@@ -305,4 +310,9 @@ class BillingViewModel @Inject constructor(
     
     @Immutable
     data class BillSummary(val subtotal: Double = 0.0, val cgst: Double = 0.0, val sgst: Double = 0.0, val customTax: Double = 0.0, val total: Double = 0.0)
+
+    override fun onCleared() {
+        super.onCleared()
+        printerManager.disconnect()
+    }
 }

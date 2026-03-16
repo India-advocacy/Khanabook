@@ -23,6 +23,12 @@ object DateUtils {
             .format(java.time.format.DateTimeFormatter.ofPattern(DISPLAY_FORMAT))
     }
 
+    fun formatDateOnly(timestamp: Long): String {
+        return java.time.Instant.ofEpochMilli(timestamp)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+    }
+
     fun formatDisplayWithZone(timestamp: Long, zoneId: String): String {
         return java.time.Instant.ofEpochMilli(timestamp)
             .atZone(java.time.ZoneId.of(zoneId))
@@ -73,9 +79,7 @@ fun shareBillAsPdf(context: Context, billWithItems: BillWithItems, profile: Rest
         )
 
         val phone = billWithItems.bill.customerWhatsapp
-        val formattedPhone = if (!phone.isNullOrBlank()) {
-            if (phone.length == 10) "91$phone" else phone
-        } else null
+        val formattedPhone = phone
 
         if (formattedPhone != null) {
             val intent = Intent(Intent.ACTION_SEND).apply {

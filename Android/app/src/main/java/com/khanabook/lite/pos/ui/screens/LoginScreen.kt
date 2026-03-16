@@ -191,7 +191,7 @@ fun LoginScreen(
             }
 
             // Log In Button
-            val isLoginEnabled = phone.length == 10 && password.isNotBlank()
+            val isLoginEnabled = phone.isNotBlank() && password.isNotBlank()
             Button(
                     onClick = { if (isLoginEnabled) viewModel.login(phone, password) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -416,7 +416,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         onClick = {
                             when (step) {
                                 1 -> {
-                                    if (phone.length == 10) {
+                                    if (phone.isNotBlank()) {
                                         viewModel.sendOtp(phone, "reset")
                                         resendTimer = 60
                                     }
@@ -442,11 +442,12 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         shape = RoundedCornerShape(8.dp),
                         enabled =
                                 when (step) {
-                                    1 -> phone.length == 10
+                                    1 -> phone.isNotBlank()
                                     2 -> otp.length == 6
                                     3 -> newPassword.isNotBlank()
                                     else -> false
                                 }
+
                 ) {
                     Text(
                             text =

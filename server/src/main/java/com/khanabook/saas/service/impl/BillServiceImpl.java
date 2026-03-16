@@ -29,7 +29,12 @@ public class BillServiceImpl implements BillService {
                 .map(RestaurantProfile::getTimezone)
                 .orElse("Asia/Kolkata")
         );
-        ZoneId zoneId = ZoneId.of(timezone);
+        ZoneId zoneId;
+        try {
+            zoneId = ZoneId.of(timezone);
+        } catch (Exception e) {
+            zoneId = ZoneId.of("Asia/Kolkata");
+        }
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
 
         for (Bill bill : payload) {

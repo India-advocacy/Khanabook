@@ -91,6 +91,9 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "is_synced", defaultValue = "0") val isSynced: Boolean = false,
     @ColumnInfo(name = "updated_at", defaultValue = "0") val updatedAt: Long = System.currentTimeMillis()
 ,
+    @ColumnInfo(name = "timezone", defaultValue = "Asia/Kolkata")
+    val timezone: String? = "Asia/Kolkata",
+
     @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false
 )
 

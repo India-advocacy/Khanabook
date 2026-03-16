@@ -21,7 +21,7 @@ class InventoryRepository(
         private val workManager: WorkManager
 ) {
     suspend fun adjustStock(menuItemId: Int, delta: Double, reason: String) {
-        val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        val now = System.currentTimeMillis()
         menuDao.updateStock(menuItemId, delta)
         insertStockLog(
                 StockLogEntity(

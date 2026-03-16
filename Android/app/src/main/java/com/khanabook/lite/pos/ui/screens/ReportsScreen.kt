@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.ui.screens
+package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -607,7 +607,10 @@ fun OrderDetailsDialog(
 }
 
 fun formatDate(date: String): String {
-    // Input is yyyy-MM-dd HH:mm:ss
+    // If input is dd MMM yyyy, hh:mm a (new format), return as is or simplify
+    if (date.contains(",")) return date.substringBefore(",").trim() // Return just the date part
+    
+    // Input is yyyy-MM-dd HH:mm:ss (old format)
     return try {
         val parts = date.split(" ")[0].split("-")
         "${parts[2]}/${parts[1]}/${parts[0]}"
@@ -615,4 +618,5 @@ fun formatDate(date: String): String {
         date
     }
 }
+
 

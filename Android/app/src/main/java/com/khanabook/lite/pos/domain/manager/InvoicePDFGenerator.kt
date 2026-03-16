@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.domain.manager
+package com.khanabook.lite.pos.domain.manager
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -207,7 +207,7 @@ class InvoicePDFGenerator(private val context: Context) {
         
         // DATE (Mixed style, Right aligned)
         val dateLabel = "DATE: "
-        val dateValue = bill.bill.createdAt.take(10)
+        val dateValue = com.khanabook.lite.pos.domain.util.DateUtils.formatDateOnly(bill.bill.createdAt)
         paint.typeface = boldTypeface
         val dlw = paint.measureText(dateLabel)
         paint.typeface = normalTypeface
@@ -234,7 +234,7 @@ class InvoicePDFGenerator(private val context: Context) {
             
             // WA (Right aligned)
             val waLabel = "WA: "
-            val waValue = bill.bill.customerWhatsapp
+            val waValue = bill.bill.customerWhatsapp ?: ""
             paint.typeface = boldTypeface
             val wlw = paint.measureText(waLabel)
             paint.typeface = normalTypeface

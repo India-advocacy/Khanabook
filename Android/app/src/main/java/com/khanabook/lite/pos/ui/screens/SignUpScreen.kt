@@ -1,4 +1,4 @@
-﻿@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -173,7 +173,7 @@ fun SignUpScreen(
                     // Phone & Send OTP
                     OutlinedTextField(
                             value = phoneNumber,
-                            onValueChange = { if (it.length <= 10) phoneNumber = it },
+                            onValueChange = { phoneNumber = it },
                             placeholder = {
                                 Text("WhatsApp Number", color = TextGold.copy(alpha = 0.5f))
                             },
@@ -192,7 +192,7 @@ fun SignUpScreen(
                             isError = phoneNumber.isNotEmpty() && !isPhoneValid,
                             supportingText = {
                                 if (phoneNumber.isNotEmpty() && !isPhoneValid)
-                                        Text("Enter 10-digit phone number", color = DangerRed)
+                                        Text("Enter valid phone number", color = DangerRed)
                             },
                             trailingIcon = {
                                 if (!otpSent || otpTimer == 0) {

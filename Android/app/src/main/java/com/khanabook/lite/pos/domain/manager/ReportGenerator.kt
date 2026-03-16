@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.domain.manager
+package com.khanabook.lite.pos.domain.manager
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -55,7 +55,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
                     lifetimeId = bill.lifetimeOrderId,
                     billId = bill.id,
                     paymentMode = PaymentMode.fromDbValue(bill.paymentMode),
-                    date = bill.createdAt
+                    date = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.createdAt)
                 )
             }
     }
@@ -149,23 +149,9 @@ class ReportGenerator(private val billRepository: BillRepository) {
     }
 
     suspend fun getTopSellingItems(from: String, to: String, limit: Int): List<TopSellingItem> {
-        // Since we don't have a direct query in BillRepository, we map manually here.
-        // In a real scenario, this would be a custom query in BillDao.
-        val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
-        val itemMap = mutableMapOf<String, Pair<Int, Double>>()
-        
-        for (bill in bills) {
-            if (OrderStatus.fromDbValue(bill.orderStatus) != OrderStatus.COMPLETED) continue
-            val billWithItems = billRepository.getBillWithItemsById(bill.id)
-            billWithItems?.items?.forEach { item ->
-                val current = itemMap[item.itemName] ?: Pair(0, 0.0)
-                itemMap[item.itemName] = Pair(current.first + item.quantity, current.second + item.itemTotal)
-            }
-        }
-        
-        return itemMap.map { (name, data) ->
-            TopSellingItem(name, data.first, data.second)
-        }.sortedByDescending { it.quantitySold }.take(limit)
+        val startMillis = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(from)
+        val endMillis = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(to)
+        return billRepository.getTopSellingItemsInRange(startMillis, endMillis, limit)
     }
 }
 

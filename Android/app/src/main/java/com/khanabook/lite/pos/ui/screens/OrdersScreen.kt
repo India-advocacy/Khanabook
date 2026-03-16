@@ -1,4 +1,4 @@
-﻿@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -380,6 +380,7 @@ private fun getPayModeColor(mode: PaymentMode): Color {
 }
 
 private fun formatDisplayDate(dateStr: String): String {
+    if (dateStr.contains(",")) return dateStr
     return try {
         val inputFmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
         val outputFmt = SimpleDateFormat("MMMM\ndd, yyyy,\nHH:mm a", Locale.getDefault())
@@ -389,6 +390,7 @@ private fun formatDisplayDate(dateStr: String): String {
         dateStr
     }
 }
+
 
 private fun periodRange(tab: Int): Pair<String, String> {
     val cal = Calendar.getInstance()

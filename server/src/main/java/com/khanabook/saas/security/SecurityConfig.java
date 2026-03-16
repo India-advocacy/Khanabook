@@ -38,7 +38,8 @@ public class SecurityConfig {
                 // Only auth endpoints (login, signup, check-user, google login) are public.
                 // NOTE: paths are relative to context-path (/api/v1). 
                 // Public: /api/v1/auth/login, /api/v1/auth/signup, etc.
-                .requestMatchers("/auth/login", "/auth/signup", "/auth/google", "/auth/check-user").permitAll()
+                .requestMatchers("/auth/login", "/auth/signup", "/auth/google", "/auth/check-user", "/auth/reset-password").permitAll()
+
                 // password reset now requires authentication for security (Change Password flow)
                 // TODO: For "Forgot Password" (unauthenticated), implement OTP-gated logic.
                 .anyRequest().authenticated()

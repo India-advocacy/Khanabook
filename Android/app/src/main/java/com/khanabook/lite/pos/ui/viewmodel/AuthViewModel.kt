@@ -184,10 +184,12 @@ constructor(
             val otp = (100000..999999).random().toString()
             generatedOtp = otp
             
-            // 🔥 DEBUG: Log OTP to Logcat for testing without WhatsApp
-            Log.d(TAG, "------------------------------------------")
-            Log.d(TAG, "TEST OTP for $phoneNumber: $otp")
-            Log.d(TAG, "------------------------------------------")
+            if (BuildConfig.DEBUG) {
+                // 🔥 DEBUG: Log OTP to Logcat for testing without WhatsApp
+                Log.d(TAG, "------------------------------------------")
+                Log.d(TAG, "TEST OTP for $phoneNumber: $otp")
+                Log.d(TAG, "------------------------------------------")
+            }
 
             try {
                 // Check if user exists for reset password
@@ -213,7 +215,7 @@ constructor(
                     }
                 }
 
-                val formattedPhone = if (phoneNumber.length == 10) "91$phoneNumber" else phoneNumber
+                val formattedPhone = phoneNumber
 
                 val request =
                         WhatsAppRequest(

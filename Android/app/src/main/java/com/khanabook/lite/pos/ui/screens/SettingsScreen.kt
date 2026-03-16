@@ -748,7 +748,11 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
     var gstPct by remember { mutableStateOf((profile?.gstPercentage ?: 0.0).toString()) }
     var fssaiNumber by remember { mutableStateOf(profile?.fssaiNumber ?: "") }
     
-    val isFssaiValid = fssaiNumber.isNotBlank() && fssaiNumber.length >= 10
+    val isFssaiValid = if (country.equals("India", true)) {
+        fssaiNumber.isNotBlank() && fssaiNumber.length >= 10
+    } else {
+        true // Optional for other countries
+    }
     val isGstValid = !gstEnabled || (gstNumber.isNotBlank() && isValidTaxPercentage(gstPct))
     val isSaveEnabled = isFssaiValid && isGstValid
 

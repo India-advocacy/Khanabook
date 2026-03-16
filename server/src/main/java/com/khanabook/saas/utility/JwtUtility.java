@@ -18,7 +18,7 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtUtility {
 
-    @Value("${jwt.secret:YourDefaultSecretKeyThatIsAtLeast32CharsLong}")
+    @Value("${jwt.secret}")
     private String secret;
 
     @Value("${jwt.expiration.ms:36000000}")

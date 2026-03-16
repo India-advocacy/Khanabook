@@ -104,6 +104,17 @@ interface BillDao {
     @Query("UPDATE bill_payments SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markBillPaymentsAsSynced(ids: List<Int>)
 
+    @Query("""
+        SELECT item_name as itemName, SUM(quantity) as quantitySold, SUM(item_total) as totalRevenue
+        FROM bill_items
+        INNER JOIN bills ON bill_items.bill_id = bills.id
+        WHERE bills.order_status = 'completed' AND bills.created_at BETWEEN :startMillis AND :endMillis
+        GROUP BY item_name
+        ORDER BY quantitySold DESC
+        LIMIT :limit
+    """)
+    suspend fun getTopSellingItemsInRange(startMillis: Long, endMillis: Long, limit: Int): List<com.khanabook.lite.pos.domain.model.TopSellingItem>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedBillPayments(payments: List<BillPaymentEntity>)
 }

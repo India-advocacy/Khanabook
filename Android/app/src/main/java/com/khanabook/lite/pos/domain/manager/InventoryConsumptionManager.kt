@@ -30,7 +30,7 @@ class InventoryConsumptionManager @Inject constructor(
                         variantId = item.variantId,
                         delta = delta,
                         reason = "Sale (Bill #${item.billId})",
-                        createdAt = System.currentTimeMillis().toString()
+                        createdAt = System.currentTimeMillis()
                     )
                 )
             } else if (item.menuItemId != null) {
