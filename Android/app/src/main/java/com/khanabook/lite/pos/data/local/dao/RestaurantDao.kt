@@ -30,7 +30,8 @@ interface RestaurantDao {
         val profile = getProfile() ?: throw Exception("Profile not found")
         // Server now handles date derivation, but local daily counter still needs a reset check.
         // For simplicity during transition, we'll use system date locally.
-        val today = java.time.LocalDate.now().toString()
+        val zoneId = java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
+        val today = java.time.LocalDate.now(zoneId).toString()
         val isNewDay = profile.lastResetDate != today
         val now = System.currentTimeMillis()
         
@@ -51,7 +52,8 @@ interface RestaurantDao {
     @Transaction
     suspend fun updateCounters(daily: Int, lifetime: Int) {
         val current = getProfile() ?: return
-        val today = java.time.LocalDate.now().toString()
+        val zoneId = java.time.ZoneId.of(current.timezone ?: "Asia/Kolkata")
+        val today = java.time.LocalDate.now(zoneId).toString()
         saveProfile(current.copy(
             dailyOrderCounter = daily,
             lifetimeOrderCounter = lifetime,

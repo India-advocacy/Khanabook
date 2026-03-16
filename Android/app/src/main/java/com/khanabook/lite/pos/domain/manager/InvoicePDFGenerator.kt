@@ -1,8 +1,5 @@
 package com.khanabook.lite.pos.domain.manager
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-
 import android.content.Context
 import android.graphics.*
 import android.graphics.pdf.PdfDocument
@@ -206,8 +203,9 @@ class InvoicePDFGenerator(private val context: Context) {
         canvas.drawText(billValue, 5f + blw, y, paint)
         
         // DATE (Mixed style, Right aligned)
+        val dateStr = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.bill.createdAt)
         val dateLabel = "DATE: "
-        val dateValue = com.khanabook.lite.pos.domain.util.DateUtils.formatDateOnly(bill.bill.createdAt)
+        val dateValue = dateStr.replace("\n", " ")
         paint.typeface = boldTypeface
         val dlw = paint.measureText(dateLabel)
         paint.typeface = normalTypeface

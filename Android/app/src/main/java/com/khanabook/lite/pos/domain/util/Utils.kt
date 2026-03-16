@@ -29,6 +29,12 @@ object DateUtils {
             .format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"))
     }
 
+    fun formatDisplayDate(timestamp: Long): String {
+        return java.time.Instant.ofEpochMilli(timestamp)
+            .atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("MMMM\ndd, yyyy,\nHH:mm a"))
+    }
+
     fun formatDisplayWithZone(timestamp: Long, zoneId: String): String {
         return java.time.Instant.ofEpochMilli(timestamp)
             .atZone(java.time.ZoneId.of(zoneId))

@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.Flow
 
 class BillRepository(
         private val billDao: BillDao,
+        private val restaurantDao: com.khanabook.lite.pos.data.local.dao.RestaurantDao,
         private val inventoryConsumptionManager: InventoryConsumptionManager? = null,
         private val workManager: WorkManager
 ) {
@@ -136,7 +137,15 @@ class BillRepository(
             }
         } catch (e: Exception) { Long.MAX_VALUE }
         
+        return getBillsByDateRange(startMillis, endMillis)
+    }
+
+    fun getBillsByDateRange(startMillis: Long, endMillis: Long): Flow<List<BillEntity>> {
         return billDao.getBillsByDateRange(startMillis, endMillis)
+    }
+
+    fun getProfileFlow(): Flow<com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity?> {
+        return restaurantDao.getProfileFlow()
     }
 
     fun getUnsyncedCount(): Flow<Int> {

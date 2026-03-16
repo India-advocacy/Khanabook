@@ -56,7 +56,7 @@ object InvoiceFormatter {
         fun add(bytes: ByteArray) { out.addAll(bytes.toList()) }
         fun add(text: String) { 
             // ISO-8859-1 provides better coverage for common symbols than US_ASCII
-            out.addAll(text.toByteArray(Charsets.ISO_8859_1).toList())
+            out.addAll(text.toByteArray(Charsets.UTF_8).toList())
         }
 
         add(RESET)
@@ -95,12 +95,8 @@ object InvoiceFormatter {
         add("$line\n")
         
         add("Bill : ${bill.bill.dailyOrderId.toString().padStart(3, '0')}\n")
-        val dateObj = DateUtils.parseDb(bill.bill.createdAt) ?: run {
-            Log.w(TAG, "Malformed created_at timestamp: ${bill.bill.createdAt}")
-            Date()
-        }
-        val formattedDate = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(dateObj)
-        add("Date : $formattedDate\n")
+        val dateStr = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.bill.createdAt)
+        add("Date: $dateStr\n")
         bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add("Cust : $it\n") }
         bill.bill.customerWhatsapp?.takeIf { it.isNotBlank() }?.let { add("WA   : $it\n") }
         add("$line\n")
@@ -171,13 +167,8 @@ object InvoiceFormatter {
         
         sb.append("\n*--- INVOICE ---*\n")
         sb.append("*Bill #:* ${bill.bill.dailyOrderId.toString().padStart(3, '0')}\n")
-        
-        val dateObj = DateUtils.parseDb(bill.bill.createdAt) ?: run {
-            Log.w(TAG, "Malformed created_at timestamp: ${bill.bill.createdAt}")
-            Date()
-        }
-        val formattedDate = SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault()).format(dateObj)
-        sb.append("*Date:* $formattedDate\n")
+        val formattedDate = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.bill.createdAt)
+        sb.append("*Date:* ${formattedDate.replace("\n", " ")}\n")
         
         if (!bill.bill.customerName.isNullOrBlank()) sb.append("*Customer:* ${bill.bill.customerName}\n")
         if (!bill.bill.customerWhatsapp.isNullOrBlank()) sb.append("*WA:* ${bill.bill.customerWhatsapp}\n")

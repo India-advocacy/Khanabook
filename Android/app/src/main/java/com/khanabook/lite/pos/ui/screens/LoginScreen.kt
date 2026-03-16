@@ -94,7 +94,7 @@ fun LoginScreen(
             // Email/Phone Input
             TextField(
                     value = phone,
-                    onValueChange = { if (it.length <= 10) phone = it },
+                    onValueChange = { phone = it },
                     placeholder = { Text("Phone Number", color = Color.Gray) },
                     leadingIcon = {
                         Icon(
@@ -350,7 +350,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         Spacer(modifier = Modifier.height(16.dp))
                         OutlinedTextField(
                                 value = phone,
-                                onValueChange = { if (it.length <= 10) phone = it },
+                                onValueChange = { phone = it },
                                 label = { Text("WhatsApp Number") },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = loginTextFieldColors(),

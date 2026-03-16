@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.domain.model
+package com.khanabook.lite.pos.domain.model
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -19,7 +19,7 @@ data class OrderDetailRow(
     val salesAmount: Double,
     val payMode: PaymentMode,
     val orderStatus: OrderStatus,
-    val salesDate: String
+    val salesDate: Long
 )
 
 data class DailySalesReport(

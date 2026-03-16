@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.ui.viewmodel
+package com.khanabook.lite.pos.ui.viewmodel
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -13,15 +13,14 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@kotlinx.coroutines.ExperimentalCoroutinesApi
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val billRepository: BillRepository,
     private val networkMonitor: com.khanabook.lite.pos.domain.util.NetworkMonitor
 ) : ViewModel() {
 
-    private val today = OrderIdManager.getTodayString()
-    private val startOfDay = "$today 00:00:00"
-    private val endOfDay = "$today 23:59:59"
+    private val profileFlow = billRepository.getProfileFlow()
 
     val connectionStatus: StateFlow<com.khanabook.lite.pos.domain.util.ConnectionStatus> = networkMonitor.status
         .stateIn(
@@ -37,14 +36,23 @@ class HomeViewModel @Inject constructor(
             initialValue = 0
         )
 
-    val todayStats: StateFlow<HomeStats> = billRepository.getBillsByDateRange(startOfDay, endOfDay)
-        .map { bills ->
-            val completedBills = bills.filter { it.paymentStatus == "success" }
-            HomeStats(
-                orderCount = completedBills.size,
-                revenue = completedBills.sumOf { it.totalAmount },
-                customerCount = completedBills.mapNotNull { it.customerWhatsapp }.distinct().size
-            )
+    val todayStats: StateFlow<HomeStats> = profileFlow
+        .filterNotNull()
+        .flatMapLatest { profile: com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity ->
+            val zoneId = profile.timezone ?: "Asia/Kolkata"
+            val today = java.time.LocalDate.now(java.time.ZoneId.of(zoneId)).toString()
+            val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(today, zoneId)
+            val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(today, zoneId)
+            
+            billRepository.getBillsByDateRange(start, end)
+                .map { bills ->
+                    val completedBills = bills.filter { it.orderStatus == "completed" || it.orderStatus == "paid" }
+                    HomeStats(
+                        orderCount = completedBills.size,
+                        revenue = completedBills.sumOf { it.totalAmount },
+                        customerCount = completedBills.mapNotNull { it.customerWhatsapp }.distinct().size
+                    )
+                }
         }
         .stateIn(
             scope = viewModelScope,

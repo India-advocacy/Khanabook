@@ -184,12 +184,11 @@ class MenuViewModel @Inject constructor(
             val isDuplicate = categories.value.any { it.name.equals(name, ignoreCase = true) }
             if (isDuplicate) return@launch
             
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             categoryRepository.insertCategory(
                 CategoryEntity(
                     name = name,
                     isVeg = isVeg,
-                    createdAt = sdf.format(Date())
+                    createdAt = System.currentTimeMillis()
                 )
             )
         }
@@ -209,7 +208,6 @@ class MenuViewModel @Inject constructor(
 
     fun addItem(categoryId: Int, name: String, price: Double, foodType: String, stock: Double = 0.0, threshold: Double = 10.0) {
         viewModelScope.launch {
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             menuRepository.insertItem(
                 MenuItemEntity(
                     categoryId = categoryId,
@@ -218,7 +216,7 @@ class MenuViewModel @Inject constructor(
                     foodType = foodType,
                     currentStock = stock,
                     lowStockThreshold = threshold,
-                    createdAt = sdf.format(Date())
+                    createdAt = System.currentTimeMillis()
                 )
             )
         }
@@ -448,7 +446,6 @@ class MenuViewModel @Inject constructor(
 
     fun saveDraftsToCategory(categoryId: Int) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
             val selectedDrafts = _ocrImportUiState.value.drafts.filter { it.isSelected }
 
             // Fetch existing items once — avoids N+1 DB queries
@@ -466,7 +463,7 @@ class MenuViewModel @Inject constructor(
                             foodType = draft.foodType,
                             currentStock = 0.0,
                             lowStockThreshold = 10.0,
-                            createdAt = sdf.format(Date())
+                            createdAt = System.currentTimeMillis()
                         )
                     )
                     addedCount++

@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.ui.screens
+package com.khanabook.lite.pos.ui.screens
 
 import android.content.Intent
 import android.net.Uri

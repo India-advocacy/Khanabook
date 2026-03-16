@@ -1,7 +1,4 @@
-﻿package com.khanabook.lite.pos.data.local.relation
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+package com.khanabook.lite.pos.data.local.relation
 
 import androidx.room.Embedded
 import androidx.room.Relation

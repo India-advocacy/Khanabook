@@ -21,6 +21,12 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
 
     // 3. Prevent the system "App has stopped" dialog if possible, or just restart
     // WARNING: Immediate restart can cause loops if crash is on startup.
+    // Filter out errors that shouldn't auto-restart (OOM, StackOverflow)
+    if (throwable is OutOfMemoryError || throwable is StackOverflowError) {
+        defaultHandler?.uncaughtException(thread, throwable)
+        return
+    }
+
     try {
       restartApp()
     } catch (e: Exception) {

@@ -22,14 +22,13 @@ class UserManagementViewModel @Inject constructor(
 
     fun addUser(name: String, phone: String, password: String) {
         viewModelScope.launch {
-            val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
             val user = UserEntity(
                 name = name,
                 email = phone, // using phone as identifier
                 passwordHash = authManager.hashPassword(password),
                 whatsappNumber = phone,
                 isActive = true,
-                createdAt = now
+                createdAt = System.currentTimeMillis()
             )
             userRepository.insertUser(user)
         }

@@ -14,7 +14,7 @@ import java.util.*
 
 class ReportGenerator(private val billRepository: BillRepository) {
 
-    suspend fun getPaymentBreakdown(from: String, to: String): Map<String, Double> {
+    suspend fun getPaymentBreakdown(from: Long, to: Long): Map<String, Double> {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
         val breakdown = mutableMapOf<String, Double>()
         
@@ -46,7 +46,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
         return breakdown
     }
 
-    suspend fun getOrderLevelRows(from: String, to: String): List<OrderLevelRow> {
+    suspend fun getOrderLevelRows(from: Long, to: Long): List<OrderLevelRow> {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
         return bills.filter { OrderStatus.fromDbValue(it.orderStatus) == OrderStatus.COMPLETED }
             .map { bill ->
@@ -64,7 +64,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
         return billRepository.getBillWithItemsById(billId)
     }
 
-    suspend fun getOrderDetailsTable(from: String, to: String): List<OrderDetailRow> {
+    suspend fun getOrderDetailsTable(from: Long, to: Long): List<OrderDetailRow> {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
         return bills.map { bill ->
             OrderDetailRow(
@@ -148,10 +148,8 @@ class ReportGenerator(private val billRepository: BillRepository) {
         )
     }
 
-    suspend fun getTopSellingItems(from: String, to: String, limit: Int): List<TopSellingItem> {
-        val startMillis = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(from)
-        val endMillis = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(to)
-        return billRepository.getTopSellingItemsInRange(startMillis, endMillis, limit)
+    suspend fun getTopSellingItems(from: Long, to: Long, limit: Int): List<TopSellingItem> {
+        return billRepository.getTopSellingItemsInRange(from, to, limit)
     }
 }
 

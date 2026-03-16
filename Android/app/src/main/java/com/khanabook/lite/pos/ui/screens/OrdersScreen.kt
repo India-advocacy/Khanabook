@@ -346,7 +346,7 @@ fun OrderTableRow(
             }
         }
 
-        TableCell(formatDisplayDate(row.salesDate), 1.5f, fontSize = 9.sp)
+        TableCell(com.khanabook.lite.pos.domain.util.DateUtils.formatDisplayDate(row.salesDate), 1.5f, fontSize = 9.sp)
     }
 }
 
@@ -379,22 +379,11 @@ private fun getPayModeColor(mode: PaymentMode): Color {
     }
 }
 
-private fun formatDisplayDate(dateStr: String): String {
-    if (dateStr.contains(",")) return dateStr
-    return try {
-        val inputFmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-        val outputFmt = SimpleDateFormat("MMMM\ndd, yyyy,\nHH:mm a", Locale.getDefault())
-        val date = inputFmt.parse(dateStr)
-        if (date != null) outputFmt.format(date) else dateStr
-    } catch (e: Exception) {
-        dateStr
-    }
-}
+// Remote formatDisplayDate in favor of Utils.formatDisplayDate
 
 
-private fun periodRange(tab: Int): Pair<String, String> {
+private fun periodRange(tab: Int): Pair<Long, Long> {
     val cal = Calendar.getInstance()
-    val fmt = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
     
     val start: Calendar = when (tab) {
         0 -> { // Daily
@@ -402,6 +391,7 @@ private fun periodRange(tab: Int): Pair<String, String> {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0) 
+                set(Calendar.MILLISECOND, 0)
             }
         }
         1 -> { // Weekly
@@ -410,6 +400,7 @@ private fun periodRange(tab: Int): Pair<String, String> {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0) 
+                set(Calendar.MILLISECOND, 0)
             }
         }
         2 -> { // Monthly
@@ -418,6 +409,7 @@ private fun periodRange(tab: Int): Pair<String, String> {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0) 
+                set(Calendar.MILLISECOND, 0)
             }
         }
         else -> cal
@@ -427,9 +419,10 @@ private fun periodRange(tab: Int): Pair<String, String> {
         set(Calendar.HOUR_OF_DAY, 23)
         set(Calendar.MINUTE, 59)
         set(Calendar.SECOND, 59) 
+        set(Calendar.MILLISECOND, 999)
     }
     
-    return fmt.format(start.time) to fmt.format(end.time)
+    return start.timeInMillis to end.timeInMillis
 }
 
 

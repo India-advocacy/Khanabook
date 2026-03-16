@@ -94,8 +94,13 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         prefs.edit().putString("auth_token", token).apply()
     }
 
-    fun getDeviceId(): String? {
-        return prefs.getString("device_id", "default_device")
+    fun getDeviceId(): String {
+        var deviceId = prefs.getString("device_id", null)
+        if (deviceId == null) {
+            deviceId = java.util.UUID.randomUUID().toString()
+            saveDeviceId(deviceId)
+        }
+        return deviceId
     }
 
     fun saveDeviceId(deviceId: String) {

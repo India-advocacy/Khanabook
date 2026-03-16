@@ -34,7 +34,7 @@ public class AuthServiceImpl implements AuthService {
     @jakarta.annotation.PostConstruct
     public void validateConfig() {
         if (googleClientId == null || googleClientId.isBlank()) {
-            throw new IllegalStateException("google.client.id must be configured via GOOGLE_CLIENT_ID environment variable");
+            log.warn("google.client.id is not configured. Google Login will fail at runtime. Ensure GOOGLE_CLIENT_ID is set in production.");
         }
     }
 
@@ -156,7 +156,7 @@ public class AuthServiceImpl implements AuthService {
                     User user = new User();
                     user.setName(name != null ? name : "Google User");
                     user.setEmail(email);
-                    user.setWhatsappNumber(email);
+                    user.setWhatsappNumber(""); // Fix: Setting email into whatsappNumber field is a type/logic error
                     user.setPasswordHash("GOOGLE_AUTH"); // Indicate Google auth
                     user.setRestaurantId(newRestaurantId);
                     user.setDeviceId(request.getDeviceId());

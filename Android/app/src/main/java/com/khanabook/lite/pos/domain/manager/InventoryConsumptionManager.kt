@@ -18,32 +18,34 @@ class InventoryConsumptionManager @Inject constructor(
     suspend fun consumeMaterialsForBill(items: List<BillItemEntity>) {
         for (item in items) {
             val delta = -item.quantity.toDouble()
-            
-            if (item.variantId != null) {
+            val variantId = item.variantId
+            val menuItemId = item.menuItemId
+
+            if (variantId != null) {
                 // Deduct from variant
-                menuRepository.updateVariantStock(item.variantId, delta)
-                
+                menuRepository.updateVariantStock(variantId, delta)
+
                 // Log the stock change
                 inventoryRepository.insertStockLog(
                     StockLogEntity(
-                        menuItemId = item.menuItemId ?: 0,
-                        variantId = item.variantId,
+                        menuItemId = menuItemId ?: 0,
+                        variantId = variantId,
                         delta = delta,
                         reason = "Sale (Bill #${item.billId})",
                         createdAt = System.currentTimeMillis()
                     )
                 )
-            } else if (item.menuItemId != null) {
+            } else if (menuItemId != null) {
                 // Deduct from base item
-                menuRepository.updateStock(item.menuItemId, delta)
-                
+                menuRepository.updateStock(menuItemId, delta)
+
                 // Log the stock change
                 inventoryRepository.insertStockLog(
                     StockLogEntity(
-                        menuItemId = item.menuItemId,
+                        menuItemId = menuItemId,
                         delta = delta,
                         reason = "Sale (Bill #${item.billId})",
-                        createdAt = System.currentTimeMillis().toString()
+                        createdAt = System.currentTimeMillis()
                     )
                 )
             }

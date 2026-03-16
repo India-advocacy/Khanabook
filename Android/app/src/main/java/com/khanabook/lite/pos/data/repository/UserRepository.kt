@@ -49,7 +49,7 @@ class UserRepository(
                     deviceId = deviceId,
                     isActive = true,
                     isSynced = true,
-                    createdAt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                    createdAt = System.currentTimeMillis()
                 )
                 userDao.insertUser(localUser)
             } else {
@@ -92,7 +92,7 @@ class UserRepository(
                     deviceId = deviceId,
                     isActive = true,
                     isSynced = true,
-                    createdAt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                    createdAt = System.currentTimeMillis()
                 )
                 userDao.insertUser(localUser)
             } else {
@@ -136,7 +136,7 @@ class UserRepository(
                     deviceId = deviceId,
                     isActive = true,
                     isSynced = true,
-                    createdAt = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+                    createdAt = System.currentTimeMillis()
                 )
                 userDao.insertUser(localUser)
             } else {

@@ -74,7 +74,6 @@ object DatabaseModule {
                                 )
                                 .openHelperFactory(factory)
                                 .addMigrations(AppDatabase.MIGRATION_17_18, AppDatabase.MIGRATION_18_19)
-                                .fallbackToDestructiveMigration()
 
                 return builder.build()
         }
@@ -138,10 +137,11 @@ object DatabaseModule {
         @Singleton
         fun provideBillRepository(
                 billDao: BillDao,
+                restaurantDao: RestaurantDao,
                 inventoryConsumptionManager:
                         com.khanabook.lite.pos.domain.manager.InventoryConsumptionManager,
                 workManager: androidx.work.WorkManager
-        ) = BillRepository(billDao, inventoryConsumptionManager, workManager)
+        ) = BillRepository(billDao, restaurantDao, inventoryConsumptionManager, workManager)
 
         @Provides
         @Singleton

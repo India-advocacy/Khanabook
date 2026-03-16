@@ -154,8 +154,7 @@ class SettingsViewModel @Inject constructor(
 
     fun addCategory(name: String) {
         viewModelScope.launch {
-            val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-            categoryRepository.insertCategory(CategoryEntity(name = name, isVeg = true, createdAt = now))
+            categoryRepository.insertCategory(CategoryEntity(name = name, isVeg = true, createdAt = System.currentTimeMillis()))
         }
     }
 
@@ -167,14 +166,13 @@ class SettingsViewModel @Inject constructor(
 
     fun addItem(categoryId: Int, name: String, price: Double, type: String, stock: Double) {
         viewModelScope.launch {
-            val now = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
             menuRepository.insertItem(MenuItemEntity(
                 categoryId = categoryId,
                 name = name,
                 basePrice = price,
                 foodType = type,
                 currentStock = stock,
-                createdAt = now
+                createdAt = System.currentTimeMillis()
             ))
         }
     }
