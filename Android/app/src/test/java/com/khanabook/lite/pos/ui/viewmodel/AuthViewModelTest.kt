@@ -129,6 +129,8 @@ class AuthViewModelTest {
         assertTrue("Expected login to fail", result is AuthViewModel.LoginResult.Error)
 
         val errorResult = result as AuthViewModel.LoginResult.Error
-        assertEquals("Incorrect password. Please try again.", errorResult.message)
+        assertEquals(AuthViewModel.LoginErrorCode.INCORRECT_PASSWORD, errorResult.code)
+        assertTrue(errorResult.message.startsWith("Incorrect password."))
+        assertTrue(errorResult.message.contains("attempt(s) remaining"))
     }
 }

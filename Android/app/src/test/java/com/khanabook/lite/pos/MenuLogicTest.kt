@@ -54,12 +54,34 @@ class MenuLogicTest {
             """.trimIndent()
         )
 
-        assertEquals(3, drafts.size)
-        assertEquals("Menu", drafts[0].name)
-        assertEquals(0.0, drafts[0].price, 0.001)
-        assertEquals("Veg Pulao", drafts[1].name)
-        assertEquals(140.0, drafts[1].price, 0.001)
-        assertEquals("Today's Special Soup", drafts[2].name)
-        assertEquals(0.0, drafts[2].price, 0.001)
+        assertEquals(2, drafts.size)
+        assertEquals("Veg Pulao", drafts[0].name)
+        assertEquals(140.0, drafts[0].price, 0.001)
+        assertEquals("Today's Special Soup", drafts[1].name)
+        assertEquals(0.0, drafts[1].price, 0.001)
+    }
+
+    @Test
+    fun testMenuImportParserHandlesBulletsAndCurrencySymbols() {
+        val drafts = MenuViewModel.parseDraftsFromText(
+            """
+            MENU
+            - ₹125 Tandoori Roti
+            * Rs. 99 Butter Naan
+            Paneer Lacha ₹152.50
+            PAGE 2
+            45 Masala Chai
+            """.trimIndent()
+        )
+
+        assertEquals(4, drafts.size)
+        assertEquals("Tandoori Roti", drafts[0].name)
+        assertEquals(125.0, drafts[0].price, 0.001)
+        assertEquals("Butter Naan", drafts[1].name)
+        assertEquals(99.0, drafts[1].price, 0.001)
+        assertEquals("Paneer Lacha", drafts[2].name)
+        assertEquals(152.5, drafts[2].price, 0.001)
+        assertEquals("Masala Chai", drafts[3].name)
+        assertEquals(45.0, drafts[3].price, 0.001)
     }
 }

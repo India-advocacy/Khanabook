@@ -57,6 +57,9 @@ constructor(
     private val _loginStatus = MutableStateFlow<LoginResult?>(null)
     val loginStatus: StateFlow<LoginResult?> = _loginStatus
 
+    private fun loginError(message: String, code: LoginErrorCode) =
+        LoginResult.Error(message, code)
+
     private val _signUpStatus = MutableStateFlow<SignUpResult?>(null)
     val signUpStatus: StateFlow<SignUpResult?> = _signUpStatus
 
@@ -80,8 +83,9 @@ constructor(
         if (now < lockoutUntilMs) {
             val remainingSeconds = (lockoutUntilMs - now) / 1000
             _loginStatus.value =
-                    LoginResult.Error(
-                            "Too many failed attempts. Try again in $remainingSeconds seconds."
+                    loginError(
+                            "Too many failed attempts. Try again in $remainingSeconds seconds.",
+                            LoginErrorCode.LOCKED_OUT
                     )
             return
         }
@@ -141,25 +145,32 @@ constructor(
                             userRepository.setCurrentUser(user)
                             _loginStatus.value = LoginResult.Success(user)
                         } else {
-                            _loginStatus.value = LoginResult.Error("Account is inactive")
+                            _loginStatus.value =
+                                    loginError("Account is inactive", LoginErrorCode.ACCOUNT_INACTIVE)
                         }
                     } else {
                         failedLoginAttempts++
                         if (failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
                             lockoutUntilMs = System.currentTimeMillis() + 5 * 60 * 1000L
-                            _loginStatus.value = LoginResult.Error("Too many failed attempts. Locked for 5 minutes.")
+                            _loginStatus.value = loginError("Too many failed attempts. Locked for 5 minutes.", LoginErrorCode.LOCKED_OUT)
                         } else {
                             val remaining = MAX_FAILED_ATTEMPTS - failedLoginAttempts
-                            _loginStatus.value = LoginResult.Error("Incorrect password. $remaining attempt(s) remaining.")
+                            _loginStatus.value = loginError(
+                                "Incorrect password. $remaining attempt(s) remaining.",
+                                LoginErrorCode.INCORRECT_PASSWORD
+                            )
                         }
                     }
                 } else {
                     failedLoginAttempts++
                     if (failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
                         lockoutUntilMs = System.currentTimeMillis() + 5 * 60 * 1000L
-                        _loginStatus.value = LoginResult.Error("Too many failed attempts. Locked for 5 minutes.")
+                        _loginStatus.value = loginError("Too many failed attempts. Locked for 5 minutes.", LoginErrorCode.LOCKED_OUT)
                     } else {
-                        _loginStatus.value = LoginResult.Error("No account found with this number or server is offline.")
+                        _loginStatus.value = loginError(
+                            "No account found with this number or server is offline.",
+                            LoginErrorCode.ACCOUNT_NOT_FOUND
+                        )
                     }
                 }
             }
@@ -379,7 +390,11 @@ constructor(
     fun loginWithGoogle(context: Context) {
         val activity = context.findActivity()
         if (activity == null) {
-            _loginStatus.value = LoginResult.Error("Google Sign-In: activity context not found")
+            _loginStatus.value =
+                    loginError(
+                            "Google Sign-In: activity context not found",
+                            LoginErrorCode.GOOGLE_CONTEXT_MISSING
+                    )
             return
         }
 
@@ -457,18 +472,30 @@ constructor(
                         _loginStatus.value = LoginResult.Success(user)
                     }.onFailure { e ->
                         Log.e(TAG, "Remote Google login failed", e)
-                        _loginStatus.value = LoginResult.Error("Google sync failed: ${e.message}")
+                        _loginStatus.value = loginError(
+                            "Google sync failed: ${e.message}",
+                            LoginErrorCode.GOOGLE_SYNC_FAILED
+                        )
                     }
                 } else {
                     _loginStatus.value =
-                            LoginResult.Error("Google Sign-In: unexpected credential type")
+                            loginError(
+                                    "Google Sign-In: unexpected credential type",
+                                    LoginErrorCode.GOOGLE_UNEXPECTED_CREDENTIAL
+                            )
                 }
             } catch (e: GetCredentialException) {
                 Log.w(TAG, "Google Sign-In cancelled or unavailable", e)
-                _loginStatus.value = LoginResult.Error("Google Sign-In cancelled. Try again.")
+                _loginStatus.value = loginError(
+                        "Google Sign-In cancelled. Try again.",
+                        LoginErrorCode.GOOGLE_CANCELLED
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Google Sign-In failed", e)
-                _loginStatus.value = LoginResult.Error("Google Sign-In failed. Please try again.")
+                _loginStatus.value = loginError(
+                        "Google Sign-In failed. Please try again.",
+                        LoginErrorCode.GOOGLE_FAILED
+                )
             }
         }
     }
@@ -489,7 +516,19 @@ constructor(
 
     sealed class LoginResult {
         data class Success(val user: UserEntity) : LoginResult()
-        data class Error(val message: String) : LoginResult()
+        data class Error(val message: String, val code: LoginErrorCode) : LoginResult()
+    }
+
+    enum class LoginErrorCode {
+        LOCKED_OUT,
+        INCORRECT_PASSWORD,
+        ACCOUNT_INACTIVE,
+        ACCOUNT_NOT_FOUND,
+        GOOGLE_CONTEXT_MISSING,
+        GOOGLE_SYNC_FAILED,
+        GOOGLE_UNEXPECTED_CREDENTIAL,
+        GOOGLE_CANCELLED,
+        GOOGLE_FAILED
     }
 
     sealed class SignUpResult {
