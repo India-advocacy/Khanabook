@@ -34,7 +34,7 @@ public class AuthServiceImpl implements AuthService {
     @jakarta.annotation.PostConstruct
     public void validateConfig() {
         if (googleClientId == null || googleClientId.isBlank()) {
-            log.warn("google.client.id is not configured. Google Login will fail at runtime. Ensure GOOGLE_CLIENT_ID is set in production.");
+            throw new IllegalStateException("google.client.id is not configured. Google Login will fail. Ensure GOOGLE_CLIENT_ID is set.");
         }
     }
 

@@ -22,15 +22,15 @@ data class ItemVariantEntity(
     val menuItemId: Int,
     @ColumnInfo(name = "variant_name")
     val variantName: String, // e.g. "Half", "Full", "Party Pack"
-    val price: Double,
+    val price: String,
     @ColumnInfo(name = "is_available", defaultValue = "1")
     val isAvailable: Boolean = true,
     @ColumnInfo(name = "sort_order", defaultValue = "0")
     val sortOrder: Int = 0,
-    @ColumnInfo(name = "current_stock", defaultValue = "0.0")
-    val currentStock: Double = 0.0,
-    @ColumnInfo(name = "low_stock_threshold", defaultValue = "10.0")
-    val lowStockThreshold: Double = 10.0,
+    @ColumnInfo(name = "current_stock", defaultValue = "'0.0'")
+    val currentStock: String = "0.0",
+    @ColumnInfo(name = "low_stock_threshold", defaultValue = "'10.0'")
+    val lowStockThreshold: String = "10.0",
 
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",

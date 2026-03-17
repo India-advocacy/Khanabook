@@ -2,6 +2,10 @@ package com.khanabook.lite.pos.domain.manager
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
@@ -22,6 +26,18 @@ private const val SESSION_CHECK_INTERVAL_MS = 60_000L // check every 60 seconds
 
 @Singleton
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
+    private val masterKey = MasterKey.Builder(context)
+        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+        .build()
+
+    private val securePrefs: SharedPreferences = EncryptedSharedPreferences.create(
+        context,
+        "secure_session_prefs",
+        masterKey,
+        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+    )
+
     private val prefs: SharedPreferences =
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
@@ -87,20 +103,22 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
 
     // --- NEW CLOUD SYNC METADATA ---
     fun getAuthToken(): String? {
-        return prefs.getString("auth_token", null)
+        return securePrefs.getString("auth_token", null)
     }
 
     fun saveAuthToken(token: String) {
-        prefs.edit().putString("auth_token", token).apply()
+        securePrefs.edit().putString("auth_token", token).apply()
     }
 
     fun getDeviceId(): String {
-        var deviceId = prefs.getString("device_id", null)
-        if (deviceId == null) {
-            deviceId = java.util.UUID.randomUUID().toString()
-            saveDeviceId(deviceId)
+        synchronized(this) {
+            var deviceId = prefs.getString("device_id", null)
+            if (deviceId == null) {
+                deviceId = java.util.UUID.randomUUID().toString()
+                saveDeviceId(deviceId)
+            }
+            return deviceId!!
         }
-        return deviceId
     }
 
     fun saveDeviceId(deviceId: String) {

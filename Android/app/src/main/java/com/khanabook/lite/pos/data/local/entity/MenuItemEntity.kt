@@ -25,16 +25,16 @@ data class MenuItemEntity(
     val categoryId: Int,
     val name: String,
     @ColumnInfo(name = "base_price")
-    val basePrice: Double, // used only if no variants
+    val basePrice: String, // used only if no variants
     @ColumnInfo(name = "food_type", defaultValue = "veg")
     val foodType: String = "veg",
     val description: String? = null,
     @ColumnInfo(name = "is_available", defaultValue = "1")
     val isAvailable: Boolean = true,
-    @ColumnInfo(name = "current_stock", defaultValue = "0.0")
-    val currentStock: Double = 0.0,
-    @ColumnInfo(name = "low_stock_threshold", defaultValue = "10.0")
-    val lowStockThreshold: Double = 10.0,
+    @ColumnInfo(name = "current_stock", defaultValue = "'0.0'")
+    val currentStock: String = "0.0",
+    @ColumnInfo(name = "low_stock_threshold", defaultValue = "'10.0'")
+    val lowStockThreshold: String = "10.0",
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "barcode", defaultValue = "NULL")

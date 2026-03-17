@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.domain.manager
+package com.khanabook.lite.pos.domain.manager
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -9,22 +9,22 @@ import java.math.RoundingMode
 object BillCalculator {
 
     data class GstBreakdown(
-        val cgst: Double,
-        val sgst: Double,
-        val totalGst: Double
+        val cgst: String,
+        val sgst: String,
+        val totalGst: String
     )
 
-    fun calculateSubtotal(items: List<Pair<Double, Int>>): Double {
+    fun calculateSubtotal(items: List<Pair<String, Int>>): String {
         var subtotal = BigDecimal.ZERO
         items.forEach { (price, qty) ->
-            val itemTotal = BigDecimal.valueOf(price).multiply(BigDecimal.valueOf(qty.toLong()))
+            val itemTotal = BigDecimal(price).multiply(BigDecimal.valueOf(qty.toLong()))
             subtotal = subtotal.add(itemTotal)
         }
-        return subtotal.setScale(2, RoundingMode.HALF_UP).toDouble()
+        return subtotal.setScale(2, RoundingMode.HALF_UP).toString()
     }
 
-    fun calculateGST(subtotal: Double, gstPct: Double, isInclusive: Boolean = false): GstBreakdown {
-        val bdSubtotal = BigDecimal.valueOf(subtotal)
+    fun calculateGST(subtotal: String, gstPct: Double, isInclusive: Boolean = false): GstBreakdown {
+        val bdSubtotal = BigDecimal(subtotal)
         val bdGstPct = BigDecimal.valueOf(gstPct)
         val bd100 = BigDecimal.valueOf(100)
         
@@ -41,44 +41,47 @@ object BillCalculator {
         val cgst = totalGst.divide(BigDecimal.valueOf(2), 2, RoundingMode.HALF_UP)
         val sgst = totalGst.subtract(cgst)
         
-        return GstBreakdown(cgst.toDouble(), sgst.toDouble(), totalGst.toDouble())
+        return GstBreakdown(cgst.toString(), sgst.toString(), totalGst.toString())
     }
 
-    fun calculateCustomTax(subtotal: Double, taxPct: Double): Double {
-        val bdSubtotal = BigDecimal.valueOf(subtotal)
+    fun calculateCustomTax(subtotal: String, taxPct: Double): String {
+        val bdSubtotal = BigDecimal(subtotal)
         val bdTaxPct = BigDecimal.valueOf(taxPct)
         
         return bdSubtotal.multiply(bdTaxPct)
             .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)
-            .toDouble()
+            .toString()
     }
 
     fun calculateTotal(
-        subtotal: Double,
-        cgst: Double,
-        sgst: Double,
-        customTax: Double,
+        subtotal: String,
+        cgst: String,
+        sgst: String,
+        customTax: String,
         isInclusive: Boolean = false
-    ): Double {
+    ): String {
         return if (isInclusive) {
             // Total is already equal to subtotal in inclusive mode
-            BigDecimal.valueOf(subtotal).setScale(2, RoundingMode.HALF_UP).toDouble()
+            BigDecimal(subtotal).setScale(2, RoundingMode.HALF_UP).toString()
         } else {
-            val total = BigDecimal.valueOf(subtotal)
-                .add(BigDecimal.valueOf(cgst))
-                .add(BigDecimal.valueOf(sgst))
-                .add(BigDecimal.valueOf(customTax))
-            total.setScale(2, RoundingMode.HALF_UP).toDouble()
+            val total = BigDecimal(subtotal)
+                .add(BigDecimal(cgst))
+                .add(BigDecimal(sgst))
+                .add(BigDecimal(customTax))
+            total.setScale(2, RoundingMode.HALF_UP).toString()
         }
     }
 
-    fun validatePartPayment(a1: Double, a2: Double, total: Double): Boolean {
-        val sum = BigDecimal.valueOf(a1).add(BigDecimal.valueOf(a2))
+    fun validatePartPayment(a1: String, a2: String, total: String): Boolean {
+        val sum = BigDecimal(a1).add(BigDecimal(a2))
             .setScale(2, RoundingMode.HALF_UP)
-        val bdTotal = BigDecimal.valueOf(total).setScale(2, RoundingMode.HALF_UP)
+        val bdTotal = BigDecimal(total).setScale(2, RoundingMode.HALF_UP)
         
         return sum.compareTo(bdTotal) == 0
     }
+
+    // Helper for legacy Double support if needed during migration
+    fun toFixedString(value: Double): String {
+        return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).toString()
+    }
 }
-
-

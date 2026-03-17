@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos
+package com.khanabook.lite.pos
 
 import android.app.Application
 import android.util.Log
@@ -29,11 +29,9 @@ class KhanaBookApplication : Application(), Configuration.Provider {
         // Initialize Global Crash Handler
         com.khanabook.lite.pos.domain.util.GlobalCrashHandler.initialize(this)
 
-        // Ensure unique device ID for sync logic
+        // Ensure unique device ID for sync logic (Atomic initialization in SessionManager)
         val sessionManager = dagger.hilt.android.EntryPointAccessors.fromApplication(this, com.khanabook.lite.pos.di.SessionManagerEntryPoint::class.java).sessionManager()
-        if (sessionManager.getDeviceId() == "default_device") {
-            sessionManager.saveDeviceId(java.util.UUID.randomUUID().toString())
-        }
+        sessionManager.getDeviceId()
 
         // Schedule Periodic Sync
         com.khanabook.lite.pos.worker.MasterSyncWorker.schedule(this)

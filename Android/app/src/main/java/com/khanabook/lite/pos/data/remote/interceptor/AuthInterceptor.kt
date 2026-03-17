@@ -18,8 +18,9 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
 
     // 2. Skip adding the token for auth endpoints or external APIs like Meta/Facebook
     val isExternalApi = request.url.host.contains("facebook.com") || request.url.host.contains("google")
+    val isAuthPath = path.endsWith("/auth/login") || path.endsWith("/auth/signup") || path.endsWith("/auth/google-login") || path.endsWith("/auth/check-user") || path.endsWith("/auth/reset-password")
     
-    if (!(path.contains("/auth") || path.contains("login") || isExternalApi)) {
+    if (!(isAuthPath || isExternalApi)) {
         // 3. Fetch token blocking synchronously (interceptors run on background threads)
         val token = sessionManager.getAuthToken()
 

@@ -29,7 +29,7 @@ class UserRepository(
 
     suspend fun remoteLogin(phoneNumber: String, passwordPlain: String, localPasswordHash: String): Result<UserEntity> {
         return try {
-            val deviceId = sessionManager.getDeviceId() ?: "unknown_device"
+            val deviceId = sessionManager.getDeviceId()
             val request = com.khanabook.lite.pos.data.remote.api.LoginRequest(phoneNumber, passwordPlain, deviceId)
             
             val response = api.login(request)
@@ -72,7 +72,7 @@ class UserRepository(
 
     suspend fun remoteSignup(name: String, phoneNumber: String, passwordPlain: String, localPasswordHash: String): Result<UserEntity> {
         return try {
-            val deviceId = sessionManager.getDeviceId() ?: "unknown_device"
+            val deviceId = sessionManager.getDeviceId()
             val request = com.khanabook.lite.pos.data.remote.api.SignupRequest(phoneNumber, name, passwordPlain, deviceId)
             
             val response = api.signup(request)
@@ -115,7 +115,7 @@ class UserRepository(
 
     suspend fun remoteGoogleLogin(idToken: String): Result<UserEntity> {
         return try {
-            val deviceId = sessionManager.getDeviceId() ?: "unknown_device"
+            val deviceId = sessionManager.getDeviceId()
             val request = com.khanabook.lite.pos.data.remote.api.GoogleLoginRequest(idToken, deviceId)
             val response = api.loginWithGoogle(request)
             val loginId =
@@ -179,7 +179,7 @@ class UserRepository(
         val enriched =
                 user.copy(
                         restaurantId = sessionManager.getRestaurantId(),
-                        deviceId = sessionManager.getDeviceId() ?: "default_device",
+                        deviceId = sessionManager.getDeviceId(),
                         isSynced = false,
                         updatedAt = System.currentTimeMillis()
                 )

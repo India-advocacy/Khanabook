@@ -79,6 +79,13 @@ class BillRepository(
 
     suspend fun updateOrderStatus(id: Int, status: String) {
         val current = billDao.getBillById(id) ?: return
+        
+        // Guard: If already completed/paid, do not deduct stock again
+        val wasDeducted = current.orderStatus.equals("completed", ignoreCase = true) || 
+                          current.orderStatus.equals("paid", ignoreCase = true)
+        val isBecomingDeducted = status.equals("completed", ignoreCase = true) || 
+                                 status.equals("paid", ignoreCase = true)
+
         billDao.updateBill(
             current.copy(
                 orderStatus = status,
@@ -86,9 +93,9 @@ class BillRepository(
                 updatedAt = System.currentTimeMillis()
             )
         )
-        if (status.equals("completed", ignoreCase = true) ||
-                        status.equals("paid", ignoreCase = true)
-        ) {
+
+        // Only deduct if transitioning from non-deducted to deducted
+        if (isBecomingDeducted && !wasDeducted) {
             val billWithItems = billDao.getBillWithItemsById(id)
             billWithItems?.let { inventoryConsumptionManager?.consumeMaterialsForBill(it.items) }
         }

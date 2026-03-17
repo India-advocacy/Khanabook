@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.data.local.entity
+package com.khanabook.lite.pos.data.local.entity
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -46,10 +46,10 @@ data class BillItemEntity(
     val variantId: Int? = null,
     @ColumnInfo(name = "variant_name")
     val variantName: String? = null, // snapshot
-    val price: Double, // snapshot
+    val price: String, // snapshot
     val quantity: Int,
     @ColumnInfo(name = "item_total")
-    val itemTotal: Double, // price * qty
+    val itemTotal: String, // price * qty
     @ColumnInfo(name = "special_instruction")
     val specialInstruction: String? = null,
 

@@ -31,18 +31,18 @@ data class BillEntity(
         val orderType: String = "order", // 'order'
         @ColumnInfo(name = "customer_name") val customerName: String? = null,
         @ColumnInfo(name = "customer_whatsapp") val customerWhatsapp: String? = null,
-        val subtotal: Double,
-        @ColumnInfo(name = "gst_percentage", defaultValue = "0.0") val gstPercentage: Double = 0.0,
-        @ColumnInfo(name = "cgst_amount", defaultValue = "0.0") val cgstAmount: Double = 0.0,
-        @ColumnInfo(name = "sgst_amount", defaultValue = "0.0") val sgstAmount: Double = 0.0,
-        @ColumnInfo(name = "custom_tax_amount", defaultValue = "0.0")
-        val customTaxAmount: Double = 0.0,
-        @ColumnInfo(name = "total_amount") val totalAmount: Double,
+        val subtotal: String,
+        @ColumnInfo(name = "gst_percentage", defaultValue = "'0.0'") val gstPercentage: String = "0.0",
+        @ColumnInfo(name = "cgst_amount", defaultValue = "'0.0'") val cgstAmount: String = "0.0",
+        @ColumnInfo(name = "sgst_amount", defaultValue = "'0.0'") val sgstAmount: String = "0.0",
+        @ColumnInfo(name = "custom_tax_amount", defaultValue = "'0.0'")
+        val customTaxAmount: String = "0.0",
+        @ColumnInfo(name = "total_amount") val totalAmount: String,
         @ColumnInfo(name = "payment_mode")
         val paymentMode:
                 String, // cash | upi | pos | zomato | swiggy | own_website | part_cash_upi | ...
-        @ColumnInfo(name = "part_amount_1", defaultValue = "0.0") val partAmount1: Double = 0.0,
-        @ColumnInfo(name = "part_amount_2", defaultValue = "0.0") val partAmount2: Double = 0.0,
+        @ColumnInfo(name = "part_amount_1", defaultValue = "'0.0'") val partAmount1: String = "0.0",
+        @ColumnInfo(name = "part_amount_2", defaultValue = "'0.0'") val partAmount2: String = "0.0",
         @ColumnInfo(name = "payment_status") val paymentStatus: String, // 'success' | 'failed'
         @ColumnInfo(name = "order_status")
         val orderStatus: String, // 'draft' | 'completed' | 'cancelled'

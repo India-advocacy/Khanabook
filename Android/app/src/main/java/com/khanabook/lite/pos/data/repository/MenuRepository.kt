@@ -24,7 +24,7 @@ class MenuRepository(
         val enriched =
                 item.copy(
                         restaurantId = sessionManager.getRestaurantId(),
-                        deviceId = sessionManager.getDeviceId() ?: "default_device",
+                        deviceId = sessionManager.getDeviceId(),
                         isSynced = false,
                         updatedAt = System.currentTimeMillis()
                 )
@@ -63,9 +63,10 @@ class MenuRepository(
         return menuDao.getAllVariantsOnce()
     }
 
-    suspend fun updateStock(id: Int, delta: Double) {
+    suspend fun updateStock(id: Int, delta: String) {
         val current = menuDao.getItemById(id) ?: return
-        updateItem(current.copy(currentStock = current.currentStock + delta))
+        val newStock = java.math.BigDecimal(current.currentStock).add(java.math.BigDecimal(delta)).toString()
+        updateItem(current.copy(currentStock = newStock))
     }
 
     fun getItemsByCategoryFlow(categoryId: Int): Flow<List<MenuItemEntity>> {
@@ -101,7 +102,7 @@ class MenuRepository(
         val enriched =
                 variant.copy(
                         restaurantId = sessionManager.getRestaurantId(),
-                        deviceId = sessionManager.getDeviceId() ?: "default_device",
+                        deviceId = sessionManager.getDeviceId(),
                         isSynced = false,
                         updatedAt = System.currentTimeMillis()
                 )
@@ -116,9 +117,10 @@ class MenuRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun updateVariantStock(id: Int, delta: Double) {
+    suspend fun updateVariantStock(id: Int, delta: String) {
         val current = menuDao.getVariantById(id) ?: return
-        updateVariant(current.copy(currentStock = current.currentStock + delta))
+        val newStock = java.math.BigDecimal(current.currentStock).add(java.math.BigDecimal(delta)).toString()
+        updateVariant(current.copy(currentStock = newStock))
     }
 
     suspend fun deleteVariant(variant: ItemVariantEntity) {

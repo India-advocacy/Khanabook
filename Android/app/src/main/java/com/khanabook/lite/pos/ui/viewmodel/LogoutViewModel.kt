@@ -38,21 +38,25 @@ class LogoutViewModel @Inject constructor(
             _logoutState.value = LogoutState.AttemptingPush
 
             try {
-                // To safely get count without Flow, we can use appDatabase directly or if billRepository has a suspend fun.
-                val unsyncedCount = appDatabase.billDao().getUnsyncedBills().size
-                if (unsyncedCount > 0) {
-                    val success = syncManager.pushUnsyncedDataImmediately()
-                    if (success) {
+                val initialCount = appDatabase.billDao().getUnsyncedCountOnce()
+                if (initialCount > 0) {
+                    syncManager.pushUnsyncedDataImmediately()
+                    val remainingCount = appDatabase.billDao().getUnsyncedCountOnce()
+                    if (remainingCount == 0) {
                         performHardLogout()
                     } else {
-                        _logoutState.value = LogoutState.WarningOfflineData(unsyncedCount)
+                        _logoutState.value = LogoutState.WarningOfflineData(remainingCount)
                     }
                 } else {
                     performHardLogout()
                 }
             } catch (e: Exception) {
-                // DB error?
-                performHardLogout()
+                val remainingCount = appDatabase.billDao().getUnsyncedCountOnce()
+                if (remainingCount > 0) {
+                    _logoutState.value = LogoutState.WarningOfflineData(remainingCount)
+                } else {
+                    performHardLogout()
+                }
             }
         }
     }

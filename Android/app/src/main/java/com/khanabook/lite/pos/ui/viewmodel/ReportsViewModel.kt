@@ -24,8 +24,8 @@ class ReportsViewModel @Inject constructor(
 
     private val reportGenerator = ReportGenerator(billRepository)
 
-    private val _paymentBreakdown = MutableStateFlow<Map<String, Double>>(emptyMap())
-    val paymentBreakdown: StateFlow<Map<String, Double>> = _paymentBreakdown
+    private val _paymentBreakdown = MutableStateFlow<Map<String, String>>(emptyMap())
+    val paymentBreakdown: StateFlow<Map<String, String>> = _paymentBreakdown
 
     private val _orderLevelRows = MutableStateFlow<List<OrderLevelRow>>(emptyList())
     val orderLevelRows: StateFlow<List<OrderLevelRow>> = _orderLevelRows

@@ -17,7 +17,7 @@ class InventoryConsumptionManager @Inject constructor(
      */
     suspend fun consumeMaterialsForBill(items: List<BillItemEntity>) {
         for (item in items) {
-            val delta = -item.quantity.toDouble()
+            val delta = "-${item.quantity}"
             val variantId = item.variantId
             val menuItemId = item.menuItemId
 

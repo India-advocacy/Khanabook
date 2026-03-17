@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.data.local.entity
+package com.khanabook.lite.pos.data.local.entity
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -28,7 +28,7 @@ data class BillPaymentEntity(
     val billId: Int,
     @ColumnInfo(name = "payment_mode")
     val paymentMode: String, // cash, upi, pos, zomato, swiggy
-    val amount: Double,
+    val amount: String,
 
     @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
     @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",

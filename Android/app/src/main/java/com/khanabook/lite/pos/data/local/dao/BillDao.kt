@@ -85,6 +85,9 @@ interface BillDao {
     suspend fun insertSyncedBills(bills: List<BillEntity>)
 
     @Query("SELECT COUNT(*) FROM bills WHERE is_synced = 0")
+    suspend fun getUnsyncedCountOnce(): Int
+
+    @Query("SELECT COUNT(*) FROM bills WHERE is_synced = 0")
     fun getUnsyncedCount(): Flow<Int>
 
     // --- BILL ITEMS SYNC ---
@@ -105,7 +108,7 @@ interface BillDao {
     suspend fun markBillPaymentsAsSynced(ids: List<Int>)
 
     @Query("""
-        SELECT item_name as itemName, SUM(quantity) as quantitySold, SUM(item_total) as totalRevenue
+        SELECT item_name as itemName, SUM(quantity) as quantitySold, SUM(item_total) as revenue
         FROM bill_items
         INNER JOIN bills ON bill_items.bill_id = bills.id
         WHERE bills.order_status = 'completed' AND bills.created_at BETWEEN :startMillis AND :endMillis

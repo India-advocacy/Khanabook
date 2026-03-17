@@ -16,31 +16,31 @@ data class OrderDetailRow(
     val lifetimeNo: Int,
     val billId: Int,
     val currentStatus: String,
-    val salesAmount: Double,
+    val salesAmount: String,
     val payMode: PaymentMode,
     val orderStatus: OrderStatus,
     val salesDate: Long
 )
 
 data class DailySalesReport(
-    val totalSales: Double,
+    val totalSales: String,
     val totalOrders: Int,
-    val cashCollected: Double,
-    val upiCollected: Double,
-    val otherCollected: Double
+    val cashCollected: String,
+    val upiCollected: String,
+    val otherCollected: String
 )
 
 data class MonthlySalesReport(
     val month: Int,
     val year: Int,
-    val totalSales: Double,
+    val totalSales: String,
     val totalOrders: Int
 )
 
 data class TopSellingItem(
     val itemName: String,
     val quantitySold: Int,
-    val revenue: Double
+    val revenue: String
 )
 
 

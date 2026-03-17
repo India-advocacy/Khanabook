@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.data.repository
+package com.khanabook.lite.pos.data.repository
 
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -19,7 +19,7 @@ class CategoryRepository(
 ) {
     suspend fun insertCategory(category: CategoryEntity): Long {
         val restaurantId = sessionManager.getRestaurantId()
-        val deviceId = sessionManager.getDeviceId() ?: "default_device"
+        val deviceId = sessionManager.getDeviceId()
 
         val enrichedCategory =
                 category.copy(

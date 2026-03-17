@@ -16,6 +16,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -28,6 +30,7 @@ class BillingViewModel @Inject constructor(
     private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
     val printerManager: com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
 ) : ViewModel() {
+    private val orderMutex = Mutex()
 
     private val _cartItems = MutableStateFlow<List<CartItem>>(emptyList())
     val cartItems: StateFlow<List<CartItem>> = _cartItems
@@ -49,8 +52,8 @@ class BillingViewModel @Inject constructor(
     private val _paymentMode = MutableStateFlow(PaymentMode.UPI)
     val paymentMode: StateFlow<PaymentMode> = _paymentMode
 
-    private val _partAmount1 = MutableStateFlow(0.0)
-    private val _partAmount2 = MutableStateFlow(0.0)
+    private val _partAmount1 = MutableStateFlow("0.0")
+    private val _partAmount2 = MutableStateFlow("0.0")
 
     private val _billSummary = MutableStateFlow(BillSummary())
     val billSummary: StateFlow<BillSummary> = _billSummary
@@ -158,9 +161,9 @@ class BillingViewModel @Inject constructor(
                 (it.variant?.price ?: it.item.basePrice) to it.quantity 
             })
             
-            var cgst = 0.0
-            var sgst = 0.0
-            var customTax = 0.0
+            var cgst = "0.0"
+            var sgst = "0.0"
+            var customTax = "0.0"
             
             if (profile?.gstEnabled == true) {
                 val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage)
@@ -181,13 +184,13 @@ class BillingViewModel @Inject constructor(
         _customerWhatsapp.value = whatsapp
     }
 
-    fun setPaymentMode(mode: PaymentMode, p1: Double = 0.0, p2: Double = 0.0) {
+    fun setPaymentMode(mode: PaymentMode, p1: String = "0.0", p2: String = "0.0") {
         _paymentMode.value = mode
         _partAmount1.value = p1
         _partAmount2.value = p2
     }
 
-    suspend fun completeOrder(status: PaymentStatus): Boolean {
+    suspend fun completeOrder(status: PaymentStatus): Boolean = orderMutex.withLock {
         try {
             val profile = restaurantRepository.getProfile() ?: return false
             
@@ -195,9 +198,9 @@ class BillingViewModel @Inject constructor(
             val subtotal = BillCalculator.calculateSubtotal(_cartItems.value.map { 
                 (it.variant?.price ?: it.item.basePrice) to it.quantity 
             })
-            var cgst = 0.0
-            var sgst = 0.0
-            var customTax = 0.0
+            var cgst = "0.0"
+            var sgst = "0.0"
+            var customTax = "0.0"
             if (profile.gstEnabled) {
                 val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage)
                 cgst = gst.cgst
@@ -220,7 +223,7 @@ class BillingViewModel @Inject constructor(
             
             val bill = BillEntity(
                 restaurantId = sessionManager.getRestaurantId(),
-                deviceId = sessionManager.getDeviceId() ?: "",
+                deviceId = sessionManager.getDeviceId(),
                 dailyOrderId = dailyCounter,
                 dailyOrderDisplay = displayId,
                 lifetimeOrderId = lifetimeId,
@@ -228,7 +231,7 @@ class BillingViewModel @Inject constructor(
                 customerName = _customerName.value.ifBlank { null },
                 customerWhatsapp = _customerWhatsapp.value.ifBlank { null },
                 subtotal = finalSummary.subtotal,
-                gstPercentage = profile.gstPercentage,
+                gstPercentage = profile.gstPercentage.toString(),
                 cgstAmount = finalSummary.cgst,
                 sgstAmount = finalSummary.sgst,
                 customTaxAmount = finalSummary.customTax,
@@ -243,15 +246,17 @@ class BillingViewModel @Inject constructor(
             )
             
             val items = _cartItems.value.map { cartItem ->
+                val price = cartItem.variant?.price ?: cartItem.item.basePrice
+                val itemTotal = (java.math.BigDecimal(price).multiply(java.math.BigDecimal.valueOf(cartItem.quantity.toLong()))).setScale(2, java.math.RoundingMode.HALF_UP).toString()
                 BillItemEntity(
                     billId = 0,
                     menuItemId = cartItem.item.id,
                     itemName = cartItem.item.name,
                     variantId = cartItem.variant?.id,
                     variantName = cartItem.variant?.variantName,
-                    price = cartItem.variant?.price ?: cartItem.item.basePrice,
+                    price = price,
                     quantity = cartItem.quantity,
-                    itemTotal = (cartItem.variant?.price ?: cartItem.item.basePrice) * cartItem.quantity
+                    itemTotal = itemTotal
                 )
             }
 
@@ -309,7 +314,7 @@ class BillingViewModel @Inject constructor(
     data class CartItem(val item: MenuItemEntity, val variant: ItemVariantEntity? = null, val quantity: Int)
     
     @Immutable
-    data class BillSummary(val subtotal: Double = 0.0, val cgst: Double = 0.0, val sgst: Double = 0.0, val customTax: Double = 0.0, val total: Double = 0.0)
+    data class BillSummary(val subtotal: String = "0.0", val cgst: String = "0.0", val sgst: String = "0.0", val customTax: String = "0.0", val total: String = "0.0")
 
     override fun onCleared() {
         super.onCleared()

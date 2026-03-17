@@ -21,7 +21,7 @@ class RestaurantRepository(
         val enriched =
                 profile.copy(
                         restaurantId = sessionManager.getRestaurantId(),
-                        deviceId = sessionManager.getDeviceId() ?: "default_device",
+                        deviceId = sessionManager.getDeviceId(),
                         isSynced = false,
                         updatedAt = System.currentTimeMillis()
                 )
