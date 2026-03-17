@@ -20,10 +20,10 @@ interface BillDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertBillPayments(payments: List<BillPaymentEntity>)
 
-    @Query("SELECT * FROM bills WHERE id = :id") suspend fun getBillById(id: Int): BillEntity?
+    @Query("SELECT * FROM bills WHERE id = :id") suspend fun getBillById(id: Long): BillEntity?
 
     @Query("SELECT * FROM bills WHERE lifetime_order_id = :id")
-    suspend fun getBillByLifetimeId(id: Int): BillEntity?
+    suspend fun getBillByLifetimeId(id: Long): BillEntity?
 
     @Query(
             "SELECT * FROM bills WHERE daily_order_display = :displayId AND created_at BETWEEN :startTime AND :endTime"
@@ -33,19 +33,19 @@ interface BillDao {
     @Query(
             "SELECT * FROM bills WHERE daily_order_id = :dailyId AND created_at BETWEEN :startTime AND :endTime"
     )
-    suspend fun getBillByDailyIntIdAndDate(dailyId: Int, startTime: Long, endTime: Long): BillEntity?
+    suspend fun getBillByDailyIntIdAndDate(dailyId: Long, startTime: Long, endTime: Long): BillEntity?
 
     @Query("SELECT * FROM bills WHERE order_status = 'draft'")
     fun getDraftBills(): Flow<List<BillEntity>>
 
     @Query("UPDATE bills SET order_status = :status WHERE id = :id")
-    suspend fun updateOrderStatus(id: Int, status: String)
+    suspend fun updateOrderStatus(id: Long, status: String)
 
     @Query("UPDATE bills SET payment_mode = :mode WHERE id = :id")
-    suspend fun updatePaymentMode(id: Int, mode: String)
+    suspend fun updatePaymentMode(id: Long, mode: String)
 
     @Query("UPDATE bills SET payment_status = :status WHERE id = :id")
-    suspend fun updatePaymentStatus(id: Int, status: String)
+    suspend fun updatePaymentStatus(id: Long, status: String)
 
     @Query(
             "SELECT * FROM bills WHERE created_at BETWEEN :startMillis AND :endMillis ORDER BY created_at DESC"
@@ -54,11 +54,11 @@ interface BillDao {
 
     @Transaction
     @Query("SELECT * FROM bills WHERE id = :id")
-    suspend fun getBillWithItemsById(id: Int): BillWithItems?
+    suspend fun getBillWithItemsById(id: Long): BillWithItems?
 
     @Transaction
     @Query("SELECT * FROM bills WHERE lifetime_order_id = :id")
-    suspend fun getBillWithItemsByLifetimeId(id: Int): BillWithItems?
+    suspend fun getBillWithItemsByLifetimeId(id: Long): BillWithItems?
 
     @Transaction
     suspend fun insertFullBill(
@@ -66,7 +66,7 @@ interface BillDao {
             items: List<BillItemEntity>,
             payments: List<BillPaymentEntity>
     ) {
-        val billId = insertBill(bill).toInt()
+        val billId = insertBill(bill)
         val itemsWithId = items.map { it.copy(billId = billId) }
         val paymentsWithId = payments.map { it.copy(billId = billId) }
         insertBillItems(itemsWithId)
@@ -79,7 +79,7 @@ interface BillDao {
     suspend fun getUnsyncedBills(): List<BillEntity>
 
     @Query("UPDATE bills SET is_synced = 1 WHERE id IN (:billIds)")
-    suspend fun markBillsAsSynced(billIds: List<Int>)
+    suspend fun markBillsAsSynced(billIds: List<Long>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedBills(bills: List<BillEntity>)
@@ -95,7 +95,7 @@ interface BillDao {
     suspend fun getUnsyncedBillItems(): List<BillItemEntity>
 
     @Query("UPDATE bill_items SET is_synced = 1 WHERE id IN (:ids)")
-    suspend fun markBillItemsAsSynced(ids: List<Int>)
+    suspend fun markBillItemsAsSynced(ids: List<Long>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedBillItems(items: List<BillItemEntity>)
@@ -105,7 +105,7 @@ interface BillDao {
     suspend fun getUnsyncedBillPayments(): List<BillPaymentEntity>
 
     @Query("UPDATE bill_payments SET is_synced = 1 WHERE id IN (:ids)")
-    suspend fun markBillPaymentsAsSynced(ids: List<Int>)
+    suspend fun markBillPaymentsAsSynced(ids: List<Long>)
 
     @Query("""
         SELECT item_name as itemName, SUM(quantity) as quantitySold, SUM(item_total) as revenue

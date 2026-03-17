@@ -23,9 +23,9 @@ import androidx.room.PrimaryKey
 )
 data class BillPaymentEntity(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
     @ColumnInfo(name = "bill_id")
-    val billId: Int,
+    val billId: Long,
     @ColumnInfo(name = "payment_mode")
     val paymentMode: String, // cash, upi, pos, zomato, swiggy
     val amount: String,

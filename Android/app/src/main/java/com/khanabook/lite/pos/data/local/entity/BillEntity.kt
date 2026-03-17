@@ -21,12 +21,12 @@ import com.google.gson.annotations.SerializedName
         ]
 )
 data class BillEntity(
-        @SerializedName("localId") @PrimaryKey(autoGenerate = true) val id: Int = 0,
+        @SerializedName("localId") @PrimaryKey(autoGenerate = true) val id: Long = 0,
         @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
         @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",
-        @ColumnInfo(name = "daily_order_id") val dailyOrderId: Int,
+        @ColumnInfo(name = "daily_order_id") val dailyOrderId: Long,
         @ColumnInfo(name = "daily_order_display") val dailyOrderDisplay: String, // "27022026-001"
-        @ColumnInfo(name = "lifetime_order_id") val lifetimeOrderId: Int, // never resets
+        @ColumnInfo(name = "lifetime_order_id") val lifetimeOrderId: Long, // never resets
         @ColumnInfo(name = "order_type", defaultValue = "order")
         val orderType: String = "order", // 'order'
         @ColumnInfo(name = "customer_name") val customerName: String? = null,
@@ -46,7 +46,7 @@ data class BillEntity(
         @ColumnInfo(name = "payment_status") val paymentStatus: String, // 'success' | 'failed'
         @ColumnInfo(name = "order_status")
         val orderStatus: String, // 'draft' | 'completed' | 'cancelled'
-        @ColumnInfo(name = "created_by") val createdBy: Int? = null,
+        @ColumnInfo(name = "created_by") val createdBy: Long? = null,
         @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
         @ColumnInfo(name = "paid_at") val paidAt: Long? = null,
 

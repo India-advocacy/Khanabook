@@ -9,7 +9,7 @@ import com.google.gson.annotations.SerializedName
 data class UserEntity(
 
     @SerializedName("localId") @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
 
     val name: String,
 

@@ -56,6 +56,18 @@ public class GenericSyncService {
 
         BaseSyncEntity firstRecord = payload.get(0);
         String deviceId = firstRecord.getDeviceId();
+        
+        // 1.5 VALIDATE: All records in a batch SHOULD usually come from the same device.
+        // If they don't, we log a warning but proceed by grouping if necessary (or just using per-record deviceId later).
+        // For now, we enforce consistency or log clearly.
+        for (T record : payload) {
+            String recordDeviceId = record.getDeviceId();
+            if (recordDeviceId != null && !recordDeviceId.equals(deviceId)) {
+                log.warn("Mixed device IDs in sync batch for Tenant {}: {} and {}. Proceeding with per-record logic.", 
+                    tenantId, deviceId, recordDeviceId);
+            }
+        }
+        
         long serverTime = System.currentTimeMillis();
         
         // CRIT-05 fix: Only certain entities should allow singleton-style tenant-level matching
@@ -70,11 +82,26 @@ public class GenericSyncService {
         // Singleton-style records use localId=1 across reinstalls, so allow a tenant+localId fallback.
         if (singletonStylePayload) {
             List<T> crossDeviceRecords = repository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1));
+            
+            // For Users, we should be even more specific if possible (e.g., match by email)
+            // to avoid colliding multiple "Admin" users from different devices if they both happened to use localId=1.
             for (T record : crossDeviceRecords) {
-                boolean alreadyMatched = existingRecords.stream()
-                        .anyMatch(existing -> existing.getId() != null && existing.getId().equals(record.getId()));
-                if (!alreadyMatched) {
-                    existingRecords.add(record);
+                boolean matchFound = false;
+                if (record instanceof User existingUser && firstRecord instanceof User incomingUser) {
+                    if (existingUser.getEmail() != null && existingUser.getEmail().equalsIgnoreCase(incomingUser.getEmail())) {
+                        matchFound = true;
+                    }
+                } else {
+                    // For RestaurantProfile or other non-user singletons, tenantId+localId=1 is usually unique enough.
+                    matchFound = true; 
+                }
+
+                if (matchFound) {
+                    boolean alreadyMatched = existingRecords.stream()
+                            .anyMatch(existing -> existing.getId() != null && existing.getId().equals(record.getId()));
+                    if (!alreadyMatched) {
+                        existingRecords.add(record);
+                    }
                 }
             }
         }
@@ -112,7 +139,21 @@ public class GenericSyncService {
                         incomingRecord.getUpdatedAt() : serverTime);
                 }
 
-                T existingRecord = existingRecordMap.get(incomingRecord.getLocalId());
+                // Match existing record. IMPORTANT: Use the record's OWN deviceId for the map key 
+                // if we were doing mixed devices, but here we still rely on localId being unique per device.
+                T existingRecord = null;
+                if (incomingRecord.getLocalId() != null) {
+                    // Try to find by explicit server ID first if provided
+                    if (incomingRecord.getId() != null) {
+                         existingRecord = existingRecords.stream()
+                             .filter(r -> incomingRecord.getId().equals(r.getId()))
+                             .findFirst().orElse(null);
+                    }
+                    // Fallback to localId map
+                    if (existingRecord == null) {
+                        existingRecord = existingRecordMap.get(incomingRecord.getLocalId());
+                    }
+                }
 
                 if (existingRecord != null) {
                     if (incomingRecord.getUpdatedAt() > existingRecord.getUpdatedAt()) {

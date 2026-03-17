@@ -24,8 +24,13 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
         // 3. Fetch token blocking synchronously (interceptors run on background threads)
         val token = sessionManager.getAuthToken()
 
-        // 4. Stricter validation: JWT must contain dots. Prevents "null" or empty string spam.
-        if (!token.isNullOrBlank() && token != "null" && token.contains(".")) {
+        // 4. Stricter validation: JWT must contain exactly 3 segments (header.payload.signature) 
+        // and have a minimum length to be considered a real token.
+        val isValidJwt = !token.isNullOrBlank() && 
+                         token.length > 100 && 
+                         token.split(".").size == 3
+
+        if (isValidJwt) {
             requestBuilder.addHeader("Authorization", "Bearer $token")
         }
     }

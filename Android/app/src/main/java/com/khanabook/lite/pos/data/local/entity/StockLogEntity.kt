@@ -17,11 +17,11 @@ import com.google.gson.annotations.SerializedName
 )
 data class StockLogEntity(
     @SerializedName("localId") @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
     @ColumnInfo(name = "menu_item_id")
-    val menuItemId: Int,
+    val menuItemId: Long,
     @ColumnInfo(name = "variant_id")
-    val variantId: Int? = null,
+    val variantId: Long? = null,
     val delta: String,
     val reason: String, // 'sale', 'adjustment', 'initial'
     @ColumnInfo(name = "created_at")

@@ -18,17 +18,17 @@ interface UserDao {
     @Query(
         "UPDATE users SET password_hash = :newHash, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
     )
-    suspend fun updatePasswordHash(userId: Int, newHash: String, updatedAt: Long)
+    suspend fun updatePasswordHash(userId: Long, newHash: String, updatedAt: Long)
 
     @Query(
         "UPDATE users SET whatsapp_number = :newPhone, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
     )
-    suspend fun updateWhatsappNumber(userId: Int, newPhone: String, updatedAt: Long)
+    suspend fun updateWhatsappNumber(userId: Long, newPhone: String, updatedAt: Long)
 
     @Query(
         "UPDATE users SET email = :newEmail, whatsapp_number = :newPhone, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
     )
-    suspend fun updateAccountDetails(userId: Int, newEmail: String, newPhone: String, updatedAt: Long)
+    suspend fun updateAccountDetails(userId: Long, newEmail: String, newPhone: String, updatedAt: Long)
 
     @Query("SELECT * FROM users WHERE is_deleted = 0 ORDER BY name ASC")
     fun getAllUsers(): Flow<List<UserEntity>>
@@ -36,18 +36,18 @@ interface UserDao {
     @Query(
         "UPDATE users SET is_active = :isActive, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
     )
-    suspend fun setActivationStatus(userId: Int, isActive: Boolean, updatedAt: Long)
+    suspend fun setActivationStatus(userId: Long, isActive: Boolean, updatedAt: Long)
 
     @Query(
         "UPDATE users SET is_deleted = 1, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
     )
-    suspend fun markDeleted(userId: Int, updatedAt: Long)
+    suspend fun markDeleted(userId: Long, updatedAt: Long)
 
     @Query("SELECT * FROM users WHERE is_synced = 0")
     suspend fun getUnsyncedUsers(): List<UserEntity>
 
     @Query("UPDATE users SET is_synced = 1 WHERE id IN (:ids)")
-    suspend fun markUsersAsSynced(ids: List<Int>)
+    suspend fun markUsersAsSynced(ids: List<Long>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedUsers(items: List<UserEntity>)

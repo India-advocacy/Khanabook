@@ -12,7 +12,7 @@ import com.google.gson.annotations.SerializedName
 )
 data class CategoryEntity(
     @SerializedName("localId") @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
     val name: String,
     @ColumnInfo(name = "is_veg")
     val isVeg: Boolean, // 1=Veg, 0=Non-Veg

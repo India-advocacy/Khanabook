@@ -184,12 +184,7 @@ constructor(
             val otp = (100000..999999).random().toString()
             generatedOtp = otp
             
-            if (BuildConfig.DEBUG) {
-                // 🔥 DEBUG: Log OTP to Logcat for testing without WhatsApp
-                Log.d(TAG, "------------------------------------------")
-                Log.d(TAG, "TEST OTP for $phoneNumber: $otp")
-                Log.d(TAG, "------------------------------------------")
-            }
+            // OTP is stored privately, never logged or exposed.
 
             try {
                 // Check if user exists for reset password
@@ -273,23 +268,23 @@ constructor(
                     }
                 } else {
                     val apiError = response.errorBody()?.string() ?: "Unknown error"
-                    val errorMsg = "Failed to send WhatsApp OTP. Error: $apiError"
                     Log.e(TAG, "WhatsApp API Error: $apiError")
-                    // Still allow testing if API fails by keeping generatedOtp
-                    // generatedOtp = null 
+                    generatedOtp = null 
+                    val errorMessage = "Failed to send OTP. Please try again."
                     when (purpose) {
-                        "reset" -> _resetPasswordStatus.value = ResetPasswordResult.OtpSent // Force move to next step for testing
-                        "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.OtpSent
-                        else -> _signUpStatus.value = SignUpResult.OtpSent
+                        "reset" -> _resetPasswordStatus.value = ResetPasswordResult.Error(errorMessage)
+                        "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.Error(errorMessage)
+                        else -> _signUpStatus.value = SignUpResult.Error(errorMessage)
                     }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "OTP Send Exception: ${e.message}")
-                // For testing purposes, we'll pretend it was sent so you can use the Logcat OTP
+                generatedOtp = null
+                val errorMessage = "Network error. Failed to send OTP."
                 when (purpose) {
-                    "reset" -> _resetPasswordStatus.value = ResetPasswordResult.OtpSent
-                    "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.OtpSent
-                    else -> _signUpStatus.value = SignUpResult.OtpSent
+                    "reset" -> _resetPasswordStatus.value = ResetPasswordResult.Error(errorMessage)
+                    "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.Error(errorMessage)
+                    else -> _signUpStatus.value = SignUpResult.Error(errorMessage)
                 }
             }
         }

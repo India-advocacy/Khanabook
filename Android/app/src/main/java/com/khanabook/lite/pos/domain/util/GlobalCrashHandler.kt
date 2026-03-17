@@ -17,30 +17,41 @@ class GlobalCrashHandler(private val context: Context) : Thread.UncaughtExceptio
     Log.e("KhanaBookCrash", stackTrace)
 
     // 2. Save crash info for next launch (Optional - for debugging)
-    saveCrashLog(stackTrace)
+    try {
+        saveCrashLog(stackTrace)
+    } catch (e: Exception) {
+        Log.e("KhanaBookCrash", "Secondary error in saveCrashLog: ${e.message}")
+    }
 
     // 3. Crash Loop Detection (CRIT-3)
-    val prefs = context.getSharedPreferences("crash_reports", Context.MODE_PRIVATE)
-    val now = System.currentTimeMillis()
-    val lastCrashTime = prefs.getLong("last_crash_time", 0L)
-    val crashCount = prefs.getInt("crash_count", 0)
+    try {
+        val prefs = context.getSharedPreferences("crash_reports", Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        val lastCrashTime = prefs.getLong("last_crash_time", 0L)
+        val crashCount = prefs.getInt("crash_count", 0)
 
-    val newCrashCount = if (now - lastCrashTime < 10000) {
-        crashCount + 1
-    } else {
-        1
-    }
+        val newCrashCount = if (now - lastCrashTime < 10000) {
+            crashCount + 1
+        } else {
+            1
+        }
 
-    prefs.edit().apply {
-        putLong("last_crash_time", now)
-        putInt("crash_count", newCrashCount)
-        apply()
-    }
+        prefs.edit().apply {
+            putLong("last_crash_time", now)
+            putInt("crash_count", newCrashCount)
+            apply()
+        }
 
-    if (newCrashCount >= 3) {
-        Log.e("KhanaBookCrash", "Crash loop detected. Falling back to default system handler.")
-        // Reset count so user can try again later
-        prefs.edit().putInt("crash_count", 0).apply()
+        if (newCrashCount >= 3) {
+            Log.e("KhanaBookCrash", "Crash loop detected. Falling back to default system handler.")
+            // Reset count so user can try again later
+            prefs.edit().putInt("crash_count", 0).apply()
+            defaultHandler?.uncaughtException(thread, throwable)
+            return
+        }
+    } catch (e: Exception) {
+        Log.e("KhanaBookCrash", "Secondary error in crash loop detection: ${e.message}")
+        // If loop detection fails, we err on the side of caution and let the system handle it
         defaultHandler?.uncaughtException(thread, throwable)
         return
     }

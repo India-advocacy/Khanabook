@@ -20,9 +20,9 @@ import com.google.gson.annotations.SerializedName
 )
 data class MenuItemEntity(
     @SerializedName("localId") @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
     @ColumnInfo(name = "category_id")
-    val categoryId: Int,
+    val categoryId: Long,
     val name: String,
     @ColumnInfo(name = "base_price")
     val basePrice: String, // used only if no variants

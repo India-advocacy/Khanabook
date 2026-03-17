@@ -17,9 +17,9 @@ import com.google.gson.annotations.SerializedName
 )
 data class ItemVariantEntity(
     @SerializedName("localId") @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
     @ColumnInfo(name = "menu_item_id")
-    val menuItemId: Int,
+    val menuItemId: Long,
     @ColumnInfo(name = "variant_name")
     val variantName: String, // e.g. "Half", "Full", "Party Pack"
     val price: String,

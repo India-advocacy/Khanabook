@@ -35,15 +35,15 @@ import androidx.room.*
 )
 data class BillItemEntity(
     @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Long = 0,
     @ColumnInfo(name = "bill_id")
-    val billId: Int,
+    val billId: Long,
     @ColumnInfo(name = "menu_item_id")
-    val menuItemId: Int?,
+    val menuItemId: Long?,
     @ColumnInfo(name = "item_name")
     val itemName: String, // snapshot
     @ColumnInfo(name = "variant_id")
-    val variantId: Int? = null,
+    val variantId: Long? = null,
     @ColumnInfo(name = "variant_name")
     val variantName: String? = null, // snapshot
     val price: String, // snapshot

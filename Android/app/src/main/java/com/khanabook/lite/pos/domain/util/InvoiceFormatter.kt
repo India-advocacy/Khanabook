@@ -32,13 +32,13 @@ object InvoiceFormatter {
         return if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
     }
 
-    private fun formatMoney(amount: Double): String {
+    private fun formatMoney(amount: String): String {
         return try {
-            BigDecimal(amount.toString())
+            BigDecimal(amount)
                 .setScale(2, RoundingMode.HALF_UP)
                 .toPlainString()
         } catch (e: Exception) {
-            String.format("%.2f", amount)
+            "0.00"
         }
     }
 
@@ -121,14 +121,14 @@ object InvoiceFormatter {
         // Summary
         add(formatRow("Subtotal:", "$currency ${formatMoney(bill.bill.subtotal)}", width))
         
-        if (isGst && bill.bill.cgstAmount > 0) {
+        if (isGst && (BigDecimal(bill.bill.cgstAmount).compareTo(BigDecimal.ZERO) > 0)) {
             // TODO: Handle IGST for inter-state supplies
-            val halfGst = bill.bill.gstPercentage / 2
-            add(formatRow("CGST (%.1f%%):".format(halfGst), "$currency ${formatMoney(bill.bill.cgstAmount)}", width))
-            add(formatRow("SGST (%.1f%%):".format(halfGst), "$currency ${formatMoney(bill.bill.sgstAmount)}", width))
+            val halfGst = BigDecimal(bill.bill.gstPercentage).divide(BigDecimal("2"), 2, RoundingMode.HALF_UP)
+            add(formatRow("CGST (${halfGst.stripTrailingZeros().toPlainString()}%):", "$currency ${formatMoney(bill.bill.cgstAmount)}", width))
+            add(formatRow("SGST (${halfGst.stripTrailingZeros().toPlainString()}%):", "$currency ${formatMoney(bill.bill.sgstAmount)}", width))
         }
         
-        if (!isGst && bill.bill.customTaxAmount > 0) {
+        if (!isGst && (BigDecimal(bill.bill.customTaxAmount).compareTo(BigDecimal.ZERO) > 0)) {
             add(formatRow("Tax:", "$currency ${formatMoney(bill.bill.customTaxAmount)}", width))
         }
         
@@ -183,9 +183,9 @@ object InvoiceFormatter {
         sb.append("*Subtotal: $currency${formatMoney(bill.bill.subtotal)}*\n")
         
         if (profile?.gstEnabled == true) {
-            val halfGst = bill.bill.gstPercentage / 2
-            sb.append("CGST (${halfGst}%): $currency${formatMoney(bill.bill.cgstAmount)}\n")
-            sb.append("SGST (${halfGst}%): $currency${formatMoney(bill.bill.sgstAmount)}\n")
+            val halfGst = BigDecimal(bill.bill.gstPercentage).divide(BigDecimal("2"), 2, RoundingMode.HALF_UP)
+            sb.append("CGST (${halfGst.stripTrailingZeros().toPlainString()}%): $currency${formatMoney(bill.bill.cgstAmount)}\n")
+            sb.append("SGST (${halfGst.stripTrailingZeros().toPlainString()}%): $currency${formatMoney(bill.bill.sgstAmount)}\n")
         }
         
         sb.append("*TOTAL AMOUNT: $currency${formatMoney(bill.bill.totalAmount)}*\n")
