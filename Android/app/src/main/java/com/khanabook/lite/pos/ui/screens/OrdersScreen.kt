@@ -25,6 +25,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
+import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
 import java.text.SimpleDateFormat
@@ -41,7 +42,7 @@ fun OrdersScreen(
     val enabledModes = remember(profile) { profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH) }
     var selectedPeriod by remember { mutableIntStateOf(0) }
     
-    // Date Range Picker State
+    
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
 
@@ -60,10 +61,7 @@ fun OrdersScreen(
                     val start = dateRangePickerState.selectedStartDateMillis
                     val end = dateRangePickerState.selectedEndDateMillis
                     if (start != null && end != null) {
-                        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                        val fromStr = sdf.format(Date(start))
-                        val toStr = sdf.format(Date(end))
-                        viewModel.setCustomDateRange(fromStr, toStr)
+                        viewModel.setCustomDateRange(start, end)
                     }
                     showDateRangePicker = false
                 }) {
@@ -102,9 +100,9 @@ fun OrdersScreen(
                 )
             )
     ) {
-        // Main Content
+        
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
+            
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -123,11 +121,11 @@ fun OrdersScreen(
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
-                // Empty spacer to balance the back button
+                
                 Spacer(modifier = Modifier.size(48.dp))
             }
 
-            // Custom Tabs
+            
             PeriodTabs(
                 selectedTabIndex = selectedPeriod,
                 onTabSelected = { 
@@ -138,10 +136,10 @@ fun OrdersScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Table Header
+            
             TableHeader()
 
-            // Table Body
+            
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -259,9 +257,9 @@ fun OrderTableRow(
         TableCell(row.dailyNo, 1f)
         TableCell(row.lifetimeNo.toString(), 1.2f)
         TableCell(row.currentStatus, 1.5f, fontSize = 10.sp)
-        TableCell("\u20b9${String.format("%.2f", row.salesAmount)}", 1.3f, fontWeight = FontWeight.Bold)
+        TableCell(CurrencyUtils.formatPrice(row.salesAmount), 1.3f, fontWeight = FontWeight.Bold)
         
-        // Pay Mode Dropdown (Clickable Badge)
+        
         Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
             val color = getPayModeColor(row.payMode)
             Surface(
@@ -301,7 +299,7 @@ fun OrderTableRow(
             }
         }
 
-        // Order Status Dropdown
+        
         Box(modifier = Modifier.weight(1.5f), contentAlignment = Alignment.Center) {
             val statusColor = if (row.orderStatus == OrderStatus.COMPLETED) SuccessGreen else DangerRed
             Surface(
@@ -371,22 +369,22 @@ fun RowScope.TableCell(
 private fun getPayModeColor(mode: PaymentMode): Color {
     return when (mode) {
         PaymentMode.CASH -> SuccessGreen
-        PaymentMode.UPI -> Color(0xFF5D4037) // Brownish as in UI
-        PaymentMode.POS -> Color(0xFF673AB7) // Purple
+        PaymentMode.UPI -> Color(0xFF5D4037) 
+        PaymentMode.POS -> Color(0xFF673AB7) 
         PaymentMode.ZOMATO -> VegGreen 
-        PaymentMode.SWIGGY -> Color(0xFFE65100) // Deep Orange
+        PaymentMode.SWIGGY -> Color(0xFFE65100) 
         else -> Color(0xFF455A64)
     }
 }
 
-// Remote formatDisplayDate in favor of Utils.formatDisplayDate
+
 
 
 private fun periodRange(tab: Int): Pair<Long, Long> {
     val cal = Calendar.getInstance()
     
     val start: Calendar = when (tab) {
-        0 -> { // Daily
+        0 -> { 
             (cal.clone() as Calendar).apply { 
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -394,7 +392,7 @@ private fun periodRange(tab: Int): Pair<Long, Long> {
                 set(Calendar.MILLISECOND, 0)
             }
         }
-        1 -> { // Weekly
+        1 -> { 
             (cal.clone() as Calendar).apply { 
                 add(Calendar.DAY_OF_YEAR, -6)
                 set(Calendar.HOUR_OF_DAY, 0)
@@ -403,7 +401,7 @@ private fun periodRange(tab: Int): Pair<Long, Long> {
                 set(Calendar.MILLISECOND, 0)
             }
         }
-        2 -> { // Monthly
+        2 -> { 
             (cal.clone() as Calendar).apply { 
                 set(Calendar.DAY_OF_MONTH, 1)
                 set(Calendar.HOUR_OF_DAY, 0)

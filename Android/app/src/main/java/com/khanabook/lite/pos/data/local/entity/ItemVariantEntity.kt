@@ -21,7 +21,7 @@ data class ItemVariantEntity(
     @ColumnInfo(name = "menu_item_id")
     val menuItemId: Long,
     @ColumnInfo(name = "variant_name")
-    val variantName: String, // e.g. "Half", "Full", "Party Pack"
+    val variantName: String, 
     val price: String,
     @ColumnInfo(name = "is_available", defaultValue = "1")
     val isAvailable: Boolean = true,

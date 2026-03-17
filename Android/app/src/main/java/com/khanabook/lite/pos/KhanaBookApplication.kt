@@ -26,24 +26,24 @@ class KhanaBookApplication : Application(), Configuration.Provider {
         super.onCreate()
         instance = this
 
-        // Initialize Global Crash Handler
+        
         com.khanabook.lite.pos.domain.util.GlobalCrashHandler.initialize(this)
 
-        // Ensure unique device ID for sync logic (Atomic initialization in SessionManager)
+        
         val sessionManager = dagger.hilt.android.EntryPointAccessors.fromApplication(this, com.khanabook.lite.pos.di.SessionManagerEntryPoint::class.java).sessionManager()
         sessionManager.getDeviceId()
 
-        // Schedule Periodic Sync
+        
         com.khanabook.lite.pos.worker.MasterSyncWorker.schedule(this)
 
-        // Initialize background scope
+        
         val exceptionHandler =
                 kotlinx.coroutines.CoroutineExceptionHandler { _, throwable ->
                     Log.e("KhanaBookApp", "Coroutine Exception", throwable)
                 }
 
         MainScope().launch(exceptionHandler) {
-            // Background tasks if any
+            
         }
     }
 }

@@ -30,7 +30,7 @@ fun KhanaDatePickerField(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     
-    // Parse existing date or use today
+    
     val calendar = Calendar.getInstance()
     if (selectedDate.isNotEmpty()) {
         try {
@@ -51,7 +51,7 @@ fun KhanaDatePickerField(
         modifier = modifier
             .fillMaxWidth()
             .clickable { showDatePicker = true },
-        enabled = false, // Use clickable on modifier instead to keep it looking like a field but not interactive for text
+        enabled = false, 
         colors = OutlinedTextFieldDefaults.colors(
             disabledTextColor = TextLight,
             disabledBorderColor = BorderGold,

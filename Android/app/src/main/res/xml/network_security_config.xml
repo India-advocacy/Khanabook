@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Deny cleartext for ALL traffic by default -->
+    
     <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
-    <!-- ngrok uses HTTPS, so no specific domain config is required here.
-         If you need to use local HTTP again, add the domain back here. -->
+    
 </network-security-config>

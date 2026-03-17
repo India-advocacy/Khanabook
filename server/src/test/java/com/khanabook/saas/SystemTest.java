@@ -11,11 +11,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.assertj.core.api.Assertions.*;
 
-/**
- * System tests — the full app runs on a random port, requests go over real HTTP.
- * This is what the Android client actually hits.
- * Tests: auth flow, JWT enforcement, rate limiting, sync endpoint shape.
- */
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @Testcontainers
 class SystemTest extends BaseIntegrationTest {
@@ -23,13 +19,13 @@ class SystemTest extends BaseIntegrationTest {
     @LocalServerPort int port;
     @Autowired TestRestTemplate rest;
 
-    // ─── Auth: signup → login → use token ────────────────────────────────────
+    
 
     @Test
     void fullAuthFlow_signupThenLoginThenAccessSync() {
         String phone = uniquePhone();
 
-        // 1. Signup
+        
         SignupRequest signup = new SignupRequest(phone, "Nandha Kumar", "pass123", "DEVICE_1");
         ResponseEntity<AuthResponse> signupResp =
             rest.postForEntity("/api/v1/auth/signup", signup, AuthResponse.class);
@@ -39,7 +35,7 @@ class SystemTest extends BaseIntegrationTest {
         assertThat(signupResp.getBody().getRestaurantId()).isPositive();
         Long restaurantId = signupResp.getBody().getRestaurantId();
 
-        // 2. Login
+        
         LoginRequest login = new LoginRequest();
         login.setPhoneNumber(phone);
         login.setPassword("pass123");
@@ -51,7 +47,7 @@ class SystemTest extends BaseIntegrationTest {
         assertThat(token).isNotBlank();
         assertThat(loginResp.getBody().getRestaurantId()).isEqualTo(restaurantId);
 
-        // 3. Use token to pull bills — must return 200 with empty list
+        
         ResponseEntity<String> pullResp = rest.exchange(
             "/api/v1/sync/bills/pull?lastSyncTimestamp=0&deviceId=DEVICE_2",
             HttpMethod.GET, bearerRequest(token), String.class);
@@ -60,7 +56,7 @@ class SystemTest extends BaseIntegrationTest {
         assertThat(pullResp.getBody()).contains("[]");
     }
 
-    // ─── Auth: validation ─────────────────────────────────────────────────────
+    
 
     @Test
     void signup_invalidPhoneFormat_returns400() {
@@ -76,7 +72,7 @@ class SystemTest extends BaseIntegrationTest {
         SignupRequest req = new SignupRequest(phone, "User A", "pass123", "D");
         rest.postForEntity("/api/v1/auth/signup", req, String.class);
 
-        // Second signup with same phone
+        
         ResponseEntity<String> second =
             rest.postForEntity("/api/v1/auth/signup", req, String.class);
         assertThat(second.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -116,7 +112,7 @@ class SystemTest extends BaseIntegrationTest {
         assertThat(resp.getBody()).isFalse();
     }
 
-    // ─── JWT enforcement ──────────────────────────────────────────────────────
+    
 
     @Test
     void syncEndpoint_noToken_returns401() {
@@ -135,7 +131,7 @@ class SystemTest extends BaseIntegrationTest {
 
     @Test
     void resetPassword_noToken_returns401() {
-        // reset-password is behind JWT — must not be publicly accessible
+        
         ResponseEntity<String> resp = rest.exchange(
             "/api/v1/auth/reset-password?phoneNumber=%2B911234567890&newPassword=x",
             HttpMethod.POST, HttpEntity.EMPTY, String.class);
@@ -149,7 +145,7 @@ class SystemTest extends BaseIntegrationTest {
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
-    // ─── Sync endpoint shapes ─────────────────────────────────────────────────
+    
 
     @Test
     void masterSync_pull_returnsAllNineCollections() {
@@ -161,7 +157,7 @@ class SystemTest extends BaseIntegrationTest {
 
         assertThat(resp.getStatusCode()).isEqualTo(HttpStatus.OK);
         String body = resp.getBody();
-        // All 9 collections must be present in the response JSON
+        
         assertThat(body).contains("profiles");
         assertThat(body).contains("users");
         assertThat(body).contains("categories");
@@ -192,7 +188,7 @@ class SystemTest extends BaseIntegrationTest {
 
     @Test
     void googleLogin_missingIdToken_returns400() {
-        // @Valid + @NotBlank on GoogleLoginRequest.idToken
+        
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> req = new HttpEntity<>("{\"deviceId\":\"D1\"}", headers);
@@ -203,7 +199,7 @@ class SystemTest extends BaseIntegrationTest {
         assertThat(resp.getBody()).contains("idToken");
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
+    
 
     private String signupAndGetToken() {
         String phone = uniquePhone();

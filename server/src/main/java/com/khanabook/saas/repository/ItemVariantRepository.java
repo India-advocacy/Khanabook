@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ItemVariantRepository extends SyncRepository<ItemVariant, Long> {
 
-    @Modifying
-    @Query("UPDATE ItemVariant v SET v.currentStock = (SELECT SUM(s.delta) FROM StockLog s WHERE s.serverVariantId = :id) WHERE v.id = :id")
-    void recalculateStock(@Param("id") Long id);
+	@Modifying
+	@Query("UPDATE ItemVariant v SET v.currentStock = (SELECT SUM(s.delta) FROM StockLog s WHERE s.serverVariantId = :id) WHERE v.id = :id")
+	void recalculateStock(@Param("id") Long id);
 }

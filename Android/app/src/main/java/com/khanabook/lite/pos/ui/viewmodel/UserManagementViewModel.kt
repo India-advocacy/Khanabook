@@ -24,7 +24,7 @@ class UserManagementViewModel @Inject constructor(
         viewModelScope.launch {
             val user = UserEntity(
                 name = name,
-                email = phone, // using phone as identifier
+                email = phone, 
                 passwordHash = authManager.hashPassword(password),
                 whatsappNumber = phone,
                 isActive = true,
@@ -40,7 +40,7 @@ class UserManagementViewModel @Inject constructor(
         }
     }
 
-    fun toggleUserStatus(userId: Int, isActive: Boolean) {
+    fun toggleUserStatus(userId: Long, isActive: Boolean) {
         viewModelScope.launch {
             userRepository.setActivationStatus(userId, isActive)
         }

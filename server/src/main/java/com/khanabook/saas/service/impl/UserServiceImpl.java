@@ -12,16 +12,17 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-    private final UserRepository repository;
-    private final GenericSyncService genericSyncService;
+	private final UserRepository repository;
+	private final GenericSyncService genericSyncService;
 
-    @Override
-    public PushSyncResponse pushData(Long tenantId, List<User> payload) {
-        return genericSyncService.handlePushSync(tenantId, payload, repository);
-    }
+	@Override
+	public PushSyncResponse pushData(Long tenantId, List<User> payload) {
+		return genericSyncService.handlePushSync(tenantId, payload, repository);
+	}
 
-    @Override
-    public List<User> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
-        return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp, deviceId);
-    }
+	@Override
+	public List<User> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
+		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
+				deviceId);
+	}
 }

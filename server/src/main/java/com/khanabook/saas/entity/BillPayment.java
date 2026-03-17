@@ -10,22 +10,21 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "bill_payments", indexes = {
-    @Index(name = "idx_bill_payments_tenant_updated", columnList = "restaurant_id, updated_at"),
-    @Index(name = "idx_bill_payments_device", columnList = "restaurant_id, device_id, local_id")
-})
+		@Index(name = "idx_bill_payments_tenant_updated", columnList = "restaurant_id, updated_at"),
+		@Index(name = "idx_bill_payments_device", columnList = "restaurant_id, device_id, local_id") })
 @Getter
 @Setter
 public class BillPayment extends BaseSyncEntity {
 
-    @Column(name = "bill_id", nullable = false)
-    private Integer billId;
+	@Column(name = "bill_id", nullable = false)
+	private Integer billId;
 
-    @Column(name = "server_bill_id")
-    private Long serverBillId;
+	@Column(name = "server_bill_id")
+	private Long serverBillId;
 
-    @Column(name = "payment_mode", nullable = false)
-    private String paymentMode;
+	@Column(name = "payment_mode", nullable = false)
+	private String paymentMode;
 
-    @Column(name = "amount", columnDefinition = "NUMERIC(12,2)", nullable = false)
-    private java.math.BigDecimal amount;
+	@Column(name = "amount", columnDefinition = "NUMERIC(12,2)", nullable = false)
+	private java.math.BigDecimal amount;
 }

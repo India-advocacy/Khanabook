@@ -32,10 +32,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.domain.model.PaymentMode
+import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import com.khanabook.lite.pos.domain.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,12 +51,11 @@ fun ReportsScreen(
     val paymentBreakdown by viewModel.paymentBreakdown.collectAsState()
     val orderLevelRows by viewModel.orderLevelRows.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
-    val enabledModes = remember(profile) { profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH) }
     
-    var selectedBillId by remember { mutableStateOf<Int?>(null) }
+    var selectedBillId by remember { mutableStateOf<Long?>(null) }
     val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
     
-    // Custom Date Range Picker State
+    
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
 
@@ -72,7 +73,7 @@ fun ReportsScreen(
                 .fillMaxSize()
                 .padding(bottom = 8.dp)
         ) {
-            // Header
+            
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -96,11 +97,11 @@ fun ReportsScreen(
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
-                // Empty spacer to balance the back button
+                
                 Spacer(modifier = Modifier.size(48.dp))
             }
 
-            // Time Filters
+            
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -125,7 +126,7 @@ fun ReportsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Date Range Picker Dialog
+            
             if (showDateRangePicker) {
                 DatePickerDialog(
                     onDismissRequest = { showDateRangePicker = false },
@@ -135,10 +136,7 @@ fun ReportsScreen(
                                 val start = dateRangePickerState.selectedStartDateMillis
                                 val end = dateRangePickerState.selectedEndDateMillis
                                 if (start != null && end != null) {
-                                    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                                    val fromStr = sdf.format(Date(start))
-                                    val toStr = sdf.format(Date(end))
-                                    viewModel.setCustomDateRange(fromStr, toStr)
+                                    viewModel.setCustomDateRange(start, end)
                                 }
                                 showDateRangePicker = false
                             },
@@ -171,7 +169,7 @@ fun ReportsScreen(
                 }
             }
 
-            // Report Type Toggle
+            
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -194,8 +192,7 @@ fun ReportsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Report Body
-            val context = androidx.compose.ui.platform.LocalContext.current
+            
             
             if (reportType == "Payment") {
                 PaymentLevelView(paymentBreakdown)
@@ -209,7 +206,7 @@ fun ReportsScreen(
             }
         }
 
-        // Order Details Dialog
+        
         selectedBillId?.let {
             OrderDetailsDialog(
                 billWithItems = selectedBillDetails,
@@ -265,13 +262,13 @@ fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, mo
 }
 
 @Composable
-fun PaymentLevelView(breakdown: Map<String, Double>) {
+fun PaymentLevelView(breakdown: Map<String, String>) {
     val settingsVM: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel = hiltViewModel()
     val profile by settingsVM.profile.collectAsState()
     
     val enabledModes = profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
     
-    // Separate main modes and part modes
+    
     val mainModes = enabledModes.filter { !com.khanabook.lite.pos.domain.manager.PaymentModeManager.isPartPayment(it) }
     val partModes = enabledModes.filter { com.khanabook.lite.pos.domain.manager.PaymentModeManager.isPartPayment(it) }
 
@@ -284,7 +281,7 @@ fun PaymentLevelView(breakdown: Map<String, Double>) {
         items(mainModes) { mode ->
             PaymentModeItem(
                 mode = mode.displayLabel,
-                amount = breakdown[mode.displayLabel] ?: 0.0
+                amount = breakdown[mode.displayLabel]?.toDoubleOrNull() ?: 0.0
             )
         }
 
@@ -298,8 +295,8 @@ fun PaymentLevelView(breakdown: Map<String, Double>) {
                 )
             }
 
-            // Chunk part modes into rows of 2 for a grid-like feel if needed, or just list them.
-            // Using a simple grid approach with rows of 2.
+            
+            
             val chunkedPartModes = partModes.chunked(2)
             items(chunkedPartModes) { rowModes ->
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -307,15 +304,15 @@ fun PaymentLevelView(breakdown: Map<String, Double>) {
                         val labels = com.khanabook.lite.pos.domain.manager.PaymentModeManager.getPartLabels(mode)
                         PartPaymentCard(
                             label = mode.displayLabel,
-                            totalAmount = breakdown[mode.displayLabel] ?: 0.0,
-                            part1Amount = breakdown["${mode.displayLabel}_part1"] ?: 0.0,
-                            part2Amount = breakdown["${mode.displayLabel}_part2"] ?: 0.0,
+                            totalAmount = breakdown[mode.displayLabel]?.toDoubleOrNull() ?: 0.0,
+                            part1Amount = breakdown["${mode.displayLabel}_part1"]?.toDoubleOrNull() ?: 0.0,
+                            part2Amount = breakdown["${mode.displayLabel}_part2"]?.toDoubleOrNull() ?: 0.0,
                             part1Label = labels.first,
                             part2Label = labels.second,
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    // Add empty spacer if row is not full
+                    
                     if (rowModes.size < 2) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
@@ -341,12 +338,12 @@ fun PaymentModeItem(mode: String, amount: Double) {
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon Placeholder
+            
             Surface(
                 modifier = Modifier.size(24.dp),
                 color = Color.Transparent
             ) {
-                // You can add icons here
+                
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text(mode, color = TextLight, fontSize = 16.sp, modifier = Modifier.weight(1f))
@@ -390,9 +387,9 @@ fun PartPaymentCard(
 }
 
 @Composable
-fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>, onViewDetails: (Int) -> Unit) {
+fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>, onViewDetails: (Long) -> Unit) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Table Header
+        
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -433,7 +430,7 @@ fun HeaderCell(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewDetails: (Int) -> Unit) {
+fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewDetails: (Long) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
@@ -450,7 +447,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
             Text(row.dailyId, color = TextLight, fontSize = 13.sp, modifier = Modifier.weight(0.8f), textAlign = TextAlign.Center)
             Text(row.lifetimeId.toString(), color = TextLight, fontSize = 13.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             
-            // Mode column
+            
             Box(modifier = Modifier.weight(2.3f), contentAlignment = Alignment.Center) {
                 val (color, label) = when (row.paymentMode) {
                     PaymentMode.ZOMATO -> Color(0xFFB71C1C) to "Zomato"
@@ -475,7 +472,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
                 }
             }
             
-            // View Action column
+            
             Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
                 Surface(
                     color = Color.Transparent,
@@ -552,7 +549,7 @@ fun OrderDetailsDialog(
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Bill ID: ${bill.id}", color = TextLight, fontSize = 14.sp)
-                        Text(formatDate(bill.createdAt), color = TextLight, fontSize = 14.sp)
+                        Text(DateUtils.formatDisplay(bill.createdAt), color = TextLight, fontSize = 14.sp)
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     
@@ -562,7 +559,7 @@ fun OrderDetailsDialog(
                     items.forEach { item ->
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("${item.itemName} x${item.quantity}", color = TextLight, fontSize = 13.sp)
-                            Text("₹${"%.2f".format(item.itemTotal)}", color = TextLight, fontSize = 13.sp)
+                            Text("₹${CurrencyUtils.formatPrice(item.itemTotal)}", color = TextLight, fontSize = 13.sp)
                         }
                     }
                     
@@ -572,7 +569,7 @@ fun OrderDetailsDialog(
                     
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Total Amount", color = PrimaryGold, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Text("₹${"%.2f".format(bill.totalAmount)}", color = PrimaryGold, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(CurrencyUtils.formatPrice(bill.totalAmount), color = PrimaryGold, fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                     
                     Spacer(modifier = Modifier.height(12.dp))
@@ -607,10 +604,10 @@ fun OrderDetailsDialog(
 }
 
 fun formatDate(date: String): String {
-    // If input is dd MMM yyyy, hh:mm a (new format), return as is or simplify
-    if (date.contains(",")) return date.substringBefore(",").trim() // Return just the date part
     
-    // Input is yyyy-MM-dd HH:mm:ss (old format)
+    if (date.contains(",")) return date.substringBefore(",").trim() 
+    
+    
     return try {
         val parts = date.split(" ")[0].split("-")
         "${parts[2]}/${parts[1]}/${parts[0]}"

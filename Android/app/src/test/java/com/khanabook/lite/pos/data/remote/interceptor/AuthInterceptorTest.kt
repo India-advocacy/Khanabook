@@ -36,7 +36,7 @@ class AuthInterceptorTest {
 
     @Test
     fun `intercept - when token is valid - adds Authorization header`() {
-        // Arrange
+        
         val validToken = "valid.jwt.token"
         every { sessionManager.getAuthToken() } returns validToken
         
@@ -46,10 +46,10 @@ class AuthInterceptorTest {
         val requestSlot = slot<Request>()
         every { chain.proceed(capture(requestSlot)) } returns mockResponse
 
-        // Act
+        
         authInterceptor.intercept(chain)
 
-        // Assert
+        
         val capturedRequest = requestSlot.captured
         val authHeader = capturedRequest.header("Authorization")
         assertEquals("Bearer $validToken", authHeader)
@@ -57,7 +57,7 @@ class AuthInterceptorTest {
 
     @Test
     fun `intercept - when token is null - does NOT add Authorization header`() {
-        // Arrange
+        
         every { sessionManager.getAuthToken() } returns null
         
         val request = Request.Builder().url("https://api.khanabook.com/api/v1/bills").build()
@@ -66,17 +66,17 @@ class AuthInterceptorTest {
         val requestSlot = slot<Request>()
         every { chain.proceed(capture(requestSlot)) } returns mockResponse
 
-        // Act
+        
         authInterceptor.intercept(chain)
 
-        // Assert
+        
         val capturedRequest = requestSlot.captured
         assertNull(capturedRequest.header("Authorization"))
     }
 
     @Test
     fun `intercept - when token has no dots - does NOT add Authorization header`() {
-        // Arrange
+        
         every { sessionManager.getAuthToken() } returns "invalidtoken"
         
         val request = Request.Builder().url("https://api.khanabook.com/api/v1/bills").build()
@@ -85,17 +85,17 @@ class AuthInterceptorTest {
         val requestSlot = slot<Request>()
         every { chain.proceed(capture(requestSlot)) } returns mockResponse
 
-        // Act
+        
         authInterceptor.intercept(chain)
 
-        // Assert
+        
         val capturedRequest = requestSlot.captured
         assertNull(capturedRequest.header("Authorization"))
     }
 
     @Test
     fun `intercept - when request is auth endpoint - skips token even if valid`() {
-        // Arrange
+        
         every { sessionManager.getAuthToken() } returns "valid.jwt.token"
         
         val request = Request.Builder().url("https://api.khanabook.com/api/v1/auth/login").build()
@@ -104,17 +104,17 @@ class AuthInterceptorTest {
         val requestSlot = slot<Request>()
         every { chain.proceed(capture(requestSlot)) } returns mockResponse
 
-        // Act
+        
         authInterceptor.intercept(chain)
 
-        // Assert
+        
         val capturedRequest = requestSlot.captured
         assertNull(capturedRequest.header("Authorization"))
     }
 
     @Test
     fun `intercept - when request path contains login - skips token even if valid`() {
-        // Arrange
+        
         every { sessionManager.getAuthToken() } returns "valid.jwt.token"
         
         val request = Request.Builder().url("https://api.khanabook.com/login").build()
@@ -123,10 +123,10 @@ class AuthInterceptorTest {
         val requestSlot = slot<Request>()
         every { chain.proceed(capture(requestSlot)) } returns mockResponse
 
-        // Act
+        
         authInterceptor.intercept(chain)
 
-        // Assert
+        
         val capturedRequest = requestSlot.captured
         assertNull(capturedRequest.header("Authorization"))
     }

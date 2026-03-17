@@ -34,7 +34,7 @@ class JwtRequestFilterTest {
 
         filter.doFilterInternal(request, response, chain);
 
-        // After filter completes, context is cleared (finally block)
+        
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         assertThat(TenantContext.getCurrentTenant()).isNull();
     }
@@ -65,7 +65,7 @@ class JwtRequestFilterTest {
 
         when(jwtUtility.isTokenExpired(token)).thenThrow(new RuntimeException("Invalid token"));
 
-        // Must not throw — exception caught internally
+        
         assertThatNoException().isThrownBy(() ->
             filter.doFilterInternal(request, response, chain)
         );
@@ -102,7 +102,7 @@ class JwtRequestFilterTest {
         request.addHeader("Authorization", "Bearer " + token);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        // Chain that throws — simulates downstream exception
+        
         MockFilterChain throwingChain = new MockFilterChain() {
             @Override
             public void doFilter(jakarta.servlet.ServletRequest req, jakarta.servlet.ServletResponse res)
@@ -119,7 +119,7 @@ class JwtRequestFilterTest {
             filter.doFilterInternal(request, response, throwingChain);
         } catch (Exception ignored) {}
 
-        // CRITICAL: TenantContext MUST be cleared even after downstream exception
+        
         assertThat(TenantContext.getCurrentTenant()).isNull();
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }

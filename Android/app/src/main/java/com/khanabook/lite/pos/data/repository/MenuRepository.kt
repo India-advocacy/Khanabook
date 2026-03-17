@@ -39,11 +39,11 @@ class MenuRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun getItemById(id: Int): MenuItemEntity? {
+    suspend fun getItemById(id: Long): MenuItemEntity? {
         return menuDao.getItemById(id)
     }
 
-    suspend fun getItemOnce(id: Int): MenuItemEntity? {
+    suspend fun getItemOnce(id: Long): MenuItemEntity? {
         return menuDao.getItemById(id)
     }
 
@@ -63,13 +63,13 @@ class MenuRepository(
         return menuDao.getAllVariantsOnce()
     }
 
-    suspend fun updateStock(id: Int, delta: String) {
+    suspend fun updateStock(id: Long, delta: String) {
         val current = menuDao.getItemById(id) ?: return
         val newStock = java.math.BigDecimal(current.currentStock).add(java.math.BigDecimal(delta)).toString()
         updateItem(current.copy(currentStock = newStock))
     }
 
-    fun getItemsByCategoryFlow(categoryId: Int): Flow<List<MenuItemEntity>> {
+    fun getItemsByCategoryFlow(categoryId: Long): Flow<List<MenuItemEntity>> {
         return menuDao.getItemsByCategoryFlow(categoryId)
     }
 
@@ -77,7 +77,7 @@ class MenuRepository(
         return menuDao.getAllItemsFlow()
     }
 
-    fun getMenuWithVariantsByCategoryFlow(categoryId: Int): Flow<List<MenuWithVariants>> {
+    fun getMenuWithVariantsByCategoryFlow(categoryId: Long): Flow<List<MenuWithVariants>> {
         return menuDao.getMenuWithVariantsByCategoryFlow(categoryId)
             .map { list -> list.map { it.copy(variants = it.variants.filterNot(ItemVariantEntity::isDeleted)) } }
     }
@@ -86,7 +86,7 @@ class MenuRepository(
         return menuDao.searchItems("%$query%")
     }
 
-    suspend fun toggleItemAvailability(id: Int, isAvailable: Boolean) {
+    suspend fun toggleItemAvailability(id: Long, isAvailable: Boolean) {
         val current = menuDao.getItemById(id) ?: return
         updateItem(current.copy(isAvailable = isAvailable))
     }
@@ -117,7 +117,7 @@ class MenuRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun updateVariantStock(id: Int, delta: String) {
+    suspend fun updateVariantStock(id: Long, delta: String) {
         val current = menuDao.getVariantById(id) ?: return
         val newStock = java.math.BigDecimal(current.currentStock).add(java.math.BigDecimal(delta)).toString()
         updateVariant(current.copy(currentStock = newStock))
@@ -128,7 +128,7 @@ class MenuRepository(
         triggerBackgroundSync()
     }
 
-    fun getVariantsForItemFlow(itemId: Int): Flow<List<ItemVariantEntity>> {
+    fun getVariantsForItemFlow(itemId: Long): Flow<List<ItemVariantEntity>> {
         return menuDao.getVariantsForItemFlow(itemId)
     }
 

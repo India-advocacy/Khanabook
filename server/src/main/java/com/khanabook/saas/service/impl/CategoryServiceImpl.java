@@ -12,16 +12,17 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
-    private final CategoryRepository repository;
-    private final GenericSyncService genericSyncService;
+	private final CategoryRepository repository;
+	private final GenericSyncService genericSyncService;
 
-    @Override
-    public PushSyncResponse pushData(Long tenantId, List<Category> payload) {
-        return genericSyncService.handlePushSync(tenantId, payload, repository);
-    }
+	@Override
+	public PushSyncResponse pushData(Long tenantId, List<Category> payload) {
+		return genericSyncService.handlePushSync(tenantId, payload, repository);
+	}
 
-    @Override
-    public List<Category> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
-        return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp, deviceId);
-    }
+	@Override
+	public List<Category> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
+		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
+				deviceId);
+	}
 }

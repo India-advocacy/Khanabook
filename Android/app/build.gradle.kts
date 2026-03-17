@@ -34,12 +34,12 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        // â”€â”€ Meta / WhatsApp API Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        // âš ï¸  SECURITY WARNING: BuildConfig fields are compiled into the APK binary
-        // and are extractable via apktool or jadx. The META_ACCESS_TOKEN should
-        // ideally be held on a backend server (e.g. Firebase Function / Cloud Run)
-        // that proxies OTP requests. Until a backend is available, ensure you
-        // rotate this token regularly and restrict its API permissions.
+        
+        
+        
+        
+        
+        
         val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
@@ -59,12 +59,12 @@ android {
 
     signingConfigs {
         create("release") {
-            // âœ… Credentials read from local.properties â€” never hardcoded
-            // Add to local.properties:
-            //   SIGNING_STORE_FILE=release-key.jks
-            //   SIGNING_STORE_PASSWORD=your_store_password
-            //   SIGNING_KEY_ALIAS=your_key_alias
-            //   SIGNING_KEY_PASSWORD=your_key_password
+            
+            
+            
+            
+            
+            
             val localProperties = Properties()
             val localPropertiesFile = rootProject.file("local.properties")
             if (localPropertiesFile.exists()) {
@@ -130,45 +130,45 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.navigation.compose)
 
-    // Room
+    
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    // Hilt
+    
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    // WorkManager
+    
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 
-    // Security
+    
     implementation("org.mindrot:jbcrypt:0.4")
     implementation(libs.sqlcipher)
     implementation(libs.androidx.sqlite.ktx)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
-    // Social Login
+    
     implementation(libs.play.services.auth)
 
 
-    // Google Sign-In via Credential Manager (modern API)
+    
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation(libs.coil.compose)
 
-    // Networking
+    
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp.logging)
     implementation(libs.zxing.android)
     implementation(libs.mlkit.text.recognition)
     
-    // CameraX
+    
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)

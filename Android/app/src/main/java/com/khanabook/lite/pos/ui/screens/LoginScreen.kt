@@ -91,7 +91,7 @@ fun LoginScreen(
                     modifier = Modifier.padding(bottom = 48.dp)
             )
 
-            // Email/Phone Input
+            
             TextField(
                     value = phone,
                     onValueChange = { phone = it },
@@ -123,7 +123,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Password Input
+            
             TextField(
                     value = password,
                     onValueChange = { password = it },
@@ -168,7 +168,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Forgot Password Link
+            
             Text(
                     text = "Forgot Password?",
                     color = PrimaryGold,
@@ -179,7 +179,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Show error message if exists
+            
             if (loginStatus is AuthViewModel.LoginResult.Error) {
                 Text(
                         text = (loginStatus as AuthViewModel.LoginResult.Error).message,
@@ -190,7 +190,7 @@ fun LoginScreen(
                 )
             }
 
-            // Log In Button
+            
             val isLoginEnabled = phone.isNotBlank() && password.isNotBlank()
             Button(
                     onClick = { if (isLoginEnabled) viewModel.login(phone, password) },
@@ -207,7 +207,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Sign Up Link
+            
             Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
@@ -258,7 +258,7 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // â”€â”€â”€ TEST CREDENTIALS SHORTCUT â”€â”€â”€
+            
             if (com.khanabook.lite.pos.BuildConfig.DEBUG) {
                 Text(
                     text = "Use Test Credentials (DEBUG ONLY)",
@@ -292,7 +292,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
     var phone by remember { mutableStateOf("") }
     var otp by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
-    var step by remember { mutableIntStateOf(1) } // 1: Phone, 2: OTP, 3: New Password
+    var step by remember { mutableIntStateOf(1) } 
     var resendTimer by remember { mutableIntStateOf(0) }
 
     val resetStatus by viewModel.resetPasswordStatus.collectAsState()

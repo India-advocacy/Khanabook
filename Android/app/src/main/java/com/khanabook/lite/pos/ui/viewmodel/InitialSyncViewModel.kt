@@ -35,11 +35,11 @@ class InitialSyncViewModel @Inject constructor(
         viewModelScope.launch {
             _syncState.value = InitialSyncState.Syncing
             try {
-                // Perform master pull to fetch Categories, Menu, Inventory
+                
                 val result = syncManager.performMasterPull()
                 
                 if (result.isSuccess) {
-                    // Mark sync as completed
+                    
                     sessionManager.setInitialSyncCompleted(true)
                     _syncState.value = InitialSyncState.Success
                 } else {
@@ -49,7 +49,7 @@ class InitialSyncViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                // This will trigger if there's an unexpected error
+                
                 _syncState.value = InitialSyncState.Error(
                     e.localizedMessage ?: "Unexpected error occurred."
                 )

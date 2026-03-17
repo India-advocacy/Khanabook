@@ -13,18 +13,16 @@ import com.khanabook.saas.security.TenantContext;
 @RequestMapping("/sync/menuitem")
 @RequiredArgsConstructor
 public class MenuItemController {
-    private final MenuItemService service;
+	private final MenuItemService service;
 
-    @PostMapping("/push")
-    public ResponseEntity<PushSyncResponse> push(@RequestBody List<MenuItem> payload) {
-        // TenantId automatically extracted by JwtFilter
-        return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
-    }
+	@PostMapping("/push")
+	public ResponseEntity<PushSyncResponse> push(@RequestBody List<MenuItem> payload) {
 
-    @GetMapping("/pull")
-    public ResponseEntity<List<MenuItem>> pull(
-            @RequestParam Long lastSyncTimestamp,
-            @RequestParam String deviceId) {
-        return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
-    }
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
+	}
+
+	@GetMapping("/pull")
+	public ResponseEntity<List<MenuItem>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
+		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	}
 }

@@ -17,7 +17,7 @@ class AuthManager @Inject constructor() {
         try {
             BCrypt.checkpw(password, hash)
         } catch (e: Exception) {
-            false // Fallback for old SHA-256 hashes if any existed
+            false 
         }
     }
 }

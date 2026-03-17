@@ -30,7 +30,7 @@ class SplashViewModel @Inject constructor(
 
     private fun checkSession() {
         viewModelScope.launch {
-            // Give splash at least a little bit of time to show the logo
+            
             kotlinx.coroutines.delay(1000)
             
             val token = sessionManager.getAuthToken()

@@ -46,7 +46,7 @@ interface KhanaBookApi {
             @Query("deviceId") deviceId: String
         ): List<BillPaymentEntity>
 
-        // Config Endpoints
+        
         @POST("sync/restaurantprofile/push")
         suspend fun pushRestaurantProfiles(@Body profiles: List<RestaurantProfileEntity>): PushSyncResponse
 
@@ -65,7 +65,7 @@ interface KhanaBookApi {
             @Query("deviceId") deviceId: String
         ): List<UserEntity>
 
-        // Menu Endpoints
+        
         @POST("sync/menu/categories/push")
         suspend fun pushCategories(@Body categories: List<CategoryEntity>): PushSyncResponse
 

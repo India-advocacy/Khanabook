@@ -1,7 +1,7 @@
 package com.khanabook.saas.security;
 
 public class TenantContext {
-	
+
 	private static final ThreadLocal<Long> currentTenant = new ThreadLocal<>();
 
 	public static void setCurrentTenant(Long tenantId) {

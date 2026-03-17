@@ -9,6 +9,6 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PushSyncResponse {
-    private List<Integer> successfulLocalIds;
-    private List<Integer> failedLocalIds;
+	private List<Integer> successfulLocalIds;
+	private List<Integer> failedLocalIds;
 }

@@ -25,10 +25,10 @@ data class BillEntity(
         @ColumnInfo(name = "restaurant_id", defaultValue = "0") val restaurantId: Long = 0,
         @ColumnInfo(name = "device_id", defaultValue = "''") val deviceId: String = "",
         @ColumnInfo(name = "daily_order_id") val dailyOrderId: Long,
-        @ColumnInfo(name = "daily_order_display") val dailyOrderDisplay: String, // "27022026-001"
-        @ColumnInfo(name = "lifetime_order_id") val lifetimeOrderId: Long, // never resets
+        @ColumnInfo(name = "daily_order_display") val dailyOrderDisplay: String, 
+        @ColumnInfo(name = "lifetime_order_id") val lifetimeOrderId: Long, 
         @ColumnInfo(name = "order_type", defaultValue = "order")
-        val orderType: String = "order", // 'order'
+        val orderType: String = "order", 
         @ColumnInfo(name = "customer_name") val customerName: String? = null,
         @ColumnInfo(name = "customer_whatsapp") val customerWhatsapp: String? = null,
         val subtotal: String,
@@ -40,17 +40,17 @@ data class BillEntity(
         @ColumnInfo(name = "total_amount") val totalAmount: String,
         @ColumnInfo(name = "payment_mode")
         val paymentMode:
-                String, // cash | upi | pos | zomato | swiggy | own_website | part_cash_upi | ...
+                String, 
         @ColumnInfo(name = "part_amount_1", defaultValue = "'0.0'") val partAmount1: String = "0.0",
         @ColumnInfo(name = "part_amount_2", defaultValue = "'0.0'") val partAmount2: String = "0.0",
-        @ColumnInfo(name = "payment_status") val paymentStatus: String, // 'success' | 'failed'
+        @ColumnInfo(name = "payment_status") val paymentStatus: String, 
         @ColumnInfo(name = "order_status")
-        val orderStatus: String, // 'draft' | 'completed' | 'cancelled'
+        val orderStatus: String, 
         @ColumnInfo(name = "created_by") val createdBy: Long? = null,
         @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
         @ColumnInfo(name = "paid_at") val paidAt: Long? = null,
 
-        // Cloud Sync Metadata
+        
         @ColumnInfo(name = "is_synced", defaultValue = "0") val isSynced: Boolean = false,
         @ColumnInfo(name = "updated_at") val updatedAt: Long = System.currentTimeMillis()
 ,

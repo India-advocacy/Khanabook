@@ -15,19 +15,18 @@ import com.khanabook.saas.security.TenantContext;
 @RequestMapping("/sync/bills/items")
 @RequiredArgsConstructor
 public class BillItemController {
-    private static final Logger log = LoggerFactory.getLogger(BillItemController.class);
-    private final BillItemService service;
+	private static final Logger log = LoggerFactory.getLogger(BillItemController.class);
+	private final BillItemService service;
 
-    @PostMapping("/push")
-    public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillItem> payload) {
-        log.info("Received bill items push for {} items for Tenant: {}", payload.size(), TenantContext.getCurrentTenant());
-        return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
-    }
+	@PostMapping("/push")
+	public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillItem> payload) {
+		log.info("Received bill items push for {} items for Tenant: {}", payload.size(),
+				TenantContext.getCurrentTenant());
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
+	}
 
-    @GetMapping("/pull")
-    public ResponseEntity<List<BillItem>> pull(
-            @RequestParam Long lastSyncTimestamp,
-            @RequestParam String deviceId) {
-        return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
-    }
+	@GetMapping("/pull")
+	public ResponseEntity<List<BillItem>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
+		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	}
 }

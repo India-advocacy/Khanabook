@@ -10,10 +10,7 @@ import com.journeyapps.barcodescanner.BarcodeEncoder
 
 object UpiQrManager {
 
-    /**
-     * Generates a UPI QR code bitmap
-     * format: upi://pay?pa={vpa}&pn={name}&am={amount}&cu=INR
-     */
+    
     fun generateUpiQr(vpa: String, name: String, amount: Double): Bitmap? {
         return try {
             val uri = "upi://pay?pa=$vpa&pn=$name&am=${"%.2f".format(amount)}&cu=INR"

@@ -38,7 +38,7 @@ class MainActivity : ComponentActivity() {
                 val connectionStatus by networkMonitor.status.collectAsState(initial = null)
                 val context = this
 
-                // Network Status Toast
+                
                 var lastStatus by remember { mutableStateOf<com.khanabook.lite.pos.domain.util.ConnectionStatus?>(null) }
                 LaunchedEffect(connectionStatus) {
                     if (lastStatus != null && connectionStatus != null && lastStatus != connectionStatus) {
@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Global Logout Listener
+                
                 LaunchedEffect(currentUser) {
                     val currentRoute = navController.currentDestination?.route
                     if (currentUser == null && currentRoute != "splash") {
@@ -114,7 +114,7 @@ class MainActivity : ComponentActivity() {
                     composable("signup") {
                         SignUpScreen(
                                 onSignUpSuccess = {
-                                    // Navigate to initial_sync immediately assuming backend returns token and it's saved in SessionManager inside auth flow. Or login directly.
+                                    
                                     navController.navigate("initial_sync") {
                                         popUpTo("signup") { inclusive = true }
                                     }

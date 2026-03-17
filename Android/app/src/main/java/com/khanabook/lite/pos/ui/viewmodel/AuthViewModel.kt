@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "AuthViewModel"
 
-// Maximum consecutive failed login attempts before lockout
+
 private const val MAX_FAILED_ATTEMPTS = 5
 
 @HiltViewModel
@@ -69,16 +69,16 @@ constructor(
     private val _otpVerificationStatus = MutableStateFlow<OtpVerificationResult?>(null)
     val otpVerificationStatus: StateFlow<OtpVerificationResult?> = _otpVerificationStatus
 
-    // OTP stored privately in ViewModel memory — never exposed through StateFlow
+    
     private var generatedOtp: String? = null
 
-    // ————— Brute-force protection
-    // —————————————————————————————————————————————
+    
+    
     private var failedLoginAttempts = 0
     private var lockoutUntilMs: Long = 0L
 
     fun login(email: String, password: String) {
-        // Brute-force lockout check
+        
         val now = System.currentTimeMillis()
         if (now < lockoutUntilMs) {
             val remainingSeconds = (lockoutUntilMs - now) / 1000
@@ -91,7 +91,7 @@ constructor(
         }
 
         viewModelScope.launch {
-            _loginStatus.value = null // Clear previous status
+            _loginStatus.value = null 
 
             val localHash = authManager.hashPassword(password)
             val result = userRepository.remoteLogin(email, password, localHash)
@@ -101,14 +101,14 @@ constructor(
                 failedLoginAttempts = 0
                 lockoutUntilMs = 0L
 
-                // Reset sync state only on successful login
+                
                 sessionManager.saveLastSyncTimestamp(0L)
                 sessionManager.setInitialSyncCompleted(false)
 
-                // Trigger immediate sync
+                
                 syncManager.performMasterPull()
 
-                // Sync WhatsApp number to Shop Configuration
+                
                 user.whatsappNumber?.let { number ->
                     viewModelScope.launch {
                         val currentProfile = restaurantRepository.getProfile()
@@ -134,7 +134,7 @@ constructor(
                 _loginStatus.value = LoginResult.Success(user)
             }.onFailure { e ->
                 Log.e(TAG, "Remote login failed: ${e.message}. Falling back to local.", e)
-                // Fallback to local login if offline or server error
+                
                 val user = userRepository.getUserByEmail(email)
                 if (user != null) {
                     val verified = authManager.verifyPassword(password, user.passwordHash.orEmpty())
@@ -180,19 +180,19 @@ constructor(
 
     fun sendOtp(phoneNumber: String, purpose: String = "signup") {
         viewModelScope.launch {
-            // Generate OTP — stored privately, never exposed in state
+            
             val otp = (100000..999999).random().toString()
             generatedOtp = otp
             
-            // OTP is stored privately, never logged or exposed.
+            
 
             try {
-                // Check if user exists for reset password
+                
                 if (purpose == "reset") {
-                    // 1. Check local DB first
+                    
                     var user = userRepository.getUserByEmail(phoneNumber)
                     
-                    // 2. If not found locally, try remote check (Crucial for new devices)
+                    
                     if (user == null) {
                         try {
                             val exists = userRepository.checkUserExistsRemotely(phoneNumber)
@@ -202,7 +202,7 @@ constructor(
                                 return@launch
                             }
                         } catch (e: Exception) {
-                            // If server is down and no local user, we can't reset
+                            
                             _resetPasswordStatus.value = ResetPasswordResult.Error("Account not found locally and server is unreachable")
                             generatedOtp = null
                             return@launch
@@ -228,8 +228,8 @@ constructor(
                                                                                         Parameter(
                                                                                                 text =
                                                                                                         otp
-                                                                                        ) // Maps to
-                                                                                        // {{1}}
+                                                                                        ) 
+                                                                                        
                                                                                         )
                                                                 ),
                                                                 Component(
@@ -241,11 +241,11 @@ constructor(
                                                                                         Parameter(
                                                                                                 text =
                                                                                                         otp
-                                                                                        ) // Value
-                                                                                        // for
-                                                                                        // Copy
-                                                                                        // Code
-                                                                                        // button
+                                                                                        ) 
+                                                                                        
+                                                                                        
+                                                                                        
+                                                                                        
                                                                                         )
                                                                 )
                                                         )
@@ -260,7 +260,7 @@ constructor(
                         )
 
                 if (response.isSuccessful) {
-                    // ✅ OTP is NOT included in the state — only a "sent" signal
+                    
                     when (purpose) {
                         "reset" -> _resetPasswordStatus.value = ResetPasswordResult.OtpSent
                         "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.OtpSent
@@ -293,7 +293,7 @@ constructor(
     fun verifyOtp(enteredOtp: String): Boolean {
         val valid = enteredOtp.isNotBlank() && enteredOtp == generatedOtp
         if (valid) {
-            generatedOtp = null // Invalidate after successful verification
+            generatedOtp = null 
         }
         return valid
     }
@@ -301,16 +301,16 @@ constructor(
     fun signUp(name: String, phoneNumber: String, password: String) {
         viewModelScope.launch {
             try {
-                // 1. Create User remotely to get JWT Token
+                
                 val localHash = authManager.hashPassword(password)
                 val result = userRepository.remoteSignup(name, phoneNumber, password, localHash)
                 
                 result.onSuccess {
-                    // Reset sync state only after successful signup
+                    
                     sessionManager.saveLastSyncTimestamp(0L)
                     sessionManager.setInitialSyncCompleted(false)
 
-                    // 2. Update Shop Profile with signup details
+                    
                     val currentProfile = restaurantRepository.getProfile()
                     val updatedProfile =
                             if (currentProfile != null) {
@@ -336,7 +336,7 @@ constructor(
                             }
                     restaurantRepository.saveProfile(updatedProfile)
                     
-                    // 3. Trigger immediate sync
+                    
                     syncManager.performMasterPull()
 
                     _signUpStatus.value = SignUpResult.Success
@@ -352,10 +352,10 @@ constructor(
     fun resetPassword(phoneNumber: String, newPassword: String) {
         viewModelScope.launch {
             try {
-                // 1. Reset remotely on the server first
+                
                 userRepository.remoteResetPassword(phoneNumber, newPassword)
 
-                // 2. Update locally if user exists in local DB
+                
                 val user = userRepository.getUserByEmail(phoneNumber)
                 if (user != null) {
                     val newHash = authManager.hashPassword(newPassword)
@@ -380,10 +380,7 @@ constructor(
         _resetPasswordStatus.value = null
     }
 
-    /**
-     * Real Google Sign-In using Credential Manager (modern Android API). Requires an Activity
-     * context — pass LocalContext.current from the composable.
-     */
+    
     fun loginWithGoogle(context: Context) {
         val activity = context.findActivity()
         if (activity == null) {
@@ -401,7 +398,7 @@ constructor(
 
                 val googleIdOption =
                         GetGoogleIdOption.Builder()
-                                .setFilterByAuthorizedAccounts(false) // show all Google accounts
+                                .setFilterByAuthorizedAccounts(false) 
                                 .setServerClientId(
                                         activity.getString(R.string.default_web_client_id)
                                 )
@@ -425,25 +422,25 @@ constructor(
                     val googleCred = GoogleIdTokenCredential.createFrom(credential.data)
                     val idToken = googleCred.idToken
 
-                    // Reset sync state for fresh start
+                    
                     sessionManager.saveLastSyncTimestamp(0L)
                     sessionManager.setInitialSyncCompleted(false)
 
-                    // Call backend to verify Google ID Token and get our own JWT
+                    
                     val result = userRepository.remoteGoogleLogin(idToken)
                     
                     result.onSuccess { user ->
                         failedLoginAttempts = 0
                         lockoutUntilMs = 0L
 
-                        // Reset sync state only on successful Google login
+                        
                         sessionManager.saveLastSyncTimestamp(0L)
                         sessionManager.setInitialSyncCompleted(false)
 
-                        // Trigger immediate sync
+                        
                         syncManager.performMasterPull()
 
-                        // Sync WhatsApp number to Shop Configuration
+                        
                         user.whatsappNumber?.let { number ->
                             viewModelScope.launch {
                                 val currentProfile = restaurantRepository.getProfile()
@@ -530,14 +527,14 @@ constructor(
 
     sealed class SignUpResult {
         object Success : SignUpResult()
-        // ✅ OTP removed from state — prevents OTP leakage through StateFlow
+        
         object OtpSent : SignUpResult()
         data class Error(val message: String) : SignUpResult()
     }
 
     sealed class ResetPasswordResult {
         object Success : ResetPasswordResult()
-        // ✅ OTP removed from state — prevents OTP leakage through StateFlow
+        
         object OtpSent : ResetPasswordResult()
         data class Error(val message: String) : ResetPasswordResult()
     }

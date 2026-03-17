@@ -80,7 +80,7 @@ fun SettingsScreen(
             .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Unified Header
+            
             if (section != "menu_config") {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -129,7 +129,7 @@ fun SettingsScreen(
                             
                             Spacer(modifier = Modifier.height(16.dp))
                             
-                            // Logout Card
+                            
                             Card(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                                 colors = CardDefaults.cardColors(containerColor = CardBG),
@@ -273,7 +273,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
     var logoUpdateTrigger by remember { mutableStateOf(0L) }
 
-    // Sync local state when profile changes (e.g. after login/sync)
+    
     LaunchedEffect(profile) {
         profile?.let {
             name = it.shopName ?: ""
@@ -285,7 +285,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
         }
     }
 
-    // --- OTP States ---
+    
     var otpValue by remember { mutableStateOf("") }
     val otpStatus by authViewModel.otpVerificationStatus.collectAsState()
 
@@ -319,7 +319,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
     val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let { 
             logoPath = copyUriToInternalStorage(context, it, "shop_logo.png")
-            logoUpdateTrigger = System.currentTimeMillis() // Force refresh
+            logoUpdateTrigger = System.currentTimeMillis() 
         }
     }
 
@@ -333,9 +333,9 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
                                 .data(logoPath)
-                                .setParameter("refresh", logoUpdateTrigger) // Cache buster for local updates
+                                .setParameter("refresh", logoUpdateTrigger) 
                                 .crossfade(true)
-                                .diskCachePolicy(CachePolicy.DISABLED) // Always reload if it's a local file update
+                                .diskCachePolicy(CachePolicy.DISABLED) 
                                 .build(),
                             contentDescription = "Logo",
                             modifier = Modifier.fillMaxSize().padding(4.dp)
@@ -350,7 +350,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             ParchmentTextField(value = name, onValueChange = { name = it }, label = "Shop Name")
             Spacer(modifier = Modifier.height(12.dp))
             ParchmentTextField(value = address, onValueChange = { address = it }, label = "Shop Address")
-            val isPhoneValid = isValidPhone(whatsapp)
+            val isPhoneValid = ValidationUtils.isValidPhone(whatsapp)
             val numberChanged = whatsapp != (profile?.whatsappNumber ?: "")
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -364,7 +364,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                             isOtpVerified = false
                             otpValue = ""
                         } else {
-                            // If user typed back the original number, they don't need OTP anymore
+                            
                             isOtpVerified = true
                         }
                     } 
@@ -467,7 +467,7 @@ private fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
     var ownWebsiteEnabled by remember { mutableStateOf(profile?.ownWebsiteEnabled ?: false) }
     var qrUpdateTrigger by remember { mutableStateOf(0L) }
 
-    // Sync local state when profile changes
+    
     LaunchedEffect(profile) {
         profile?.let {
             currency = it.currency ?: "INR"
@@ -580,6 +580,7 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
     val btIsScanning by viewModel.btIsScanning.collectAsStateWithLifecycle()
     val btIsConnecting by viewModel.btIsConnecting.collectAsStateWithLifecycle()
     val btConnectResult by viewModel.btConnectResult.collectAsStateWithLifecycle()
+    val btIsConnected by viewModel.btIsConnected.collectAsStateWithLifecycle()
     var showBtSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -651,7 +652,22 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                 Spacer(modifier = Modifier.height(16.dp))
                 Box(modifier = Modifier.fillMaxWidth().border(1.dp, BorderGold.copy(alpha = 0.5f), RoundedCornerShape(4.dp)).padding(12.dp)) {
                     Column {
-                        Text("Connected: ${profile?.printerName ?: "None"}", color = TextLight, fontWeight = FontWeight.Bold)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Connected: ${profile?.printerName ?: "None"}", color = TextLight, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(if (btIsConnected) SuccessGreen else DangerRed, CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                if (btIsConnected) "Online" else "Offline",
+                                color = if (btIsConnected) SuccessGreen else DangerRed,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                         Text("MAC: ${profile?.printerMac ?: "---"}", color = TextGold, fontSize = 11.sp)
                     }
                 }
@@ -751,9 +767,9 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
     val isFssaiValid = if (country.equals("India", true)) {
         fssaiNumber.isNotBlank() && fssaiNumber.length >= 10
     } else {
-        true // Optional for other countries
+        true 
     }
-    val isGstValid = !gstEnabled || (gstNumber.isNotBlank() && isValidTaxPercentage(gstPct))
+    val isGstValid = !gstEnabled || (gstNumber.isNotBlank() && ValidationUtils.isValidTaxPercentage(gstPct))
     val isSaveEnabled = isFssaiValid && isGstValid
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
@@ -784,8 +800,8 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
                         value = gstPct, 
                         onValueChange = { gstPct = it }, 
                         label = "GST % (Mandatory)",
-                        isError = gstEnabled && !isValidTaxPercentage(gstPct),
-                        supportingText = if (gstEnabled && !isValidTaxPercentage(gstPct)) "Invalid GST %" else null
+                        isError = gstEnabled && !ValidationUtils.isValidTaxPercentage(gstPct),
+                        supportingText = if (gstEnabled && !ValidationUtils.isValidTaxPercentage(gstPct)) "Invalid GST %" else null
                     )
                 }
             }

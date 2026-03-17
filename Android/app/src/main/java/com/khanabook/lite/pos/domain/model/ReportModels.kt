@@ -5,16 +5,16 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 data class OrderLevelRow(
     val dailyId: String,
-    val lifetimeId: Int,
-    val billId: Int,
+    val lifetimeId: Long,
+    val billId: Long,
     val paymentMode: PaymentMode,
     val date: String
 )
 
 data class OrderDetailRow(
     val dailyNo: String,
-    val lifetimeNo: Int,
-    val billId: Int,
+    val lifetimeNo: Long,
+    val billId: Long,
     val currentStatus: String,
     val salesAmount: String,
     val payMode: PaymentMode,

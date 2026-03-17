@@ -49,15 +49,15 @@ class BillRepository(
         )
     }
 
-    suspend fun getBillById(id: Int): BillEntity? {
+    suspend fun getBillById(id: Long): BillEntity? {
         return billDao.getBillById(id)
     }
 
-    suspend fun getBillWithItemsById(id: Int): BillWithItems? {
+    suspend fun getBillWithItemsById(id: Long): BillWithItems? {
         return billDao.getBillWithItemsById(id)
     }
 
-    suspend fun getBillWithItemsByLifetimeId(id: Int): BillWithItems? {
+    suspend fun getBillWithItemsByLifetimeId(id: Long): BillWithItems? {
         return billDao.getBillWithItemsByLifetimeId(id)
     }
 
@@ -67,7 +67,7 @@ class BillRepository(
         return billDao.getBillByDailyIdAndDate(displayId, start, end)
     }
 
-    suspend fun getBillByDailyIntIdAndDate(dailyId: Int, date: String): BillEntity? {
+    suspend fun getBillByDailyIntIdAndDate(dailyId: Long, date: String): BillEntity? {
         val start = com.khanabook.lite.pos.domain.util.DateUtils.getStartOfDay(date)
         val end = com.khanabook.lite.pos.domain.util.DateUtils.getEndOfDay(date)
         return billDao.getBillByDailyIntIdAndDate(dailyId, start, end)
@@ -77,10 +77,10 @@ class BillRepository(
         return billDao.getDraftBills()
     }
 
-    suspend fun updateOrderStatus(id: Int, status: String) {
+    suspend fun updateOrderStatus(id: Long, status: String) {
         val current = billDao.getBillById(id) ?: return
         
-        // Guard: If already completed/paid, do not deduct stock again
+        
         val wasDeducted = current.orderStatus.equals("completed", ignoreCase = true) || 
                           current.orderStatus.equals("paid", ignoreCase = true)
         val isBecomingDeducted = status.equals("completed", ignoreCase = true) || 
@@ -94,7 +94,7 @@ class BillRepository(
             )
         )
 
-        // Only deduct if transitioning from non-deducted to deducted
+        
         if (isBecomingDeducted && !wasDeducted) {
             val billWithItems = billDao.getBillWithItemsById(id)
             billWithItems?.let { inventoryConsumptionManager?.consumeMaterialsForBill(it.items) }
@@ -102,7 +102,7 @@ class BillRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun updatePaymentMode(id: Int, mode: String) {
+    suspend fun updatePaymentMode(id: Long, mode: String) {
         val current = billDao.getBillById(id) ?: return
         billDao.updateBill(
             current.copy(
@@ -114,7 +114,7 @@ class BillRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun updatePaymentStatus(id: Int, status: String) {
+    suspend fun updatePaymentStatus(id: Long, status: String) {
         val current = billDao.getBillById(id) ?: return
         billDao.updateBill(
             current.copy(
@@ -127,7 +127,7 @@ class BillRepository(
     }
 
     fun getBillsByDateRange(startDate: String, endDate: String): Flow<List<BillEntity>> {
-        // Range parsing logic
+        
         val startMillis = try { 
             if (startDate.contains(":")) {
                java.time.LocalDateTime.parse(startDate.replace(" ", "T")).atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()

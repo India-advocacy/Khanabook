@@ -17,7 +17,7 @@ public class BillPaymentController {
 
     @PostMapping("/push")
     public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillPayment> payload) {
-        // TenantId automatically extracted by JwtFilter
+        
         return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
     }
 

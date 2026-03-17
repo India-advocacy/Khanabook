@@ -10,46 +10,45 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "bill_items", indexes = {
-    @Index(name = "idx_bill_items_tenant_updated", columnList = "restaurant_id, updated_at"),
-    @Index(name = "idx_bill_items_device", columnList = "restaurant_id, device_id, local_id")
-})
+		@Index(name = "idx_bill_items_tenant_updated", columnList = "restaurant_id, updated_at"),
+		@Index(name = "idx_bill_items_device", columnList = "restaurant_id, device_id, local_id") })
 @Getter
 @Setter
 public class BillItem extends BaseSyncEntity {
 
-    @Column(name = "bill_id", nullable = false)
-    private Integer billId;
+	@Column(name = "bill_id", nullable = false)
+	private Integer billId;
 
-    @Column(name = "server_bill_id")
-    private Long serverBillId;
+	@Column(name = "server_bill_id")
+	private Long serverBillId;
 
-    @Column(name = "menu_item_id", nullable = false)
-    private Integer menuItemId;
+	@Column(name = "menu_item_id", nullable = false)
+	private Integer menuItemId;
 
-    @Column(name = "server_menu_item_id")
-    private Long serverMenuItemId;
+	@Column(name = "server_menu_item_id")
+	private Long serverMenuItemId;
 
-    @Column(name = "item_name", nullable = false)
-    private String itemName;
+	@Column(name = "item_name", nullable = false)
+	private String itemName;
 
-    @Column(name = "variant_id")
-    private Integer variantId;
+	@Column(name = "variant_id")
+	private Integer variantId;
 
-    @Column(name = "server_variant_id")
-    private Long serverVariantId;
+	@Column(name = "server_variant_id")
+	private Long serverVariantId;
 
-    @Column(name = "variant_name")
-    private String variantName;
+	@Column(name = "variant_name")
+	private String variantName;
 
-    @Column(name = "price", columnDefinition = "NUMERIC(12,2)", nullable = false)
-    private java.math.BigDecimal price;
+	@Column(name = "price", columnDefinition = "NUMERIC(12,2)", nullable = false)
+	private java.math.BigDecimal price;
 
-    @Column(name = "quantity", nullable = false)
-    private Integer quantity;
+	@Column(name = "quantity", nullable = false)
+	private Integer quantity;
 
-    @Column(name = "item_total", columnDefinition = "NUMERIC(12,2)", nullable = false)
-    private java.math.BigDecimal itemTotal;
+	@Column(name = "item_total", columnDefinition = "NUMERIC(12,2)", nullable = false)
+	private java.math.BigDecimal itemTotal;
 
-    @Column(name = "special_instruction")
-    private String specialInstruction;
+	@Column(name = "special_instruction")
+	private String specialInstruction;
 }

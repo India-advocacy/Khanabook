@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MenuDao {
-    // Menu Items
+    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertItem(item: MenuItemEntity): Long
 
@@ -61,7 +61,7 @@ interface MenuDao {
     @Query("SELECT id FROM menu_items WHERE category_id = :categoryId")
     suspend fun getItemIdsByCategory(categoryId: Long): List<Long>
 
-    // Item Variants
+    
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertVariant(variant: ItemVariantEntity): Long
 

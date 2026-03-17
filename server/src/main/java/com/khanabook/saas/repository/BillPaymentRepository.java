@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface BillPaymentRepository extends SyncRepository<BillPayment, Long> {
+
 }

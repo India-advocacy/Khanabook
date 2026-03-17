@@ -15,49 +15,49 @@ import java.time.ZoneId;
 @Service
 @RequiredArgsConstructor
 public class RestaurantProfileServiceImpl implements RestaurantProfileService {
-    private final RestaurantProfileRepository repository;
-    private final GenericSyncService genericSyncService;
+	private final RestaurantProfileRepository repository;
+	private final GenericSyncService genericSyncService;
 
-    @Override
-    public PushSyncResponse pushData(Long tenantId, List<RestaurantProfile> payload) {
-        return genericSyncService.handlePushSync(tenantId, payload, repository);
-    }
+	@Override
+	public PushSyncResponse pushData(Long tenantId, List<RestaurantProfile> payload) {
+		return genericSyncService.handlePushSync(tenantId, payload, repository);
+	}
 
-    @Override
-    public List<RestaurantProfile> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
-        return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp, deviceId);
-    }
+	@Override
+	public List<RestaurantProfile> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
+		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
+				deviceId);
+	}
 
-    @Override
-    @Transactional
-    public RestaurantProfileService.CounterResponse incrementAndGetCounters(Long tenantId) {
-        Long now = System.currentTimeMillis();
-        String timezone = repository.findByRestaurantId(tenantId)
-                .map(RestaurantProfile::getTimezone)
-                .orElse("Asia/Kolkata");
-        ZoneId zoneId;
-        try {
-            zoneId = ZoneId.of(timezone);
-        } catch (Exception e) {
-            zoneId = ZoneId.of("Asia/Kolkata");
-        }
-        String today = LocalDate.now(zoneId).toString();
+	@Override
+	@Transactional
+	public RestaurantProfileService.CounterResponse incrementAndGetCounters(Long tenantId) {
+		Long now = System.currentTimeMillis();
+		String timezone = repository.findByRestaurantId(tenantId).map(RestaurantProfile::getTimezone)
+				.orElse("Asia/Kolkata");
+		ZoneId zoneId;
+		try {
+			zoneId = ZoneId.of(timezone);
+		} catch (Exception e) {
+			zoneId = ZoneId.of("Asia/Kolkata");
+		}
+		String today = LocalDate.now(zoneId).toString();
 
-        int updated = repository.incrementCountersAtomic(tenantId, today, now);
-        
-        if (updated == 0) {
-            throw new RuntimeException("Restaurant profile not found for ID: " + tenantId);
-        }
+		int updated = repository.incrementCountersAtomic(tenantId, today, now);
 
-        java.util.List<Object[]> result = repository.getCounters(tenantId);
-        if (result == null || result.isEmpty()) {
-            throw new RuntimeException("Failed to retrieve updated counters");
-        }
+		if (updated == 0) {
+			throw new RuntimeException("Restaurant profile not found for ID: " + tenantId);
+		}
 
-        RestaurantProfileService.CounterResponse response = new RestaurantProfileService.CounterResponse();
-        Object[] row = result.get(0);
-        response.setDailyCounter(((Number) row[0]).intValue());
-        response.setLifetimeCounter(((Number) row[1]).intValue());
-        return response;
-    }
+		java.util.List<Object[]> result = repository.getCounters(tenantId);
+		if (result == null || result.isEmpty()) {
+			throw new RuntimeException("Failed to retrieve updated counters");
+		}
+
+		RestaurantProfileService.CounterResponse response = new RestaurantProfileService.CounterResponse();
+		Object[] row = result.get(0);
+		response.setDailyCounter(((Number) row[0]).intValue());
+		response.setLifetimeCounter(((Number) row[1]).intValue());
+		return response;
+	}
 }

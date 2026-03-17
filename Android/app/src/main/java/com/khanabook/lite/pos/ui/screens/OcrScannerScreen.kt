@@ -89,20 +89,20 @@ fun OcrScannerScreen(
     val context = LocalContext.current
     val uiState by viewModel.ocrImportUiState.collectAsState()
 
-    // Normal OCR mode: navigate back when drafts are ready
+    
     LaunchedEffect(uiState.drafts) {
         if (!returnBarcode && uiState.drafts.isNotEmpty() && !uiState.isProcessing) {
             onBack()
         }
     }
 
-    // PDF picker for image-as-PDF fallback
+    
     val pdfLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
             viewModel.extractTextFromPdf(context, it)
-            onBack() // return to menu config to show result
+            onBack() 
         }
     }
 
@@ -114,7 +114,7 @@ fun OcrScannerScreen(
     }
     val isProcessing = uiState.isProcessing
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    // Use ViewModel error if local is null
+    
     val displayError = errorMessage ?: uiState.error
 
     var capturedBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
@@ -130,8 +130,8 @@ fun OcrScannerScreen(
             uri?.let {
                 errorMessage = null
                 capturedBitmap = null
-                // We'll need a way to get bitmap from uri for the ViewModel, or add processUri to ViewModel
-                // For now, let's just keep it simple and focus on the camera flow as requested
+                
+                
                 try {
                     val bitmap = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
                         android.graphics.ImageDecoder.decodeBitmap(android.graphics.ImageDecoder.createSource(context.contentResolver, it))
@@ -152,7 +152,7 @@ fun OcrScannerScreen(
             } catch (e: Exception) {
                 Log.e("OCR_SCREEN", "Error unbinding camera", e)
             }
-            // ViewModel handles its own resources
+            
         }
     }
 
@@ -175,7 +175,7 @@ fun OcrScannerScreen(
                     }
                 },
                 actions = {
-                    // Gallery picker
+                    
                     IconButton(
                         onClick = {
                             errorMessage = null
@@ -188,7 +188,7 @@ fun OcrScannerScreen(
                             tint = PrimaryGold
                         )
                     }
-                    // PDF picker (only in menu-scan mode, not barcode mode)
+                    
                     if (!returnBarcode) {
                         IconButton(
                             onClick = { pdfLauncher.launch("application/pdf") }
@@ -244,7 +244,7 @@ fun OcrScannerScreen(
                     onUsePhoto = {
                         capturedBitmap?.let { bitmap ->
                             if (returnBarcode) {
-                                // In billing barcode mode: extract text and return to caller
+                                
                                 val image = InputImage.fromBitmap(bitmap, 0)
                                 com.google.mlkit.vision.text.TextRecognition
                                     .getClient(com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS)
@@ -371,7 +371,7 @@ private fun ScanControls(
                     fontSize = 13.sp
                 )
 
-                // Tip hint when in menu-scan mode
+                
                 if (!hasCapturedPhoto && !returnBarcode) {
                     androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(4.dp))
                     Text(

@@ -25,7 +25,7 @@ data class MenuItemEntity(
     val categoryId: Long,
     val name: String,
     @ColumnInfo(name = "base_price")
-    val basePrice: String, // used only if no variants
+    val basePrice: String, 
     @ColumnInfo(name = "food_type", defaultValue = "veg")
     val foodType: String = "veg",
     val description: String? = null,

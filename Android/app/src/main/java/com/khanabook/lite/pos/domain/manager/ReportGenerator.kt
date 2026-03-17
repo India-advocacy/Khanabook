@@ -60,7 +60,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
             }
     }
 
-    suspend fun getOrderDetail(billId: Int): BillWithItems? {
+    suspend fun getOrderDetail(billId: Long): BillWithItems? {
         return billRepository.getBillWithItemsById(billId)
     }
 

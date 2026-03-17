@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,7 +44,7 @@ class BillDependencyResolutionTest {
         billPaymentService = new BillPaymentServiceImpl(billPaymentRepo, billRepo, gs);
     }
 
-    // ─── BillItem: bill resolution ────────────────────────────────────────────
+    
 
     @Test
     void billItem_resolvesBillByDeviceAndLocalId() {
@@ -73,7 +72,7 @@ class BillDependencyResolutionTest {
         when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt()))
             .thenReturn(Optional.empty());
         when(billRepo.findById(anyLong())).thenReturn(Optional.empty());
-        // MenuItem lookup doesn't matter — bill is the blocker
+        
 
         PushSyncResponse resp = billItemService.pushData(TENANT_ID, List.of(item));
 
@@ -122,7 +121,7 @@ class BillDependencyResolutionTest {
     void billItem_zeroVariantId_variantResolutionSkipped() {
         Bill bill = serverBill(200L);
         MenuItem mi = serverMenuItem(300L);
-        BillItem item = billItem(1, 10, 20, 0); // variantId = 0 = no variant
+        BillItem item = billItem(1, 10, 20, 0); 
 
         when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10))
             .thenReturn(Optional.of(bill));
@@ -139,7 +138,7 @@ class BillDependencyResolutionTest {
     void billItem_serverBillIdAlreadySet_skipsBillLookup() {
         MenuItem mi = serverMenuItem(300L);
         BillItem item = billItem(1, 10, 20, null);
-        item.setServerBillId(200L); // already resolved by client
+        item.setServerBillId(200L); 
 
         when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20))
             .thenReturn(Optional.of(mi));
@@ -150,7 +149,7 @@ class BillDependencyResolutionTest {
         verify(billRepo, never()).findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt());
     }
 
-    // ─── BillPayment: bill resolution ─────────────────────────────────────────
+    
 
     @Test
     void billPayment_resolvesBillByDeviceAndLocalId() {
@@ -184,7 +183,7 @@ class BillDependencyResolutionTest {
     @Test
     void billPayment_wrongTenantBill_addedToFailedIds() {
         Bill wrongTenantBill = serverBill(200L);
-        wrongTenantBill.setRestaurantId(999L); // different tenant
+        wrongTenantBill.setRestaurantId(999L); 
         BillPayment payment = billPayment(1, 10);
         payment.setLocalId(66);
 
@@ -200,7 +199,7 @@ class BillDependencyResolutionTest {
     @Test
     void billPayment_serverBillIdAlreadySet_skipsBillLookup() {
         BillPayment payment = billPayment(1, 10);
-        payment.setServerBillId(200L); // already resolved
+        payment.setServerBillId(200L); 
         stubBillPaymentSync();
 
         billPaymentService.pushData(TENANT_ID, List.of(payment));
@@ -208,7 +207,7 @@ class BillDependencyResolutionTest {
         verify(billRepo, never()).findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt());
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
+    
 
     private BillItem billItem(int localId, int billId, int menuItemId, Integer variantId) {
         BillItem bi = new BillItem();

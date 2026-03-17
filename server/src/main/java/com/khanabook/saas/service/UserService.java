@@ -5,6 +5,8 @@ import com.khanabook.saas.sync.dto.PushSyncResponse;
 import java.util.List;
 
 public interface UserService {
-    PushSyncResponse pushData(Long tenantId, List<User> payload);
-    List<User> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
+
+	PushSyncResponse pushData(Long tenantId, List<User> payload);
+
+	List<User> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
 }

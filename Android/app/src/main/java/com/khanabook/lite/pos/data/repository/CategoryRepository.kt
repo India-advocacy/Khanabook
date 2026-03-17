@@ -53,7 +53,7 @@ class CategoryRepository(
         return categoryDao.getActiveCategoriesFlow()
     }
 
-    suspend fun toggleActive(id: Int, isActive: Boolean) {
+    suspend fun toggleActive(id: Long, isActive: Boolean) {
         val current = categoryDao.getCategoryById(id) ?: return
         updateCategory(current.copy(isActive = isActive))
     }

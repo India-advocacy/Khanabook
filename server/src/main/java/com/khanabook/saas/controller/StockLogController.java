@@ -13,18 +13,16 @@ import com.khanabook.saas.security.TenantContext;
 @RequestMapping("/sync/stocklog")
 @RequiredArgsConstructor
 public class StockLogController {
-    private final StockLogService service;
+	private final StockLogService service;
 
-    @PostMapping("/push")
-    public ResponseEntity<PushSyncResponse> push(@RequestBody List<StockLog> payload) {
-        // TenantId automatically extracted by JwtFilter
-        return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
-    }
+	@PostMapping("/push")
+	public ResponseEntity<PushSyncResponse> push(@RequestBody List<StockLog> payload) {
 
-    @GetMapping("/pull")
-    public ResponseEntity<List<StockLog>> pull(
-            @RequestParam Long lastSyncTimestamp,
-            @RequestParam String deviceId) {
-        return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
-    }
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
+	}
+
+	@GetMapping("/pull")
+	public ResponseEntity<List<StockLog>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
+		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	}
 }

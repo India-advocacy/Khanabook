@@ -53,13 +53,13 @@ fun SignUpScreen(
     var showNewPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
 
-    // Validation States
-    val isNameValid = isValidName(shopName)
-    val isPhoneValid = isValidPhone(phoneNumber)
-    val isPasswordValid = isValidPassword(newPassword)
+    
+    val isNameValid = ValidationUtils.isValidName(shopName)
+    val isPhoneValid = ValidationUtils.isValidPhone(phoneNumber)
+    val isPasswordValid = ValidationUtils.isValidPassword(newPassword)
     val passwordsMatch = newPassword == confirmPassword && newPassword.isNotEmpty()
     @Suppress("UNUSED_VARIABLE")
-    val isOtpValid = isValidOtp(otp) // retained for potential future use
+    val isOtpValid = ValidationUtils.isValidOtp(otp) 
 
     var otpSent by remember { mutableStateOf(false) }
     var otpTimer by remember { mutableIntStateOf(120) }
@@ -143,9 +143,9 @@ fun SignUpScreen(
                         modifier = Modifier.padding(top = 8.dp, bottom = 25.dp)
                 )
 
-                // Input fields section
+                
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Shop Name
+                    
                     OutlinedTextField(
                             value = shopName,
                             onValueChange = { shopName = it },
@@ -170,7 +170,7 @@ fun SignUpScreen(
                             }
                     )
 
-                    // Phone & Send OTP
+                    
                     OutlinedTextField(
                             value = phoneNumber,
                             onValueChange = { phoneNumber = it },
@@ -220,7 +220,7 @@ fun SignUpScreen(
                             }
                     )
 
-                    // Enter OTP
+                    
                     if (otpSent) {
                         OutlinedTextField(
                                 value = otp,
@@ -272,7 +272,7 @@ fun SignUpScreen(
                         )
                     }
 
-                    // Password
+                    
                     OutlinedTextField(
                             value = newPassword,
                             onValueChange = { newPassword = it },
@@ -317,7 +317,7 @@ fun SignUpScreen(
                             }
                     )
 
-                    // Confirm Password
+                    
                     OutlinedTextField(
                             value = confirmPassword,
                             onValueChange = { confirmPassword = it },
@@ -363,7 +363,7 @@ fun SignUpScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Sign Up button
+                
                 val isFormValid =
                         isNameValid &&
                                 isPhoneValid &&

@@ -78,14 +78,14 @@ constructor(
               try {
               Log.d("MasterSyncWorker", "Starting sync.")
 
-              // 1-4. PUSH ALL UNSYNCED DATA
+              
               masterSyncProcessor.pushAll()
 
-              // 5. UNIFIED MASTER PULL
+              
               Log.d("MasterSyncWorker", "Performing Master Pull")
               val masterData = api.pullMasterSync(lastSyncTimestamp, deviceId)
 
-              // Process Pulled Data
+              
               masterSyncProcessor.insertMasterData(masterData)
 
               sessionManager.saveLastSyncTimestamp(System.currentTimeMillis())
@@ -95,7 +95,7 @@ constructor(
             } catch (e: Exception) {
               Log.e("MasterSyncWorker", "Sync failed: ${e.message}", e)
               
-              // Don't retry if it's a permanent failure (Auth error)
+              
               if (e is HttpException) {
                   if (e.code() == 401 || e.code() == 403) {
                       return@withContext Result.failure()

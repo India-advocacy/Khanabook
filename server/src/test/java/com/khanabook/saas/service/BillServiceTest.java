@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -73,17 +72,17 @@ class BillServiceTest {
         profile.setTimezone("Asia/Kolkata");
         when(profileRepository.findByRestaurantId(AUTHENTICATED_RESTAURANT_ID)).thenReturn(Optional.of(profile));
 
-        // Mock the BATCH lookup (findByRestaurantIdAndDeviceIdAndLocalIdIn)
+        
         when(billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(
                 eq(AUTHENTICATED_RESTAURANT_ID), eq(DEVICE_ID), anyList()))
                 .thenReturn(List.of(existingDbBill));
 
-        // Mock saveAll to return the input list
+        
         doAnswer(i -> i.getArgument(0)).when(billRepository).saveAll(anyList());
 
         PushSyncResponse response = billService.pushData(AUTHENTICATED_RESTAURANT_ID, List.of(mobileBill));
 
-        // Capture what was passed to saveAll
+        
         verify(billRepository).saveAll(listCaptor.capture());
         Bill savedBill = listCaptor.getValue().iterator().next();
 
@@ -112,7 +111,7 @@ class BillServiceTest {
         verify(billRepository).saveAll(listCaptor.capture());
         Bill savedBill = listCaptor.getValue().iterator().next();
 
-        // Server MUST override the malicious ID with the authenticated one
+        
         assertThat(savedBill.getRestaurantId()).isEqualTo(AUTHENTICATED_RESTAURANT_ID);
     }
 }

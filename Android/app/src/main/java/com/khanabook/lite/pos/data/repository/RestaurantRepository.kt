@@ -37,7 +37,7 @@ class RestaurantRepository(
         return restaurantDao.getProfileFlow()
     }
 
-    suspend fun resetDailyCounter(counter: Int, date: String) {
+    suspend fun resetDailyCounter(counter: Long, date: String) {
         restaurantDao.resetDailyCounter(counter, date, System.currentTimeMillis())
         triggerBackgroundSync()
     }
@@ -47,7 +47,7 @@ class RestaurantRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun incrementAndGetCounters(): Pair<Int, Int> {
+    suspend fun incrementAndGetCounters(): Pair<Long, Long> {
         return try {
             val response = api.incrementCounters()
             restaurantDao.updateCounters(response.dailyCounter, response.lifetimeCounter)

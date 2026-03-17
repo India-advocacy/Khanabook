@@ -1,4 +1,4 @@
-﻿package com.khanabook.lite.pos.domain.manager
+package com.khanabook.lite.pos.domain.manager
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -11,14 +11,14 @@ import com.khanabook.lite.pos.data.repository.BillRepository
 class SearchManager(private val billRepository: BillRepository) {
 
     suspend fun searchByDailyId(displayId: String, date: String): BillWithItems? {
-        val billEntity = displayId.toIntOrNull()?.let { intId ->
-            billRepository.getBillByDailyIntIdAndDate(intId, date)
+        val billEntity = displayId.toLongOrNull()?.let { id ->
+            billRepository.getBillByDailyIntIdAndDate(id, date)
         } ?: billRepository.getBillByDailyIdAndDate(displayId, date)
         
         return billEntity?.let { billRepository.getBillWithItemsById(it.id) }
     }
 
-    suspend fun searchByLifetimeId(id: Int): BillWithItems? {
+    suspend fun searchByLifetimeId(id: Long): BillWithItems? {
         return billRepository.getBillWithItemsByLifetimeId(id)
     }
 

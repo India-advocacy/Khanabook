@@ -14,7 +14,7 @@ class OrderIdManagerTest {
             shopName = "Test",
             shopAddress = "Test",
             whatsappNumber = "123",
-            lastResetDate = "2026-02-28" // Yesterday in yyyy-MM-dd
+            lastResetDate = "2026-02-28" 
         )
         val today = "2026-03-01"
         

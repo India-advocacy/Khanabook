@@ -20,7 +20,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,7 +38,7 @@ class AuthServiceImplTest {
         ReflectionTestUtils.setField(authService, "googleClientId", "test-google-client-id");
     }
 
-    // ─── validateConfig ───────────────────────────────────────────────────────
+    
 
     @Test
     void validateConfig_whenClientIdBlank_throwsIllegalState() {
@@ -54,7 +53,7 @@ class AuthServiceImplTest {
         assertThatNoException().isThrownBy(() -> authService.validateConfig());
     }
 
-    // ─── login ────────────────────────────────────────────────────────────────
+    
 
     @Test
     void login_success() {
@@ -100,7 +99,7 @@ class AuthServiceImplTest {
             .hasMessageContaining("disabled");
     }
 
-    // ─── signup ───────────────────────────────────────────────────────────────
+    
 
     @Test
     void signup_newUser_createsProfileAndUser() {
@@ -114,12 +113,12 @@ class AuthServiceImplTest {
         assertThat(resp.getToken()).isEqualTo("signup-token");
         assertThat(resp.getUserName()).isEqualTo("Nandha");
 
-        // Profile must be saved
+        
         ArgumentCaptor<RestaurantProfile> profileCaptor = ArgumentCaptor.forClass(RestaurantProfile.class);
         verify(restaurantProfileRepository).save(profileCaptor.capture());
         assertThat(profileCaptor.getValue().getShopName()).contains("Nandha");
 
-        // User must be saved with hashed password, never plain
+        
         ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(userCaptor.capture());
         User savedUser = userCaptor.getValue();
@@ -147,12 +146,12 @@ class AuthServiceImplTest {
         AuthResponse r1 = authService.signup(new SignupRequest("+911111111111", "A", "p", "D1"));
         AuthResponse r2 = authService.signup(new SignupRequest("+912222222222", "B", "p", "D2"));
 
-        // IDs should be different and large (UUID-based, not sequential 1, 2, 3)
+        
         assertThat(r1.getRestaurantId()).isNotEqualTo(r2.getRestaurantId());
         assertThat(r1.getRestaurantId()).isGreaterThan(1000L);
     }
 
-    // ─── resetPassword ────────────────────────────────────────────────────────
+    
 
     @Test
     void resetPassword_updatesHashAndTimestamp() {
@@ -175,7 +174,7 @@ class AuthServiceImplTest {
             .isInstanceOf(IllegalArgumentException.class);
     }
 
-    // ─── checkUserExists ─────────────────────────────────────────────────────
+    
 
     @Test
     void checkUserExists_returnsTrue_whenFound() {
@@ -189,7 +188,7 @@ class AuthServiceImplTest {
         assertThat(authService.checkUserExists("+910000000000")).isFalse();
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
+    
 
     private User activeUser(String phone, String hash, Long restaurantId) {
         User u = new User();

@@ -29,9 +29,21 @@ class MasterSyncProcessor @Inject constructor(
             .toPlainString()
     }
 
+    private fun String?.toSafeAmount(): String {
+        if (this.isNullOrBlank()) return "0.0"
+        return try {
+            java.math.BigDecimal(this)
+                .setScale(2, java.math.RoundingMode.HALF_UP)
+                .stripTrailingZeros()
+                .toPlainString()
+        } catch (e: Exception) {
+            "0.0"
+        }
+    }
+
     suspend fun pushAll(): Boolean {
         return try {
-            // 1. PUSH CONFIG (Users & Profiles)
+            
             val unsyncedProfiles = restaurantDao.getUnsyncedRestaurantProfiles()
             if (unsyncedProfiles.isNotEmpty()) {
                 unsyncedProfiles.chunked(50).forEach { batch ->
@@ -48,7 +60,7 @@ class MasterSyncProcessor @Inject constructor(
                 }
             }
 
-            // 2. PUSH MENU (Categories, Items, Variants)
+            
             val unsyncedCategories = categoryDao.getUnsyncedCategories()
             if (unsyncedCategories.isNotEmpty()) {
                 unsyncedCategories.chunked(50).forEach { batch ->
@@ -73,7 +85,7 @@ class MasterSyncProcessor @Inject constructor(
                 }
             }
 
-            // 3. PUSH INVENTORY
+            
             val unsyncedStockLogs = inventoryDao.getUnsyncedStockLogs()
             if (unsyncedStockLogs.isNotEmpty()) {
                 unsyncedStockLogs.chunked(50).forEach { batch ->
@@ -82,7 +94,7 @@ class MasterSyncProcessor @Inject constructor(
                 }
             }
 
-            // 4. SYNC BILLS (Push only part)
+            
             val unsyncedBills = billDao.getUnsyncedBills()
             if (unsyncedBills.isNotEmpty()) {
                 unsyncedBills.chunked(50).forEach { batch ->
@@ -125,7 +137,7 @@ class MasterSyncProcessor @Inject constructor(
                         shopAddress = remoteProfile.shopAddress.orFallback(""),
                         whatsappNumber = remoteProfile.whatsappNumber.orFallback(""),
                         email = remoteProfile.email.orFallback(""),
-                        logoPath = remoteProfile.logoPath, // Keep null if null to handle download later
+                        logoPath = remoteProfile.logoPath, 
                         fssaiNumber = remoteProfile.fssaiNumber.orFallback(""),
                         emailInvoiceConsent = remoteProfile.emailInvoiceConsent ?: false,
                         country = remoteProfile.country.orFallback(currentLocalProfile?.country ?: "India"),
@@ -219,12 +231,12 @@ class MasterSyncProcessor @Inject constructor(
                         id = remoteMenuItem.id,
                         categoryId = remoteMenuItem.categoryId,
                         name = remoteMenuItem.name.orFallback("Unnamed Item"),
-                        basePrice = remoteMenuItem.basePrice.toSafeString(),
+                        basePrice = remoteMenuItem.basePrice,
                         foodType = remoteMenuItem.foodType.orFallback("veg"),
                         description = remoteMenuItem.description,
                         isAvailable = remoteMenuItem.isAvailable ?: true,
-                        currentStock = remoteMenuItem.currentStock.toSafeString(),
-                        lowStockThreshold = remoteMenuItem.lowStockThreshold.toSafeString(),
+                        currentStock = remoteMenuItem.currentStock,
+                        lowStockThreshold = remoteMenuItem.lowStockThreshold,
                         createdAt = remoteMenuItem.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteMenuItem.restaurantId ?: 0L,
                         deviceId = remoteMenuItem.deviceId.orFallback(""),
@@ -243,11 +255,11 @@ class MasterSyncProcessor @Inject constructor(
                         id = remoteVariant.id,
                         menuItemId = remoteVariant.menuItemId,
                         variantName = remoteVariant.variantName.orFallback("Default"),
-                        price = remoteVariant.price.toSafeString(),
+                        price = remoteVariant.price,
                         isAvailable = remoteVariant.isAvailable ?: true,
                         sortOrder = remoteVariant.sortOrder ?: 0,
-                        currentStock = remoteVariant.currentStock.toSafeString(),
-                        lowStockThreshold = remoteVariant.lowStockThreshold.toSafeString(),
+                        currentStock = remoteVariant.currentStock,
+                        lowStockThreshold = remoteVariant.lowStockThreshold,
                         restaurantId = remoteVariant.restaurantId ?: 0L,
                         deviceId = remoteVariant.deviceId.orFallback(""),
                         isSynced = true,
@@ -265,7 +277,7 @@ class MasterSyncProcessor @Inject constructor(
                         id = remoteStockLog.id,
                         menuItemId = remoteStockLog.menuItemId,
                         variantId = remoteStockLog.variantId,
-                        delta = remoteStockLog.delta.toSafeString(),
+                        delta = remoteStockLog.delta,
                         reason = remoteStockLog.reason.orFallback("adjustment"),
                         createdAt = remoteStockLog.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteStockLog.restaurantId ?: 0L,
@@ -291,22 +303,22 @@ class MasterSyncProcessor @Inject constructor(
                         orderType = remoteBill.orderType.orFallback("order"),
                         customerName = remoteBill.customerName,
                         customerWhatsapp = remoteBill.customerWhatsapp,
-                        subtotal = remoteBill.subtotal.toSafeString(),
-                        gstPercentage = remoteBill.gstPercentage.toSafeString(),
-                        cgstAmount = remoteBill.cgstAmount.toSafeString(),
-                        sgstAmount = remoteBill.sgstAmount.toSafeString(),
-                        customTaxAmount = remoteBill.customTaxAmount.toSafeString(),
-                        totalAmount = remoteBill.totalAmount.toSafeString(),
+                        subtotal = remoteBill.subtotal.toSafeAmount(),
+                        gstPercentage = remoteBill.gstPercentage.toSafeAmount(),
+                        cgstAmount = remoteBill.cgstAmount.toSafeAmount(),
+                        sgstAmount = remoteBill.sgstAmount.toSafeAmount(),
+                        customTaxAmount = remoteBill.customTaxAmount.toSafeAmount(),
+                        totalAmount = remoteBill.totalAmount.toSafeAmount(),
                         paymentMode = remoteBill.paymentMode.orFallback("cash"),
-                        partAmount1 = remoteBill.partAmount1.toSafeString(),
-                        partAmount2 = remoteBill.partAmount2.toSafeString(),
+                        partAmount1 = remoteBill.partAmount1.toSafeAmount(),
+                        partAmount2 = remoteBill.partAmount2.toSafeAmount(),
                         paymentStatus = remoteBill.paymentStatus.orFallback("success"),
                         orderStatus = remoteBill.orderStatus.orFallback("completed"),
                         createdBy = remoteBill.createdBy?.toLong(),
                         createdAt = remoteBill.createdAt ?: System.currentTimeMillis(),
                         paidAt = remoteBill.paidAt,
                         isSynced = true,
-                        updatedAt = remoteBill.updatedAt,
+                        updatedAt = remoteBill.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteBill.isDeleted ?: false
                     )
                 }
@@ -323,14 +335,14 @@ class MasterSyncProcessor @Inject constructor(
                         itemName = remoteBillItem.itemName.orFallback("Unnamed Item"),
                         variantId = remoteBillItem.variantId,
                         variantName = remoteBillItem.variantName,
-                        price = remoteBillItem.price.toSafeString(),
-                        quantity = remoteBillItem.quantity?.toInt() ?: 0,
-                        itemTotal = remoteBillItem.itemTotal.toSafeString(),
+                        price = remoteBillItem.price.toSafeAmount(),
+                        quantity = remoteBillItem.quantity ?: 1,
+                        itemTotal = remoteBillItem.itemTotal.toSafeAmount(),
                         specialInstruction = remoteBillItem.specialInstruction,
                         restaurantId = remoteBillItem.restaurantId ?: 0L,
                         deviceId = remoteBillItem.deviceId.orFallback(""),
                         isSynced = true,
-                        updatedAt = remoteBillItem.updatedAt,
+                        updatedAt = remoteBillItem.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteBillItem.isDeleted ?: false
                     )
                 }
@@ -344,11 +356,11 @@ class MasterSyncProcessor @Inject constructor(
                         id = remoteBillPayment.id,
                         billId = remoteBillPayment.billId,
                         paymentMode = remoteBillPayment.paymentMode.orFallback("cash"),
-                        amount = remoteBillPayment.amount.toSafeString(),
+                        amount = remoteBillPayment.amount.toSafeAmount(),
                         restaurantId = remoteBillPayment.restaurantId ?: 0L,
                         deviceId = remoteBillPayment.deviceId.orFallback(""),
                         isSynced = true,
-                        updatedAt = remoteBillPayment.updatedAt,
+                        updatedAt = remoteBillPayment.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteBillPayment.isDeleted ?: false
                     )
                 }

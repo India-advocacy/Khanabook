@@ -19,10 +19,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 
-/**
- * Tests real SQL queries against a live PostgreSQL container.
- * Validates: pull watermark logic, tenant isolation at DB level, FK constraints.
- */
+
 @Transactional
 class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
 
@@ -42,7 +39,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         categoryRepo.deleteAll();
     }
 
-    // ─── Pull watermark ───────────────────────────────────────────────────────
+    
 
     @Test
     void pullByServerUpdatedAt_returnsOnlyNewerRecords() {
@@ -59,7 +56,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void pull_excludesRequestingDevice() {
-        // Same device that pushed should NOT receive its own records back
+        
         Bill b = bill(TENANT_A, "TABLET_1", 1, 1000L, 1000L);
         billRepo.save(b);
 
@@ -80,7 +77,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         assertThat(pulled).hasSize(1);
     }
 
-    // ─── Tenant isolation ─────────────────────────────────────────────────────
+    
 
     @Test
     void pull_strictlyIsolatedByTenant() {
@@ -107,20 +104,20 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         var found = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_A, "TABLET_1", 42);
         assertThat(found).isPresent();
 
-        // Wrong tenant — must not find
+        
         var wrongTenant = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_B, "TABLET_1", 42);
         assertThat(wrongTenant).isEmpty();
 
-        // Wrong device — must not find
+        
         var wrongDevice = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_A, "TABLET_X", 42);
         assertThat(wrongDevice).isEmpty();
     }
 
-    // ─── FK constraints ───────────────────────────────────────────────────────
+    
 
     @Test
     void billItem_withNullServerBillId_savesSuccessfully() {
-        // serverBillId is nullable — a bill item may arrive before its parent bill is resolved
+        
         BillItem item = billItem(TENANT_A, "DEV_A", 1, null);
         assertThatNoException().isThrownBy(() -> billItemRepo.save(item));
     }
@@ -139,14 +136,14 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         Long nonExistentBillId = 999999L;
         BillItem item = billItem(TENANT_A, "DEV_A", 1, nonExistentBillId);
 
-        // Deferred FK constraint fires at transaction commit
+        
         assertThatThrownBy(() -> {
             billItemRepo.save(item);
-            billItemRepo.flush(); // force immediate constraint check
+            billItemRepo.flush(); 
         }).isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    // ─── Category → MenuItem FK ───────────────────────────────────────────────
+    
 
     @Test
     void menuItem_withValidServerCategoryId_savesSuccessfully() {
@@ -167,7 +164,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         }).isInstanceOf(DataIntegrityViolationException.class);
     }
 
-    // ─── Batch lookup ─────────────────────────────────────────────────────────
+    
 
     @Test
     void findByLocalIdIn_returnsAllMatchingRecords() {
@@ -191,7 +188,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         assertThat(found).isEmpty();
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
+    
 
     private Bill bill(Long tenantId, String deviceId, int localId, long updatedAt, long serverUpdatedAt) {
         Bill b = new Bill();

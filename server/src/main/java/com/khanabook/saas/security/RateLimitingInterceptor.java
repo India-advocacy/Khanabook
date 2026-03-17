@@ -17,39 +17,37 @@ import java.time.Duration;
 @Component
 public class RateLimitingInterceptor implements HandlerInterceptor {
 
-    // Use a simple LRU cache (bounded to 1000 IPs) to prevent memory exhaustion (Issue 8)
-    private final Map<String, Bucket> buckets = new java.util.LinkedHashMap<String, Bucket>(1001, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, Bucket> eldest) {
-            return size() > 1000;
-        }
-    };
+	private final Map<String, Bucket> buckets = new java.util.LinkedHashMap<String, Bucket>(1001, 0.75f, true) {
+		@Override
+		protected boolean removeEldestEntry(Map.Entry<String, Bucket> eldest) {
+			return size() > 1000;
+		}
+	};
 
-    private Bucket createNewBucket() {
-        // 5 requests per minute per IP
-        Bandwidth limit = Bandwidth.classic(5, Refill.greedy(5, Duration.ofMinutes(1)));
-        return Bucket.builder()
-                .addLimit(limit)
-                .build();
-    }
+	private Bucket createNewBucket() {
 
-    @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        String ip = request.getRemoteAddr();
-        Bucket bucket;
-        synchronized (buckets) {
-            bucket = buckets.computeIfAbsent(ip, k -> createNewBucket());
-        }
+		Bandwidth limit = Bandwidth.classic(5, Refill.greedy(5, Duration.ofMinutes(1)));
+		return Bucket.builder().addLimit(limit).build();
+	}
 
-        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
-        if (probe.isConsumed()) {
-            response.addHeader("X-Rate-Limit-Remaining", String.valueOf(probe.getRemainingTokens()));
-            return true;
-        } else {
-            long waitForRefill = probe.getNanosToWaitForRefill() / 1_000_000_000;
-            response.addHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(waitForRefill));
-            response.sendError(HttpStatus.TOO_MANY_REQUESTS.value(), "Too many requests. Please try again later.");
-            return false;
-        }
-    }
+	@Override
+	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+			throws Exception {
+		String ip = request.getRemoteAddr();
+		Bucket bucket;
+		synchronized (buckets) {
+			bucket = buckets.computeIfAbsent(ip, k -> createNewBucket());
+		}
+
+		ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+		if (probe.isConsumed()) {
+			response.addHeader("X-Rate-Limit-Remaining", String.valueOf(probe.getRemainingTokens()));
+			return true;
+		} else {
+			long waitForRefill = probe.getNanosToWaitForRefill() / 1_000_000_000;
+			response.addHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(waitForRefill));
+			response.sendError(HttpStatus.TOO_MANY_REQUESTS.value(), "Too many requests. Please try again later.");
+			return false;
+		}
+	}
 }

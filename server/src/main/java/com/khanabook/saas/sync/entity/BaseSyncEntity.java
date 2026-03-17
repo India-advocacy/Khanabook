@@ -10,38 +10,37 @@ import lombok.Setter;
 @Getter
 @Setter
 public abstract class BaseSyncEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonProperty("serverId")
-    private Long id;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@JsonProperty("serverId")
+	private Long id;
 
-    @Column(name = "local_id", nullable = false)
-    @JsonProperty("localId")
-    @JsonAlias({"id", "localId"})
-    private Integer localId;
+	@Column(name = "local_id", nullable = false)
+	@JsonProperty("localId")
+	@JsonAlias({ "id", "localId" })
+	private Integer localId;
 
-    @Column(name = "device_id", nullable = false)
-    @JsonProperty("deviceId")
-    private String deviceId;
+	@Column(name = "device_id", nullable = false)
+	@JsonProperty("deviceId")
+	private String deviceId;
 
-    @Column(name = "restaurant_id", nullable = false)
-    @JsonProperty("restaurantId")
-    private Long restaurantId; // TENANT ID
+	@Column(name = "restaurant_id", nullable = false)
+	@JsonProperty("restaurantId")
+	private Long restaurantId;
 
-    @Column(name = "updated_at", nullable = false)
-    @JsonProperty("updatedAt")
-    private Long updatedAt; // App's local timestamp
+	@Column(name = "updated_at", nullable = false)
+	@JsonProperty("updatedAt")
+	private Long updatedAt;
 
-    // FIX 1 & 3: Soft Delete and Clock Skew Protection
-    @Column(name = "is_deleted", nullable = false)
-    @JsonProperty("isDeleted")
-    private Boolean isDeleted = false;
+	@Column(name = "is_deleted", nullable = false)
+	@JsonProperty("isDeleted")
+	private Boolean isDeleted = false;
 
-    @Column(name = "server_updated_at", nullable = false)
-    @JsonProperty("serverUpdatedAt")
-    private Long serverUpdatedAt = 0L;
+	@Column(name = "server_updated_at", nullable = false)
+	@JsonProperty("serverUpdatedAt")
+	private Long serverUpdatedAt = 0L;
 
-    @Column(name = "created_at", nullable = false)
-    @JsonProperty("createdAt")
-    private Long createdAt; // Audit: when the record was first created on client
+	@Column(name = "created_at", nullable = false)
+	@JsonProperty("createdAt")
+	private Long createdAt;
 }

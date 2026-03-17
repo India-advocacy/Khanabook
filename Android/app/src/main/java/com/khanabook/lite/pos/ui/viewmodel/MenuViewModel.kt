@@ -26,19 +26,19 @@ class MenuViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
-        // Matches trailing price: supports ₹120, Rs.120, INR 120, 120.50
+        
         private val trailingPriceRegex =
             Regex("""(?i)(?:[\u20B9\u20A8]|rs\.?|inr)?\s*(\d{1,6}(?:\.\d{1,2})?)\s*(?:[\u20B9\u20A8]|rs\.?|inr)?\s*$""")
-        // Matches price at the START of a line: ₹120 Dosa, 120 Dosa
+        
         private val leadingPriceRegex =
             Regex("""^(?:[\u20B9\u20A8]|rs\.?|inr)?\s*(\d{1,6}(?:\.\d{1,2})?)\s+""")
-        // Leading bullets: -, *, •, 1., 1)
+        
         private val leadingBulletRegex = Regex("""^\s*(?:[\-\*•]+|\d+[.):]?)\s*""")
         private val trailingSeparatorRegex = Regex("""[\s\-:\|.…]+$""")
         private val trailingCurrencyRegex = Regex("""(?i)(?:[\u20B9\u20A8]|rs\.?|inr)\s*$""")
-        // Skip header-like lines or very short noise
+        
         private val skipLineRegex = Regex("""(?i)^(menu|category|item|price|qty|total|subtotal|s\.no|veg|non.?veg|page\s+\d+)\.?\s*$""")
-        // Max price guard — avoid misidentifying long numbers
+        
         private const val MAX_PRICE = 99999.0
 
         internal fun parseDraftsFromText(text: String): List<DraftMenuItem> {
@@ -52,29 +52,29 @@ class MenuViewModel @Inject constructor(
                     !skipLineRegex.matches(line)
                 }
                 .mapNotNull { parseDraftLine(it) }
-                // Deduplicate by lowercased name
+                
                 .filter { seen.add(it.name.lowercase()) }
                 .toList()
         }
 
         private fun normalizeImportLine(raw: String): String {
             return raw
-                .replace('\u20B9', ' ')  // ₹ → space then handled by regex
-                .replace('\u20A8', ' ')  // ₨
+                .replace('\u20B9', ' ')  
+                .replace('\u20A8', ' ')  
                 .replace("Rs.", " Rs ")
                 .replace("rs.", " Rs ")
-                .replace('\u00A0', ' ')  // non-breaking space
-                .replace('\u2019', '\'')  // curly apostrophe
+                .replace('\u00A0', ' ')  
+                .replace('\u2019', '\'')  
                 .replace(Regex("""\s{2,}"""), " ")
                 .trim()
         }
 
         private fun parseDraftLine(line: String): DraftMenuItem? {
-            // Remove leading bullets
+            
             val noBullet = line.replace(leadingBulletRegex, "").trim()
             if (noBullet.isBlank()) return null
 
-            // Try trailing price first (most common format: "Masala Dosa 120")
+            
             val trailingMatch = trailingPriceRegex.find(noBullet)
             if (trailingMatch != null) {
                 val priceVal = trailingMatch.groupValues.getOrNull(1)?.toDoubleOrNull() ?: 0.0
@@ -89,7 +89,7 @@ class MenuViewModel @Inject constructor(
                 return DraftMenuItem(name, priceVal)
             }
 
-            // Try leading price ("120 Masala Dosa")
+            
             val leadingMatch = leadingPriceRegex.find(noBullet)
             if (leadingMatch != null) {
                 val priceVal = leadingMatch.groupValues.getOrNull(1)?.toDoubleOrNull() ?: 0.0
@@ -100,7 +100,7 @@ class MenuViewModel @Inject constructor(
                 return DraftMenuItem(name, priceVal)
             }
 
-            // No price found — include as 0-price item (user can edit)
+            
             val name = toTitleCase(noBullet.replace(trailingSeparatorRegex, "").trim())
             if (name.isBlank() || name.length < 2) return null
             return DraftMenuItem(name, 0.0)
@@ -126,8 +126,8 @@ class MenuViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _selectedCategoryId = MutableStateFlow<Int?>(null)
-    val selectedCategoryId: StateFlow<Int?> = _selectedCategoryId
+    private val _selectedCategoryId = MutableStateFlow<Long?>(null)
+    val selectedCategoryId: StateFlow<Long?> = _selectedCategoryId
 
     private val debouncedSearchQuery = _searchQuery
         .debounce(300)
@@ -163,17 +163,17 @@ class MenuViewModel @Inject constructor(
         _searchQuery.value = query
     }
 
-    fun selectCategory(id: Int) {
+    fun selectCategory(id: Long) {
         _selectedCategoryId.value = id
     }
 
-    fun toggleCategory(id: Int, isActive: Boolean) {
+    fun toggleCategory(id: Long, isActive: Boolean) {
         viewModelScope.launch {
             categoryRepository.toggleActive(id, isActive)
         }
     }
 
-    fun toggleItem(id: Int, isAvailable: Boolean) {
+    fun toggleItem(id: Long, isAvailable: Boolean) {
         viewModelScope.launch {
             menuRepository.toggleItemAvailability(id, isAvailable)
         }
@@ -206,16 +206,16 @@ class MenuViewModel @Inject constructor(
         }
     }
 
-    fun addItem(categoryId: Int, name: String, price: Double, foodType: String, stock: Double = 0.0, threshold: Double = 10.0) {
+    fun addItem(categoryId: Long, name: String, price: Double, foodType: String, stock: Double = 0.0, threshold: Double = 10.0) {
         viewModelScope.launch {
             menuRepository.insertItem(
                 MenuItemEntity(
                     categoryId = categoryId,
                     name = name,
-                    basePrice = price,
+                    basePrice = price.toString(),
                     foodType = foodType,
-                    currentStock = stock,
-                    lowStockThreshold = threshold,
+                    currentStock = stock.toString(),
+                    lowStockThreshold = threshold.toString(),
                     createdAt = System.currentTimeMillis()
                 )
             )
@@ -234,16 +234,16 @@ class MenuViewModel @Inject constructor(
         }
     }
 
-    fun addVariant(menuItemId: Int, name: String, price: Double) {
+    fun addVariant(menuItemId: Long, name: String, price: Double) {
         viewModelScope.launch {
             menuRepository.insertVariant(
                 ItemVariantEntity(
                     menuItemId = menuItemId,
                     variantName = name,
-                    price = price,
+                    price = price.toString(),
                     sortOrder = 0,
-                    currentStock = 0.0,
-                    lowStockThreshold = 10.0
+                    currentStock = "0.0",
+                    lowStockThreshold = "10.0"
                 )
             )
         }
@@ -265,17 +265,17 @@ class MenuViewModel @Inject constructor(
         val name: String,
         val price: Double,
         val isSelected: Boolean = true,
-        val foodType: String = "veg"   // production: per-item food type
+        val foodType: String = "veg"   
     )
 
     data class OcrImportUiState(
-        val configMode: String? = null, // null, "manual", "scan"
+        val configMode: String? = null, 
         val isProcessing: Boolean = false,
-        val processingLabel: String = "Processing...",  // contextual label
+        val processingLabel: String = "Processing...",  
         val rawText: String = "",
         val drafts: List<DraftMenuItem> = emptyList(),
         val error: String? = null,
-        val successMessage: String? = null  // e.g. "12 items added!"
+        val successMessage: String? = null  
     )
 
     private val _ocrImportUiState = MutableStateFlow(OcrImportUiState())
@@ -315,10 +315,7 @@ class MenuViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Extracts text from a PDF URI and parses it into drafts.
-     * Shows page-by-page progress for large PDFs.
-     */
+    
     fun extractTextFromPdf(context: Context, uri: Uri) {
         _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Reading PDF...", error = null) }
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
@@ -367,9 +364,7 @@ class MenuViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Parses raw OCR text into Draft items for review.
-     */
+    
     fun submitOcrText(text: String) {
         _ocrImportUiState.update { 
             it.copy(
@@ -381,13 +376,10 @@ class MenuViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Processes a bitmap image using ML Kit for text recognition.
-     * Pre-processes: auto-rotates via EXIF if needed, scales to optimal size.
-     */
+    
     fun processMenuImage(context: Context, bitmap: android.graphics.Bitmap) {
         _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Analysing image...", error = null) }
-        // Scale down if too large (ML Kit cap: 32MB pixel data)
+        
         val scaledBitmap = scaleBitmapIfNeeded(bitmap)
         val image = com.google.mlkit.vision.common.InputImage.fromBitmap(scaledBitmap, 0)
         val recognizer = com.google.mlkit.vision.text.TextRecognition.getClient(
@@ -444,11 +436,11 @@ class MenuViewModel @Inject constructor(
         }
     }
 
-    fun saveDraftsToCategory(categoryId: Int) {
+    fun saveDraftsToCategory(categoryId: Long) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             val selectedDrafts = _ocrImportUiState.value.drafts.filter { it.isSelected }
 
-            // Fetch existing items once — avoids N+1 DB queries
+            
             val existingItems = menuRepository.getItemsByCategoryFlow(categoryId).first()
             val existingNames = existingItems.map { it.name.lowercase() }.toHashSet()
 
@@ -459,10 +451,10 @@ class MenuViewModel @Inject constructor(
                         MenuItemEntity(
                             categoryId = categoryId,
                             name = draft.name,
-                            basePrice = draft.price,
+                            basePrice = draft.price.toString(),
                             foodType = draft.foodType,
-                            currentStock = 0.0,
-                            lowStockThreshold = 10.0,
+                            currentStock = "0.0",
+                            lowStockThreshold = "10.0",
                             createdAt = System.currentTimeMillis()
                         )
                     )

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
+import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
@@ -47,6 +48,7 @@ fun SearchScreen(
         )
     }
     val result by viewModel.searchResult.collectAsState()
+    val hasSearched by viewModel.hasSearched.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
     val context = LocalContext.current
 
@@ -96,7 +98,7 @@ fun SearchScreen(
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
                                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
-            // Inputs Section
+            
             Column(modifier = Modifier.wrapContentHeight()) {
                 TabRow(
                         selectedTabIndex = selectedTab,
@@ -186,7 +188,7 @@ fun SearchScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(
                             onClick = {
-                                lifetimeQuery.toIntOrNull()?.let {
+                                lifetimeQuery.toLongOrNull()?.let {
                                     viewModel.searchByLifetimeId(it)
                                 }
                             },
@@ -209,7 +211,7 @@ fun SearchScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Result Section
+            
             val currentResult = result
             if (currentResult != null) {
                 Card(
@@ -223,7 +225,7 @@ fun SearchScreen(
                                 )
                 ) {
                     Column(modifier = Modifier.padding(16.dp).wrapContentHeight()) {
-                        // Constant Header
+                        
                         Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -237,7 +239,7 @@ fun SearchScreen(
                                         fontSize = 16.sp
                                 )
                                 Text(
-                                        currentResult.bill.createdAt,
+                                        DateUtils.formatDisplay(currentResult.bill.createdAt),
                                         color = TextGold,
                                         fontSize = 11.sp
                                 )
@@ -277,7 +279,7 @@ fun SearchScreen(
                                 color = BorderGold.copy(alpha = 0.2f)
                         )
 
-                        // Scrollable Body (Items)
+                        
                         Column(
                                 modifier =
                                         Modifier.wrapContentHeight()
@@ -295,7 +297,7 @@ fun SearchScreen(
                                             modifier = Modifier.weight(1f)
                                     )
                                     Text(
-                                            "₹${String.format("%.2f", item.itemTotal)}",
+                                            CurrencyUtils.formatPrice(item.itemTotal),
                                             color = TextLight,
                                             fontSize = 13.sp
                                     )
@@ -303,7 +305,7 @@ fun SearchScreen(
                             }
                         }
 
-                        // Constant Footer
+                        
                         HorizontalDivider(
                                 modifier = Modifier.padding(vertical = 10.dp),
                                 color = BorderGold.copy(alpha = 0.2f)
@@ -320,7 +322,7 @@ fun SearchScreen(
                                     fontSize = 15.sp
                             )
                             Text(
-                                    "₹${String.format("%.2f", currentResult.bill.totalAmount)}",
+                                    CurrencyUtils.formatPrice(currentResult.bill.totalAmount),
                                     color = PrimaryGold,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp
@@ -446,14 +448,14 @@ fun SearchScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                                Icons.Default.Search,
+                                imageVector = if (hasSearched) Icons.Default.SearchOff else Icons.Default.Search,
                                 contentDescription = null,
                                 tint = TextGold.copy(alpha = 0.3f),
                                 modifier = Modifier.size(64.dp)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                                "Search for an order to view details",
+                                if (hasSearched) "No Order Found" else "Search for an order to view details",
                                 color = TextGold.copy(alpha = 0.5f)
                         )
                     }

@@ -65,6 +65,11 @@ object CurrencyUtils {
     fun formatPrice(amount: Double, currency: String = "\u20b9"): String {
         return "$currency ${String.format("%.2f", amount)}"
     }
+    
+    fun formatPrice(amount: String?, currency: String = "\u20b9"): String {
+        val d = amount?.toDoubleOrNull() ?: 0.0
+        return formatPrice(d, currency)
+    }
 }
 
 
@@ -119,11 +124,11 @@ fun shareBillAsPdf(context: Context, billWithItems: BillWithItems, profile: Rest
 }
 
 fun openBillToPrint(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
-    // If printer is enabled and connected, use direct printing
+    
     val app = context.applicationContext as? com.khanabook.lite.pos.KhanaBookApplication
-    // We'll need a way to access the printerManager. Since it's in Hilt, it might be tricky here.
-    // However, we can try to find it in the activity if needed, or just keep it simple.
-    // For now, let's keep the fallback but recommend using the direct print where manager is available.
+    
+    
+    
     
     try {
         val pdfGenerator = InvoicePDFGenerator(context)

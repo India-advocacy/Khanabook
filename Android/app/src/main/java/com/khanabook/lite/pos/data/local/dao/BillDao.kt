@@ -73,7 +73,7 @@ interface BillDao {
         insertBillPayments(paymentsWithId)
     }
 
-    // --- NEW CLOUD SYNC OPERATIONS ---
+    
 
     @Query("SELECT * FROM bills WHERE is_synced = 0")
     suspend fun getUnsyncedBills(): List<BillEntity>
@@ -90,7 +90,7 @@ interface BillDao {
     @Query("SELECT COUNT(*) FROM bills WHERE is_synced = 0")
     fun getUnsyncedCount(): Flow<Int>
 
-    // --- BILL ITEMS SYNC ---
+    
     @Query("SELECT * FROM bill_items WHERE is_synced = 0")
     suspend fun getUnsyncedBillItems(): List<BillItemEntity>
 
@@ -100,7 +100,7 @@ interface BillDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSyncedBillItems(items: List<BillItemEntity>)
 
-    // --- BILL PAYMENTS SYNC ---
+    
     @Query("SELECT * FROM bill_payments WHERE is_synced = 0")
     suspend fun getUnsyncedBillPayments(): List<BillPaymentEntity>
 

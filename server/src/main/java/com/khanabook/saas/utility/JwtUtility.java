@@ -18,66 +18,56 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtUtility {
 
-    @Value("${jwt.secret}")
-    private String secret;
+	@Value("${jwt.secret}")
+	private String secret;
 
-    @Value("${jwt.expiration.ms:36000000}")
-    private long expirationMs;
+	@Value("${jwt.expiration.ms:36000000}")
+	private long expirationMs;
 
-    private SecretKey getSigningKey() {
-        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
-        if (secretBytes.length >= 32) {
-            return Keys.hmacShaKeyFor(secretBytes);
-        }
+	private SecretKey getSigningKey() {
+		byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+		if (secretBytes.length >= 32) {
+			return Keys.hmacShaKeyFor(secretBytes);
+		}
 
-        // Derive a stable 256-bit key from short configured secrets for local/dev setups.
-        try {
-            byte[] hashedSecret = MessageDigest.getInstance("SHA-256").digest(secretBytes);
-            return Keys.hmacShaKeyFor(hashedSecret);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 algorithm unavailable for JWT key derivation", e);
-        }
-    }
+		try {
+			byte[] hashedSecret = MessageDigest.getInstance("SHA-256").digest(secretBytes);
+			return Keys.hmacShaKeyFor(hashedSecret);
+		} catch (NoSuchAlgorithmException e) {
+			throw new IllegalStateException("SHA-256 algorithm unavailable for JWT key derivation", e);
+		}
+	}
 
-    public Long extractRestaurantId(String token) {
-        final Claims claims = extractAllClaims(token);
-        return claims.get("restaurantId", Long.class);
-    }
+	public Long extractRestaurantId(String token) {
+		final Claims claims = extractAllClaims(token);
+		return claims.get("restaurantId", Long.class);
+	}
 
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
-    }
+	public String extractUsername(String token) {
+		return extractClaim(token, Claims::getSubject);
+	}
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
-    }
+	public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+		final Claims claims = extractAllClaims(token);
+		return claimsResolver.apply(claims);
+	}
 
-    private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
+	private Claims extractAllClaims(String token) {
+		return Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
+	}
 
-    public String generateToken(String username, Long restaurantId) {
-        return Jwts.builder()
-                .setSubject(username)
-                .claim("restaurantId", restaurantId)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + expirationMs))
-                .signWith(getSigningKey())
-                .compact();
-    }
+	public String generateToken(String username, Long restaurantId) {
+		return Jwts.builder().setSubject(username).claim("restaurantId", restaurantId).setIssuedAt(new Date())
+				.setExpiration(new Date(System.currentTimeMillis() + expirationMs)).signWith(getSigningKey()).compact();
+	}
 
-    public Boolean isTokenExpired(String token) {
-        try {
-            return extractClaim(token, Claims::getExpiration).before(new Date());
-        } catch (io.jsonwebtoken.ExpiredJwtException e) {
-            return true;
-        } catch (Exception e) {
-            return true;
-        }
-    }
+	public Boolean isTokenExpired(String token) {
+		try {
+			return extractClaim(token, Claims::getExpiration).before(new Date());
+		} catch (io.jsonwebtoken.ExpiredJwtException e) {
+			return true;
+		} catch (Exception e) {
+			return true;
+		}
+	}
 }

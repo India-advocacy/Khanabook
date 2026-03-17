@@ -13,18 +13,16 @@ import com.khanabook.saas.security.TenantContext;
 @RequestMapping("/sync/bills")
 @RequiredArgsConstructor
 public class BillController {
-    private final BillService service;
+	private final BillService service;
 
-    @PostMapping("/push")
-    public ResponseEntity<PushSyncResponse> push(@RequestBody List<Bill> payload) {
-        // TenantId automatically extracted by JwtFilter
-        return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
-    }
+	@PostMapping("/push")
+	public ResponseEntity<PushSyncResponse> push(@RequestBody List<Bill> payload) {
 
-    @GetMapping("/pull")
-    public ResponseEntity<List<Bill>> pull(
-            @RequestParam Long lastSyncTimestamp,
-            @RequestParam String deviceId) {
-        return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
-    }
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
+	}
+
+	@GetMapping("/pull")
+	public ResponseEntity<List<Bill>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
+		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	}
 }

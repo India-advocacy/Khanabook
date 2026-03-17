@@ -13,18 +13,16 @@ import com.khanabook.saas.security.TenantContext;
 @RequestMapping("/sync/itemvariant")
 @RequiredArgsConstructor
 public class ItemVariantController {
-    private final ItemVariantService service;
+	private final ItemVariantService service;
 
-    @PostMapping("/push")
-    public ResponseEntity<PushSyncResponse> push(@RequestBody List<ItemVariant> payload) {
-        // TenantId automatically extracted by JwtFilter
-        return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
-    }
+	@PostMapping("/push")
+	public ResponseEntity<PushSyncResponse> push(@RequestBody List<ItemVariant> payload) {
 
-    @GetMapping("/pull")
-    public ResponseEntity<List<ItemVariant>> pull(
-            @RequestParam Long lastSyncTimestamp,
-            @RequestParam String deviceId) {
-        return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
-    }
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
+	}
+
+	@GetMapping("/pull")
+	public ResponseEntity<List<ItemVariant>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
+		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	}
 }

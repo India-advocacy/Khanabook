@@ -5,6 +5,7 @@ import android.graphics.*
 import android.graphics.pdf.PdfDocument
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import java.io.File
 import java.io.FileOutputStream
 
@@ -17,11 +18,11 @@ class InvoicePDFGenerator(private val context: Context) {
     ): File {
         val pdfDocument = PdfDocument()
 
-        // 58mm = ~164 pts, 80mm = ~226 pts
+        
         val is80mm = profile?.paperSize == "80mm"
         val pageWidth = if (is80mm) 226 else 164
 
-        // Load Logo if exists
+        
         val logoBitmap =
                 profile?.logoPath?.let { path ->
                     try {
@@ -31,11 +32,11 @@ class InvoicePDFGenerator(private val context: Context) {
                     }
                 }
 
-        // 0. Build visual flags from profile
+        
         val includeLogo = profile?.includeLogoInPrint == true
         val includeCustomerWhatsapp = profile?.printCustomerWhatsapp == true
 
-        // Calculate height dynamically
+        
         val logoHeight = if (logoBitmap != null && includeLogo) 50 else 0
         val whatsappHeight =
                 if (includeCustomerWhatsapp && !bill.bill.customerWhatsapp.isNullOrBlank()) 12
@@ -61,7 +62,7 @@ class InvoicePDFGenerator(private val context: Context) {
 
         var y = 15f
 
-        // 0. Draw Logo (if enabled in settings)
+        
         if (logoBitmap != null && includeLogo) {
             val scaledWidth = 35f
             val scaledHeight =
@@ -72,19 +73,19 @@ class InvoicePDFGenerator(private val context: Context) {
             y += scaledHeight + 12f
         }
 
-        // Colors
+        
         val colorPrimary = if (isDigital) Color.parseColor("#2E150B") else Color.BLACK
         val colorVeg = if (isDigital) Color.parseColor("#2E7D32") else Color.BLACK
         val colorNonVeg = if (isDigital) Color.parseColor("#C62828") else Color.BLACK
         val colorText = Color.BLACK
 
-        // Font sizes (Polished & Shrunk)
+        
         val mainTitleSize = if (is80mm) 12f else 10f
         val subTitleSize = if (is80mm) 7f else 6f
         val bodySize = if (is80mm) 8f else 6.5f
         val headerLabelSize = if (is80mm) 7f else 6f
 
-        // 1. Header (Centered)
+        
         paint.color = colorPrimary
         paint.typeface = boldTypeface
         paint.textSize = mainTitleSize
@@ -96,7 +97,7 @@ class InvoicePDFGenerator(private val context: Context) {
                 paint
         )
 
-        paint.color = Color.parseColor("#757575") // Lighter grey like standard Android 'Secondary' text
+        paint.color = Color.parseColor("#757575") 
         paint.typeface = normalTypeface
         paint.textSize = subTitleSize
         y += 10f
@@ -120,7 +121,7 @@ class InvoicePDFGenerator(private val context: Context) {
             }
         }
 
-        // Draw FSSAI and GST with mixed styles
+        
         paint.color = colorText
         paint.textAlign = Paint.Align.LEFT
         
@@ -151,7 +152,7 @@ class InvoicePDFGenerator(private val context: Context) {
             canvas.drawText(label, sx, y, paint)
             paint.typeface = normalTypeface
             canvas.drawText(value, sx + lw, y, paint)
-            y += 9f // Increased from 4f to prevent overlap
+            y += 9f 
         }
 
         if (!profile?.whatsappNumber.isNullOrBlank()) {
@@ -166,11 +167,11 @@ class InvoicePDFGenerator(private val context: Context) {
             canvas.drawText(label, sx, y, paint)
             paint.typeface = normalTypeface
             canvas.drawText(value, sx + lw, y, paint)
-            y += 9f // Increased from 4f to prevent overlap
+            y += 9f 
         }
 
-        // 2. Divider & Title
-        y += 1f // Minimal gap
+        
+        y += 1f 
         paint.strokeWidth = 1f
         paint.color = colorText
         paint.textAlign = Paint.Align.LEFT
@@ -185,15 +186,15 @@ class InvoicePDFGenerator(private val context: Context) {
                 y,
                 paint
         )
-        y += 6f // Increased from 5f
+        y += 6f 
         canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
 
-        // 3. Bill Info
+        
         y += 10f
         paint.textSize = headerLabelSize
         paint.textAlign = Paint.Align.LEFT
         
-        // BILL (Mixed style)
+        
         val billLabel = "BILL: "
         val billValue = "${bill.bill.lifetimeOrderId}"
         paint.typeface = boldTypeface
@@ -202,7 +203,7 @@ class InvoicePDFGenerator(private val context: Context) {
         paint.typeface = normalTypeface
         canvas.drawText(billValue, 5f + blw, y, paint)
         
-        // DATE (Mixed style, Right aligned)
+        
         val dateStr = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.bill.createdAt)
         val dateLabel = "DATE: "
         val dateValue = dateStr.replace("\n", " ")
@@ -216,12 +217,12 @@ class InvoicePDFGenerator(private val context: Context) {
         paint.typeface = normalTypeface
         canvas.drawText(dateValue, dateStartX + dlw, y, paint)
 
-        // Customer Info (Mixed style)
+        
         if (includeCustomerWhatsapp && !bill.bill.customerWhatsapp.isNullOrBlank()) {
             y += 8f
             paint.textAlign = Paint.Align.LEFT
             
-            // CUST
+            
             val custLabel = "CUST: "
             val custValue = bill.bill.customerName ?: "GUEST"
             paint.typeface = boldTypeface
@@ -230,7 +231,7 @@ class InvoicePDFGenerator(private val context: Context) {
             paint.typeface = normalTypeface
             canvas.drawText(custValue, 5f + clw, y, paint)
             
-            // WA (Right aligned)
+            
             val waLabel = "WA: "
             val waValue = bill.bill.customerWhatsapp ?: ""
             paint.typeface = boldTypeface
@@ -243,7 +244,7 @@ class InvoicePDFGenerator(private val context: Context) {
             paint.typeface = normalTypeface
             canvas.drawText(waValue, waStartX + wlw, y, paint)
         } else if (!bill.bill.customerName.isNullOrBlank()) {
-            // Only name if WhatsApp is disabled/missing
+            
             y += 8f
             paint.textAlign = Paint.Align.LEFT
             val custLabel = "CUST: "
@@ -255,7 +256,7 @@ class InvoicePDFGenerator(private val context: Context) {
             canvas.drawText(custValue, 5f + clw, y, paint)
         }
 
-        // 4. Table Header
+        
         y += 10f
         canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
         y += 8f
@@ -272,16 +273,16 @@ class InvoicePDFGenerator(private val context: Context) {
         y += 4f
         canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
 
-        // 5. Items
+        
         paint.typeface = normalTypeface
         paint.textSize = bodySize
-        paint.letterSpacing = 0.03f // Improve item name legibility
+        paint.letterSpacing = 0.03f 
         y += 10f
         bill.items.forEachIndexed { _, item ->
             paint.textAlign = Paint.Align.LEFT
             paint.color = colorText
             val displayName = item.itemName.uppercase()
-            // Even more space now without the dot
+            
             val maxChars = if (is80mm) 38 else 28
             canvas.drawText(
                     if (displayName.length > maxChars) displayName.take(maxChars - 2) + ".." else displayName,
@@ -291,22 +292,22 @@ class InvoicePDFGenerator(private val context: Context) {
             )
 
             paint.textAlign = Paint.Align.CENTER
-            paint.letterSpacing = 0f // Reset for numbers
+            paint.letterSpacing = 0f 
             canvas.drawText("${item.quantity}", qtyX + 8f, y, paint)
 
             paint.textAlign = Paint.Align.RIGHT
             canvas.drawText(
-                    String.format("%.2f", item.itemTotal),
+                    CurrencyUtils.formatPrice(item.itemTotal).removePrefix("₹ ").removePrefix("₹"),
                     (pageWidth - 5).toFloat(),
                     y,
                     paint
             )
-            y += 12f // Increased spacing between items
-            paint.letterSpacing = 0.03f // Re-enable for next item name
+            y += 12f 
+            paint.letterSpacing = 0.03f 
         }
-        paint.letterSpacing = 0f // Reset globally
+        paint.letterSpacing = 0f 
 
-        // 6. Summary
+        
         y += 4f
         paint.color = colorText
         canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
@@ -314,29 +315,31 @@ class InvoicePDFGenerator(private val context: Context) {
         paint.typeface = normalTypeface
         paint.textSize = bodySize
         
-        // Match preview alignment: labels start from mid-page
+        
         val summaryLabelX = pageWidth * 0.55f 
         
         paint.textAlign = Paint.Align.LEFT
         canvas.drawText("Sub-Total", summaryLabelX, y, paint)
         paint.textAlign = Paint.Align.RIGHT
         canvas.drawText(
-                String.format("%.2f", bill.bill.subtotal),
+                CurrencyUtils.formatPrice(bill.bill.subtotal).removePrefix("₹ ").removePrefix("₹"),
                 (pageWidth - 5).toFloat(),
                 y,
                 paint
         )
 
-        // GST Row - ONLY if enabled
+        
         if (profile?.gstEnabled == true) {
             y += 9f
             paint.textAlign = Paint.Align.LEFT
-            paint.letterSpacing = 0.05f // Add spacing for GST label
+            paint.letterSpacing = 0.05f 
             canvas.drawText("GST (${bill.bill.gstPercentage}%)", summaryLabelX, y, paint)
-            paint.letterSpacing = 0f // Reset
+            paint.letterSpacing = 0f 
             paint.textAlign = Paint.Align.RIGHT
+            val cgst = bill.bill.cgstAmount.toDoubleOrNull() ?: 0.0
+            val sgst = bill.bill.sgstAmount.toDoubleOrNull() ?: 0.0
             canvas.drawText(
-                    String.format("%.2f", bill.bill.cgstAmount + bill.bill.sgstAmount),
+                    CurrencyUtils.formatPrice(cgst + sgst).removePrefix("₹ ").removePrefix("₹"),
                     (pageWidth - 5).toFloat(),
                     y,
                     paint
@@ -357,13 +360,13 @@ class InvoicePDFGenerator(private val context: Context) {
                 if (profile?.currency == "INR" || profile?.currency == "Rupee") "₹"
                 else profile?.currency ?: ""
         canvas.drawText(
-                "$currency ${String.format("%.2f", bill.bill.totalAmount)}",
+                "${if (currency == "₹") "" else currency} ${CurrencyUtils.formatPrice(bill.bill.totalAmount).removePrefix("₹ ").removePrefix("₹")}",
                 (pageWidth - 15).toFloat(),
                 y,
                 paint
         )
 
-        // 8. Footer
+        
         paint.typeface = boldTypeface
         paint.textSize = 7f
         paint.textAlign = Paint.Align.CENTER

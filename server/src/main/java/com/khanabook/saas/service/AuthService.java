@@ -6,13 +6,13 @@ import com.khanabook.saas.controller.AuthController.SignupRequest;
 
 public interface AuthService {
 
-    AuthResponse login(LoginRequest request);
+	AuthResponse login(LoginRequest request);
 
-    AuthResponse signup(SignupRequest request);
+	AuthResponse signup(SignupRequest request);
 
-    AuthResponse googleLogin(com.khanabook.saas.controller.AuthController.GoogleLoginRequest request);
+	AuthResponse googleLogin(com.khanabook.saas.controller.AuthController.GoogleLoginRequest request);
 
-    void resetPassword(String phoneNumber, String newPassword);
+	void resetPassword(String phoneNumber, String newPassword);
 
-    boolean checkUserExists(String phoneNumber);
+	boolean checkUserExists(String phoneNumber);
 }

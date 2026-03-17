@@ -13,23 +13,22 @@ import com.khanabook.saas.security.TenantContext;
 @RequestMapping("/sync/restaurantprofile")
 @RequiredArgsConstructor
 public class RestaurantProfileController {
-    private final RestaurantProfileService service;
+	private final RestaurantProfileService service;
 
-    @PostMapping("/push")
-    public ResponseEntity<PushSyncResponse> push(@RequestBody List<RestaurantProfile> payload) {
-        // TenantId automatically extracted by JwtFilter
-        return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
-    }
+	@PostMapping("/push")
+	public ResponseEntity<PushSyncResponse> push(@RequestBody List<RestaurantProfile> payload) {
 
-    @GetMapping("/pull")
-    public ResponseEntity<List<RestaurantProfile>> pull(
-            @RequestParam Long lastSyncTimestamp,
-            @RequestParam String deviceId) {
-        return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
-    }
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
+	}
 
-    @PostMapping("/counters/increment")
-    public ResponseEntity<RestaurantProfileService.CounterResponse> incrementCounters() {
-        return ResponseEntity.ok(service.incrementAndGetCounters(TenantContext.getCurrentTenant()));
-    }
+	@GetMapping("/pull")
+	public ResponseEntity<List<RestaurantProfile>> pull(@RequestParam Long lastSyncTimestamp,
+			@RequestParam String deviceId) {
+		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	}
+
+	@PostMapping("/counters/increment")
+	public ResponseEntity<RestaurantProfileService.CounterResponse> incrementCounters() {
+		return ResponseEntity.ok(service.incrementAndGetCounters(TenantContext.getCurrentTenant()));
+	}
 }

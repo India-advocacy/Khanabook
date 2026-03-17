@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface MenuItemRepository extends SyncRepository<MenuItem, Long> {
 
-    @Modifying
-    @Query("UPDATE MenuItem m SET m.currentStock = (SELECT SUM(s.delta) FROM StockLog s WHERE s.serverMenuItemId = :id) WHERE m.id = :id")
-    void recalculateStock(@Param("id") Long id);
+	@Modifying
+	@Query("UPDATE MenuItem m SET m.currentStock = (SELECT SUM(s.delta) FROM StockLog s WHERE s.serverMenuItemId = :id) WHERE m.id = :id")
+	void recalculateStock(@Param("id") Long id);
 }

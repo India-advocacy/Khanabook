@@ -4,6 +4,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 import androidx.room.*
+import com.google.gson.annotations.SerializedName
 
 @Entity(
     tableName = "bill_items",
@@ -34,22 +35,22 @@ import androidx.room.*
     ]
 )
 data class BillItemEntity(
-    @PrimaryKey(autoGenerate = true)
+    @SerializedName("localId") @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     @ColumnInfo(name = "bill_id")
     val billId: Long,
     @ColumnInfo(name = "menu_item_id")
     val menuItemId: Long?,
     @ColumnInfo(name = "item_name")
-    val itemName: String, // snapshot
+    val itemName: String, 
     @ColumnInfo(name = "variant_id")
     val variantId: Long? = null,
     @ColumnInfo(name = "variant_name")
-    val variantName: String? = null, // snapshot
-    val price: String, // snapshot
+    val variantName: String? = null, 
+    val price: String, 
     val quantity: Int,
     @ColumnInfo(name = "item_total")
-    val itemTotal: String, // price * qty
+    val itemTotal: String, 
     @ColumnInfo(name = "special_instruction")
     val specialInstruction: String? = null,
 

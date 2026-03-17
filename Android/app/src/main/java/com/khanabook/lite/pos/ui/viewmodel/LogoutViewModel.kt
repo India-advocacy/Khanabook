@@ -72,7 +72,7 @@ class LogoutViewModel @Inject constructor(
     private fun performHardLogout() {
         viewModelScope.launch {
             sessionManager.clearSession()
-            // clear tables but maybe keep some? The prompt says `clearAllTables()`
+            
             appDatabase.clearAllTables()
             userRepository.setCurrentUser(null)
             _logoutState.value = LogoutState.LoggedOut

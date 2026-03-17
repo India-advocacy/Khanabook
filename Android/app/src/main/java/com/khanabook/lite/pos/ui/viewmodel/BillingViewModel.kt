@@ -36,7 +36,7 @@ class BillingViewModel @Inject constructor(
     val cartItems: StateFlow<List<CartItem>> = _cartItems
 
     init {
-        // Optimization: Debounce summary updates to avoid redundant calculations during rapid taps
+        
         _cartItems
             .debounce(300)
             .onEach { updateSummary() }
@@ -98,9 +98,7 @@ class BillingViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Barcode Scanning Logic: Looks up an item by its barcode and adds it to the cart.
-     */
+    
     fun handleScannedBarcode(barcode: String) {
         viewModelScope.launch {
             val menuItem = menuRepository.getMenuItemByCode(barcode)
@@ -112,26 +110,24 @@ class BillingViewModel @Inject constructor(
         }
     }
 
-    /**
-     * OCR Scanning Logic: Processes scanned text and adds matching items to cart.
-     */
+    
     fun addItemByScannedText(text: String) {
         viewModelScope.launch {
             val allItems = menuRepository.getAllMenuItemsOnce()
             val allVariants = menuRepository.getAllVariantsOnce()
             
-            // Normalize lines from scanned text
+            
             val lines = text.split("\n", "\r").map { it.trim() }.filter { it.length > 2 }
             
             for (line in lines) {
-                // 1. Direct match for item name
+                
                 val itemMatch = allItems.find { it.name.equals(line, ignoreCase = true) }
                 if (itemMatch != null) {
                     addToCart(itemMatch)
                     continue
                 }
                 
-                // 2. Direct match for variant name (e.g. "Full", "Half")
+                
                 val variantMatch = allVariants.find { it.variantName.equals(line, ignoreCase = true) }
                 if (variantMatch != null) {
                     val parentItem = allItems.find { it.id == variantMatch.menuItemId }
@@ -141,10 +137,10 @@ class BillingViewModel @Inject constructor(
                     }
                 }
                 
-                // 3. Partial match (if line contains item name)
+                
                 val partialItem = allItems.find { line.contains(it.name, ignoreCase = true) }
                 if (partialItem != null) {
-                    // Check if the line also contains a variant name
+                    
                     val partialVariant = allVariants.filter { it.menuItemId == partialItem.id }
                         .find { line.contains(it.variantName, ignoreCase = true) }
                     
@@ -194,7 +190,7 @@ class BillingViewModel @Inject constructor(
         try {
             val profile = restaurantRepository.getProfile() ?: return false
             
-            // Force final summary calculation to avoid 300ms debounce race condition
+            
             val subtotal = BillCalculator.calculateSubtotal(_cartItems.value.map { 
                 (it.variant?.price ?: it.item.basePrice) to it.quantity 
             })
@@ -211,7 +207,7 @@ class BillingViewModel @Inject constructor(
             val total = BillCalculator.calculateTotal(subtotal, cgst, sgst, customTax)
             val finalSummary = BillSummary(subtotal, cgst, sgst, customTax, total)
 
-            // Atomically increment and get next counters
+            
             val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
             val zoneId = try {
                 java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
@@ -282,7 +278,7 @@ class BillingViewModel @Inject constructor(
             val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
             _lastBill.value = inserted
             
-            // Auto-print logic
+            
             if (profile.printerEnabled && profile.autoPrintOnSuccess && inserted != null) {
                 viewModelScope.launch(Dispatchers.IO) {
                     if (!printerManager.isConnected() && !profile.printerMac.isNullOrBlank()) {

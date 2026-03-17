@@ -16,17 +16,17 @@ object InvoiceFormatter {
 
     private const val TAG = "InvoiceFormatter"
 
-    // —— ESC/POS Thermal Printer Commands ——————————————————————————————————————
+    
     private val ESC: Byte = 0x1B
     private val GS: Byte  = 0x1D
-    private val RESET      = byteArrayOf(ESC, 0x40) // Initialize
+    private val RESET      = byteArrayOf(ESC, 0x40) 
     private val BOLD_ON    = byteArrayOf(ESC, 0x45, 0x01)
     private val BOLD_OFF   = byteArrayOf(ESC, 0x45, 0x00)
     private val ALIGN_LEFT  = byteArrayOf(ESC, 0x61, 0x00)
     private val ALIGN_CENTER= byteArrayOf(ESC, 0x61, 0x01)
-    private val LARGE_FONT = byteArrayOf(GS, 0x21, 0x11) // 2x height, 2x width
+    private val LARGE_FONT = byteArrayOf(GS, 0x21, 0x11) 
     private val NORMAL_FONT= byteArrayOf(GS, 0x21, 0x00)
-    private val CUT_PAPER  = byteArrayOf(GS, 0x56, 0x42, 0x00) // Cut command
+    private val CUT_PAPER  = byteArrayOf(GS, 0x56, 0x42, 0x00) 
 
     private fun resolveCurrency(profile: RestaurantProfileEntity?): String {
         return if (profile?.currency == "INR" || profile?.currency == "Rupee") "Rs." else profile?.currency ?: ""
@@ -55,14 +55,14 @@ object InvoiceFormatter {
 
         fun add(bytes: ByteArray) { out.addAll(bytes.toList()) }
         fun add(text: String) { 
-            // ISO-8859-1 provides better coverage for common symbols than US_ASCII
+            
             out.addAll(text.toByteArray(Charsets.UTF_8).toList())
         }
 
         add(RESET)
         add(ALIGN_CENTER)
         
-        // 0. Shop Logo
+        
         if (profile?.includeLogoInPrint == true && !profile.logoPath.isNullOrBlank()) {
             try {
                 val bitmap = BitmapFactory.decodeFile(profile.logoPath)
@@ -75,7 +75,7 @@ object InvoiceFormatter {
             }
         }
 
-        // Shop Name Large Bold
+        
         add(LARGE_FONT)
         add(BOLD_ON)
         add(profile?.shopName?.uppercase() ?: "RESTAURANT")
@@ -83,7 +83,7 @@ object InvoiceFormatter {
         add(BOLD_OFF)
         add(NORMAL_FONT)
         
-        // Address & Info
+        
         profile?.shopAddress?.takeIf { it.isNotBlank() }?.let { add(it + "\n") }
         if (!profile?.whatsappNumber.isNullOrBlank()) add("Contact: ${profile?.whatsappNumber}\n")
         if (!profile?.fssaiNumber.isNullOrBlank()) add("FSSAI No: ${profile?.fssaiNumber}\n")
@@ -101,7 +101,7 @@ object InvoiceFormatter {
         bill.bill.customerWhatsapp?.takeIf { it.isNotBlank() }?.let { add("WA   : $it\n") }
         add("$line\n")
         
-        // Dynamic Column Widths
+        
         val itemW = (width * 0.45).toInt()
         val qtyW = 4
         val rateW = (width * 0.2).toInt()
@@ -118,11 +118,11 @@ object InvoiceFormatter {
         
         add("$line\n")
         
-        // Summary
+        
         add(formatRow("Subtotal:", "$currency ${formatMoney(bill.bill.subtotal)}", width))
         
         if (isGst && (BigDecimal(bill.bill.cgstAmount).compareTo(BigDecimal.ZERO) > 0)) {
-            // TODO: Handle IGST for inter-state supplies
+            
             val halfGst = BigDecimal(bill.bill.gstPercentage).divide(BigDecimal("2"), 2, RoundingMode.HALF_UP)
             add(formatRow("CGST (${halfGst.stripTrailingZeros().toPlainString()}%):", "$currency ${formatMoney(bill.bill.cgstAmount)}", width))
             add(formatRow("SGST (${halfGst.stripTrailingZeros().toPlainString()}%):", "$currency ${formatMoney(bill.bill.sgstAmount)}", width))
@@ -147,7 +147,7 @@ object InvoiceFormatter {
         add("$doubleLine\n")
         add("Powered by KhanaBook POS\n")
         
-        // Feed & Cut
+        
         add("\n\n\n\n")
         add(CUT_PAPER)
 
@@ -156,10 +156,10 @@ object InvoiceFormatter {
 
     fun formatForWhatsApp(bill: BillWithItems, profile: RestaurantProfileEntity?): String {
         val sb = StringBuilder()
-        // Use proper Rupee symbol for digital WhatsApp message
+        
         val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "₹" else profile?.currency ?: ""
         
-        // Header
+        
         sb.append("*${profile?.shopName?.uppercase() ?: "RESTAURANT"}*\n")
         if (!profile?.shopAddress.isNullOrBlank()) sb.append("${profile?.shopAddress}\n")
         if (!profile?.whatsappNumber.isNullOrBlank()) sb.append("Contact: ${profile?.whatsappNumber}\n")
@@ -212,13 +212,11 @@ object InvoiceFormatter {
         else "$label\n${" ".repeat(maxOf(0, width - value.length))}$value\n"
     }
 
-    /**
-     * Converts a Bitmap into ESC/POS Raster bit-image commands (GS v 0).
-     */
+    
     private fun decodeBitmapToESC_POS(bitmap: Bitmap, maxWidth: Int): ByteArray {
         var scaledBitmap: Bitmap? = null
         try {
-            // Resize to fit printer width while maintaining aspect ratio
+            
             val scale = maxWidth.toFloat() / bitmap.width.toFloat()
             val targetHeight = (bitmap.height * scale).toInt()
             scaledBitmap = Bitmap.createScaledBitmap(bitmap, maxWidth, targetHeight, true)
@@ -229,16 +227,16 @@ object InvoiceFormatter {
             
             val data = mutableListOf<Byte>()
             
-            // GS v 0 p wL wH hL hH (Raster bit image command)
+            
             data.add(0x1D.toByte())
             data.add(0x76.toByte())
             data.add(0x30.toByte())
             data.add(0x00.toByte())
             
-            data.add((bytesWidth % 256).toByte()) // wL
-            data.add((bytesWidth / 256).toByte()) // wH
-            data.add((height % 256).toByte())    // hL
-            data.add((height / 256).toByte())    // hH
+            data.add((bytesWidth % 256).toByte()) 
+            data.add((bytesWidth / 256).toByte()) 
+            data.add((height % 256).toByte())    
+            data.add((height / 256).toByte())    
 
             for (y in 0 until height) {
                 for (x in 0 until bytesWidth) {
@@ -248,7 +246,7 @@ object InvoiceFormatter {
                         if (pixelX < width) {
                             val pixel = scaledBitmap.getPixel(pixelX, y)
                             val gray = (Color.red(pixel) + Color.green(pixel) + Color.blue(pixel)) / 3
-                            if (gray < 128) { // Black pixel threshold
+                            if (gray < 128) { 
                                 bite = bite or (0x80 shr b)
                             }
                         }

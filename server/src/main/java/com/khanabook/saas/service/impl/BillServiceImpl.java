@@ -17,38 +17,36 @@ import java.time.format.DateTimeFormatter;
 @Service
 @RequiredArgsConstructor
 public class BillServiceImpl implements BillService {
-    private final BillRepository repository;
-    private final GenericSyncService genericSyncService;
-    private final RestaurantProfileRepository profileRepository;
-    private final java.util.Map<Long, String> timezoneCache = new java.util.concurrent.ConcurrentHashMap<>();
+	private final BillRepository repository;
+	private final GenericSyncService genericSyncService;
+	private final RestaurantProfileRepository profileRepository;
+	private final java.util.Map<Long, String> timezoneCache = new java.util.concurrent.ConcurrentHashMap<>();
 
-    @Override
-    public PushSyncResponse pushData(Long tenantId, List<Bill> payload) {
-        String timezone = timezoneCache.computeIfAbsent(tenantId, tid -> 
-            profileRepository.findByRestaurantId(tid)
-                .map(RestaurantProfile::getTimezone)
-                .orElse("Asia/Kolkata")
-        );
-        ZoneId zoneId;
-        try {
-            zoneId = ZoneId.of(timezone);
-        } catch (Exception e) {
-            zoneId = ZoneId.of("Asia/Kolkata");
-        }
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
+	@Override
+	public PushSyncResponse pushData(Long tenantId, List<Bill> payload) {
+		String timezone = timezoneCache.computeIfAbsent(tenantId, tid -> profileRepository.findByRestaurantId(tid)
+				.map(RestaurantProfile::getTimezone).orElse("Asia/Kolkata"));
+		ZoneId zoneId;
+		try {
+			zoneId = ZoneId.of(timezone);
+		} catch (Exception e) {
+			zoneId = ZoneId.of("Asia/Kolkata");
+		}
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(zoneId);
 
-        for (Bill bill : payload) {
-            if (bill.getLastResetDate() == null) {
-                // Derive lastResetDate from createdAt if missing to satisfy uniqueness constraint
-                Long created = bill.getCreatedAt() != null ? bill.getCreatedAt() : System.currentTimeMillis();
-                bill.setLastResetDate(formatter.format(Instant.ofEpochMilli(created)));
-            }
-        }
-        return genericSyncService.handlePushSync(tenantId, payload, repository);
-    }
+		for (Bill bill : payload) {
+			if (bill.getLastResetDate() == null) {
 
-    @Override
-    public List<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
-        return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp, deviceId);
-    }
+				Long created = bill.getCreatedAt() != null ? bill.getCreatedAt() : System.currentTimeMillis();
+				bill.setLastResetDate(formatter.format(Instant.ofEpochMilli(created)));
+			}
+		}
+		return genericSyncService.handlePushSync(tenantId, payload, repository);
+	}
+
+	@Override
+	public List<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
+		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
+				deviceId);
+	}
 }

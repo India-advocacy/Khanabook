@@ -1,4 +1,4 @@
-﻿@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -23,6 +23,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.gson.Gson
+import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
 
@@ -49,7 +51,7 @@ fun HomeScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            // Header
+            
             Row(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -73,7 +75,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // 1) Today's Summary
+            
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = DarkBrown2),
@@ -94,7 +96,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         StatItem("Orders", stats.orderCount.toString(), Modifier.weight(1f))
-                        StatItem("Revenue", "\u20B9${"%.0f".format(stats.revenue)}", Modifier.weight(1f))
+                        StatItem("Revenue", CurrencyUtils.formatPrice(stats.revenue), Modifier.weight(1f))
                         StatItem("Customers", stats.customerCount.toString(), Modifier.weight(1f))
                     }
                 }
@@ -102,7 +104,7 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 2) Create New Bill
+            
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -183,7 +185,7 @@ fun SyncStatusHeader(
     unsyncedCount: Int
 ) {
     val isOnline = connectionStatus == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
-    // Checking for token presence to warn the user
+    
     val viewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
     val currentUser by viewModel.currentUser.collectAsState()
     val isSessionValid = currentUser != null

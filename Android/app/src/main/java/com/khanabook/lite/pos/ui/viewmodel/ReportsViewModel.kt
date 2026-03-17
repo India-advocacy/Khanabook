@@ -33,10 +33,10 @@ class ReportsViewModel @Inject constructor(
     private val _orderDetailsTable = MutableStateFlow<List<OrderDetailRow>>(emptyList())
     val orderDetailsTable: StateFlow<List<OrderDetailRow>> = _orderDetailsTable
 
-    private val _reportType = MutableStateFlow("Payment") // "Payment" or "Order"
+    private val _reportType = MutableStateFlow("Payment") 
     val reportType: StateFlow<String> = _reportType
 
-    private val _timeFilter = MutableStateFlow("Daily") // "Daily", "Weekly", "Monthly", "Custom"
+    private val _timeFilter = MutableStateFlow("Daily") 
     val timeFilter: StateFlow<String> = _timeFilter
 
     private val _selectedBillDetails = MutableStateFlow<com.khanabook.lite.pos.data.local.relation.BillWithItems?>(null)
@@ -54,7 +54,7 @@ class ReportsViewModel @Inject constructor(
         updateDateRangeAndLoad(filter)
     }
 
-    fun loadBillDetails(billId: Int) {
+    fun loadBillDetails(billId: Long) {
         viewModelScope.launch {
             _selectedBillDetails.value = reportGenerator.getOrderDetail(billId)
         }
@@ -112,7 +112,7 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
-    fun updateOrderStatus(billId: Int, newStatus: String) {
+    fun updateOrderStatus(billId: Long, newStatus: String) {
         viewModelScope.launch {
             billRepository.updateOrderStatus(billId, newStatus)
             if (currentFrom != 0L && currentTo != 0L) {
@@ -121,7 +121,7 @@ class ReportsViewModel @Inject constructor(
         }
     }
 
-    fun updatePaymentMode(billId: Int, newMode: String) {
+    fun updatePaymentMode(billId: Long, newMode: String) {
         viewModelScope.launch {
             billRepository.updatePaymentMode(billId, newMode)
             if (currentFrom != 0L && currentTo != 0L) {

@@ -14,12 +14,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 
-/**
- * Validates the stock recalculation model end-to-end.
- * Key invariant: currentStock on MenuItem = SUM(delta) from stock_logs.
- * This prevents multi-device drift where LWW on the stock field would cause
- * one device's adjustments to silently overwrite another's.
- */
+
 @Transactional
 class StockRecalculationIntegrationTest extends BaseIntegrationTest {
 
@@ -78,43 +73,43 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void multiDeviceStockLogs_bothContributedToTotal() {
-        // Device A adds initial stock
+        
         StockLog fromA = stockLog(1, DEVICE_A, 1, null, new BigDecimal("50.00"), "initial");
         fromA.setServerMenuItemId(savedMenuItemId);
 
-        // Device B records a sale (offline, then syncs later)
+        
         StockLog fromB = stockLog(1, DEVICE_B, 1, null, new BigDecimal("-5.00"), "sale");
         fromB.setServerMenuItemId(savedMenuItemId);
 
         stockLogService.pushData(TENANT, List.of(fromA));
         stockLogService.pushData(TENANT, List.of(fromB));
 
-        // Both logs should be reflected — no LWW race on the stock value
+        
         MenuItem updated = menuItemRepo.findById(savedMenuItemId).orElseThrow();
         assertThat(updated.getCurrentStock()).isEqualByComparingTo("45.00");
     }
 
     @Test
     void stockLog_isDeletedSoftly_doesNotAffectCurrentStock() {
-        // Push initial stock
+        
         StockLog init = stockLog(1, DEVICE_A, 1, null, new BigDecimal("20.00"), "initial");
         init.setServerMenuItemId(savedMenuItemId);
         stockLogService.pushData(TENANT, List.of(init));
 
-        // Push a soft-deleted sale (is_deleted = true)
+        
         StockLog deletedSale = stockLog(2, DEVICE_A, 1, null, new BigDecimal("-5.00"), "sale");
         deletedSale.setServerMenuItemId(savedMenuItemId);
         deletedSale.setIsDeleted(true);
         stockLogService.pushData(TENANT, List.of(deletedSale));
 
-        // The recalculateStock query sums ALL logs including deleted ones.
-        // This is the current design — document it so the team is aware.
-        // TODO: decide whether soft-deleted logs should be excluded from stock sum.
+        
+        
+        
         MenuItem updated = menuItemRepo.findById(savedMenuItemId).orElseThrow();
-        // Currently includes deleted: 20 + (-5) = 15
-        // After design decision: might be 20 (excluding deleted)
+        
+        
         assertThat(updated.getCurrentStock())
-            .isEqualByComparingTo("15.00"); // documents current behaviour
+            .isEqualByComparingTo("15.00"); 
     }
 
     @Test
@@ -146,12 +141,12 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
         ItemVariant updatedVariant = itemVariantRepo.findById(variantId).orElseThrow();
         assertThat(updatedVariant.getCurrentStock()).isEqualByComparingTo("30.00");
 
-        // MenuItem stock is also recalculated (includes the variant's log)
+        
         MenuItem updatedItem = menuItemRepo.findById(savedMenuItemId).orElseThrow();
         assertThat(updatedItem.getCurrentStock()).isEqualByComparingTo("30.00");
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
+    
 
     private StockLog stockLog(int localId, String device, int menuItemLocalId,
                                Integer variantLocalId, BigDecimal delta, String reason) {

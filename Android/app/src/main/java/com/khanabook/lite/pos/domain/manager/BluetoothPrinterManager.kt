@@ -17,14 +17,11 @@ import kotlinx.coroutines.flow.StateFlow
 import java.io.OutputStream
 import java.util.UUID
 
-/**
- * Manages Bluetooth printer scanning, pairing, and printing.
- * Handles both paired (bonded) devices and live BT discovery.
- */
+
 class BluetoothPrinterManager(private val context: Context) {
 
     companion object {
-        // Standard Serial Port Profile (SPP) UUID — used by virtually all BT thermal printers
+        
         private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     }
 
@@ -35,7 +32,7 @@ class BluetoothPrinterManager(private val context: Context) {
     private var activeSocket: BluetoothSocket? = null
     private var outputStream: OutputStream? = null
 
-    // —— State —————————————————————————————————————————————————————————————————————
+    
 
     private val _scannedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val scannedDevices: StateFlow<List<BluetoothDevice>> = _scannedDevices
@@ -46,7 +43,10 @@ class BluetoothPrinterManager(private val context: Context) {
     private val _isConnecting = MutableStateFlow(false)
     val isConnecting: StateFlow<Boolean> = _isConnecting
 
-    // —— Permission helpers ————————————————————————————————————————————————————————
+    private val _isConnected = MutableStateFlow(false)
+    val isConnected: StateFlow<Boolean> = _isConnected
+
+    
 
     fun isBluetoothSupported(): Boolean = bluetoothAdapter != null
 
@@ -62,19 +62,16 @@ class BluetoothPrinterManager(private val context: Context) {
         }
     }
 
-    // —— Discovery ———————————————————————————————————————————————————————————————————
+    
 
-    /**
-     * Returns all devices currently bonded (paired) to the phone.
-     * This never requires BLUETOOTH_SCAN — only BLUETOOTH_CONNECT.
-     */
+    
     @Suppress("MissingPermission")
     fun getPairedDevices(): List<BluetoothDevice> {
         if (!hasRequiredPermissions()) return emptyList()
         return bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
     }
 
-    // BroadcastReceiver for live discovery
+    
     private val discoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context, intent: Intent) {
             when (intent.action) {
@@ -106,15 +103,12 @@ class BluetoothPrinterManager(private val context: Context) {
         }
     }
 
-    /**
-     * Starts BT discovery. Populates [scannedDevices] live.
-     * Pre-fills with already-paired devices so they always appear at the top.
-     */
+    
     @Suppress("MissingPermission")
     fun startScan() {
         if (!hasRequiredPermissions() || !isBluetoothEnabled()) return
 
-        // Always start with paired devices already visible
+        
         val paired = getPairedDevices()
         _scannedDevices.value = paired.toMutableList()
         _isScanning.value = true
@@ -124,7 +118,7 @@ class BluetoothPrinterManager(private val context: Context) {
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         }
         
-        // Prevent duplicate registration
+        
         try { context.unregisterReceiver(discoveryReceiver) } catch (_: Exception) {}
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -137,7 +131,7 @@ class BluetoothPrinterManager(private val context: Context) {
         bluetoothAdapter?.startDiscovery()
     }
 
-    /** Stops an ongoing BT scan. */
+    
     @Suppress("MissingPermission")
     fun stopScan() {
         bluetoothAdapter?.cancelDiscovery()
@@ -145,12 +139,9 @@ class BluetoothPrinterManager(private val context: Context) {
         try { context.unregisterReceiver(discoveryReceiver) } catch (_: Exception) {}
     }
 
-    // —— Connection ——————————————————————————————————————————————————————————————————
+    
 
-    /**
-     * Connects to the chosen [device] over RFCOMM/SPP.
-     * Tries secure first, then insecure as fallback (common for cheap printers).
-     */
+    
     @Suppress("MissingPermission")
     fun connect(device: BluetoothDevice): Boolean {
         disconnect()
@@ -158,20 +149,21 @@ class BluetoothPrinterManager(private val context: Context) {
         return try {
             bluetoothAdapter?.cancelDiscovery()
             
-            // Try secure first
+            
             var socket: BluetoothSocket? = null
             try {
                 socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
                 socket.connect()
             } catch (e: Exception) {
                 socket?.close()
-                // Fallback to insecure
+                
                 socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
                 socket.connect()
             }
 
             activeSocket = socket
             outputStream = socket?.outputStream
+            _isConnected.value = true
             true
         } catch (e: Exception) {
             e.printStackTrace()
@@ -182,13 +174,13 @@ class BluetoothPrinterManager(private val context: Context) {
         }
     }
 
-    /** Helper to connect directly by MAC address (for auto-reconnect) */
+    
     fun connect(address: String): Boolean {
         val device = bluetoothAdapter?.getRemoteDevice(address) ?: return false
         return connect(device)
     }
 
-    /** Sends raw bytes to the connected printer.  */
+    
     fun printBytes(data: ByteArray): Boolean {
         return try {
             outputStream?.write(data)
@@ -200,7 +192,7 @@ class BluetoothPrinterManager(private val context: Context) {
         }
     }
 
-    /** Closes the active socket. */
+    
     fun disconnect() {
         try {
             outputStream?.close()
@@ -208,12 +200,13 @@ class BluetoothPrinterManager(private val context: Context) {
         } catch (_: Exception) {}
         outputStream = null
         activeSocket = null
+        _isConnected.value = false
     }
 
-    /** Whether a socket connection is alive. */
+    
     fun isConnected(): Boolean = activeSocket?.isConnected == true
 
-    // —— Device name helper ——————————————————————————————————————————————————————————
+    
 
     @Suppress("MissingPermission")
     fun deviceName(device: BluetoothDevice): String =

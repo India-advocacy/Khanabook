@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 
 private const val PREFS_NAME = "session_prefs"
 private const val KEY_LAST_INTERACTION = "last_interaction_time"
-private const val SESSION_CHECK_INTERVAL_MS = 60_000L // check every 60 seconds
+private const val SESSION_CHECK_INTERVAL_MS = 60_000L 
 
 @Singleton
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
@@ -50,7 +50,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     private val _isSessionExpired = MutableStateFlow(false)
     val isSessionExpired: StateFlow<Boolean> = _isSessionExpired
 
-    // Background scope for periodic session checks
+    
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private var sessionCheckJob: kotlinx.coroutines.Job? = null
@@ -59,7 +59,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         startPeriodicCheck()
     }
 
-    /** Persist last interaction time so it survives process kills */
+    
     private var lastInteractionTime: Long
         get() = prefs.getLong(KEY_LAST_INTERACTION, System.currentTimeMillis())
         set(value) = prefs.edit().putLong(KEY_LAST_INTERACTION, value).apply()
@@ -90,7 +90,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         lastInteractionTime = System.currentTimeMillis()
     }
 
-    /** Automatically checks session expiry in the background every minute */
+    
     private fun startPeriodicCheck() {
         sessionCheckJob?.cancel()
         sessionCheckJob = scope.launch {
@@ -101,7 +101,7 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         }
     }
 
-    // --- NEW CLOUD SYNC METADATA ---
+    
     fun getAuthToken(): String? {
         return securePrefs.getString("auth_token", null)
     }

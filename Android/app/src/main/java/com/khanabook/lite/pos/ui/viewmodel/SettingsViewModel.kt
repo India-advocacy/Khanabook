@@ -46,10 +46,16 @@ class SettingsViewModel @Inject constructor(
     private val _btConnectResult = MutableStateFlow<Boolean?>(null)
     val btConnectResult: StateFlow<Boolean?> = _btConnectResult.asStateFlow()
 
+    private val _btIsConnected = MutableStateFlow(false)
+    val btIsConnected: StateFlow<Boolean> = _btIsConnected.asStateFlow()
+
     fun initBluetooth(context: Context) {
         if (btManager == null) {
             btManager = BluetoothPrinterManager(context)
-            // Auto-reconnect if mac exists
+            viewModelScope.launch {
+                btManager?.isConnected?.collect { _btIsConnected.value = it }
+            }
+            
             viewModelScope.launch(Dispatchers.IO) {
                 val mac = restaurantRepository.getProfile()?.printerMac
                 if (!mac.isNullOrBlank() && btManager?.isConnected() == false) {
@@ -67,13 +73,13 @@ class SettingsViewModel @Inject constructor(
         }
         viewModelScope.launch(Dispatchers.IO) {
             val testData = (
-                "\u001b\u0040" + // Initialize
-                "\u001b\u0061\u0001" + // Center
+                "\u001b\u0040" + 
+                "\u001b\u0061\u0001" + 
                 "KHANABOOK\n" +
                 "PRINTER TEST OK\n" +
                 "--------------------------------\n" +
                 "\n\n\n\n" +
-                "\u001d\u0056\u0042\u0000" // Cut
+                "\u001d\u0056\u0042\u0000" 
             ).toByteArray(Charsets.US_ASCII)
             mgr.printBytes(testData)
         }
@@ -140,10 +146,10 @@ class SettingsViewModel @Inject constructor(
             
             userRepository.currentUser.value?.let { current ->
                 val newNumber = profile.whatsappNumber ?: ""
-                // Update BOTH contact and login identifier (since we logged in with phone)
+                
                 userRepository.updateAccountDetails(current.id, newNumber, newNumber)
                 
-                // Update local session to use the new number/email
+                
                 userRepository.setCurrentUser(current.copy(
                     email = newNumber,
                     whatsappNumber = newNumber
@@ -164,14 +170,14 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun addItem(categoryId: Int, name: String, price: Double, type: String, stock: Double) {
+    fun addItem(categoryId: Long, name: String, price: Double, type: String, stock: Double) {
         viewModelScope.launch {
             menuRepository.insertItem(MenuItemEntity(
                 categoryId = categoryId,
                 name = name,
-                basePrice = price,
+                basePrice = price.toString(),
                 foodType = type,
-                currentStock = stock,
+                currentStock = stock.toString(),
                 createdAt = System.currentTimeMillis()
             ))
         }
@@ -183,7 +189,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun toggleItemAvailability(id: Int, isAvailable: Boolean) {
+    fun toggleItemAvailability(id: Long, isAvailable: Boolean) {
         viewModelScope.launch {
             menuRepository.toggleItemAvailability(id, isAvailable)
         }
@@ -202,9 +208,9 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun getItemsByCategory(categoryId: Int) = menuRepository.getItemsByCategoryFlow(categoryId)
+    fun getItemsByCategory(categoryId: Long) = menuRepository.getItemsByCategoryFlow(categoryId)
 
-    fun getMenuWithVariantsByCategory(categoryId: Int): kotlinx.coroutines.flow.Flow<List<MenuWithVariants>> {
+    fun getMenuWithVariantsByCategory(categoryId: Long): kotlinx.coroutines.flow.Flow<List<MenuWithVariants>> {
         return menuRepository.getMenuWithVariantsByCategoryFlow(categoryId)
     }
 

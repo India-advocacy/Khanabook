@@ -10,16 +10,11 @@ import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 
-/**
- * Expert Refactor: Helper class for Google ML Kit Text Recognition.
- * Managed as a single instance via the UI lifecycle.
- */
+
 class TextRecognitionHelper {
     private val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
-    /**
-     * Processes an InputImage. Returns the Task to allow for cancellation/tracking if needed.
-     */
+    
     fun processImage(
         image: InputImage,
         onSuccess: (String, Text) -> Unit,
@@ -35,9 +30,7 @@ class TextRecognitionHelper {
             }
     }
 
-    /**
-     * Processes image from Gallery URI.
-     */
+    
     fun processUri(
         context: Context,
         uri: Uri,
@@ -52,9 +45,7 @@ class TextRecognitionHelper {
         }
     }
 
-    /**
-     * Essential for memory management: Releases the detector resources.
-     */
+    
     fun close() {
         recognizer.close()
     }

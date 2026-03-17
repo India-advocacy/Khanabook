@@ -36,7 +36,7 @@ class BillRepositoryTest {
 
     @Test
     fun `insertFullBill should consume materials if order status is completed`() = runTest {
-        // Arrange
+        
         val bill = BillEntity(
             id = 1,
             dailyOrderId = 1,
@@ -46,23 +46,23 @@ class BillRepositoryTest {
             totalAmount = 100.0,
             paymentMode = "cash",
             paymentStatus = "success",
-            orderStatus = OrderStatus.COMPLETED.dbValue, // "completed"
+            orderStatus = OrderStatus.COMPLETED.dbValue, 
             createdAt = "2024-01-01"
         )
         val items = listOf(BillItemEntity(billId = 1, menuItemId = 1, itemName = "Item 1", quantity = 1, price = 100.0, itemTotal = 100.0))
         val payments = listOf(BillPaymentEntity(billId = 1, paymentMode = "cash", amount = 100.0))
 
-        // Act
+        
         billRepository.insertFullBill(bill, items, payments)
 
-        // Assert
+        
         verify(billDao).insertFullBill(bill, items, payments)
         verify(inventoryConsumptionManager).consumeMaterialsForBill(items)
     }
 
     @Test
     fun `insertFullBill should NOT consume materials if order status is draft`() = runTest {
-        // Arrange
+        
         val bill = BillEntity(
             id = 1,
             dailyOrderId = 1,
@@ -78,10 +78,10 @@ class BillRepositoryTest {
         val items = listOf(BillItemEntity(billId = 1, menuItemId = 1, itemName = "Item 1", quantity = 1, price = 100.0, itemTotal = 100.0))
         val payments = emptyList<BillPaymentEntity>()
 
-        // Act
+        
         billRepository.insertFullBill(bill, items, payments)
 
-        // Assert
+        
         verify(billDao).insertFullBill(bill, items, payments)
         verify(inventoryConsumptionManager, never()).consumeMaterialsForBill(any())
     }

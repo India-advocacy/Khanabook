@@ -89,7 +89,7 @@ fun MenuConfigurationScreen(
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
+            
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -117,7 +117,7 @@ fun MenuConfigurationScreen(
             }
 
             if (configMode == null) {
-                // Mode Selection UI
+                
                 ModeSelectionView(
                     selectedCategoryName = selectedCategoryName,
                     onManualClick = { viewModel.setConfigMode("manual") },
@@ -125,7 +125,7 @@ fun MenuConfigurationScreen(
                     onPdfClick = { pdfPickerLauncher.launch("application/pdf") }
                 )
             } else {
-                // Actual Content
+                
                 MenuConfigurationContent(
                     categories = categories,
                     menuItems = menuItems,
@@ -202,7 +202,7 @@ fun MenuConfigurationScreen(
                     viewModel.updateItem(
                         item.copy(
                             name = name,
-                            basePrice = price,
+                            basePrice = price.toString(),
                             foodType = foodType
                         )
                     )
@@ -212,7 +212,7 @@ fun MenuConfigurationScreen(
             )
         }
 
-        // Production: full-screen review dialog appears when drafts are ready
+        
         val ocrState = ocrImportUiState
         AnimatedVisibility(
             visible = ocrState.isProcessing,
@@ -253,7 +253,7 @@ fun MenuConfigurationScreen(
     }
 }
 
-// ─── Production: Loading overlay for OCR/PDF processing ──────────────────────
+
 @Composable
 fun OcrLoadingOverlay(label: String) {
     Box(
@@ -296,7 +296,7 @@ fun OcrLoadingOverlay(label: String) {
     }
 }
 
-// ─── Production: Full-Screen Review Sheet ─────────────────────────────────────
+
 @OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 fun ReviewScannedItemsSheet(
@@ -333,7 +333,7 @@ fun ReviewScannedItemsSheet(
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                     .background(DarkBrown1)
             ) {
-                // Drag handle
+                
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     contentAlignment = Alignment.Center
@@ -346,7 +346,7 @@ fun ReviewScannedItemsSheet(
                     )
                 }
 
-                // Header
+                
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -373,7 +373,7 @@ fun ReviewScannedItemsSheet(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Column headers
+                
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -385,7 +385,7 @@ fun ReviewScannedItemsSheet(
                     Text("Price", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.width(64.dp))
                 }
 
-                // Items list
+                
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
@@ -413,7 +413,7 @@ fun ReviewScannedItemsSheet(
                                 .padding(horizontal = 12.dp, vertical = 10.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Checkbox
+                            
                             Box(
                                 modifier = Modifier
                                     .size(24.dp)
@@ -440,7 +440,7 @@ fun ReviewScannedItemsSheet(
 
                             Spacer(modifier = Modifier.width(12.dp))
 
-                            // Editable name
+                            
                             BasicTextField(
                                 value = draft.name,
                                 onValueChange = { onUpdateDraft(index, draft.copy(name = it)) },
@@ -456,7 +456,7 @@ fun ReviewScannedItemsSheet(
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            // Editable price
+                            
                             Row(
                                 modifier = Modifier
                                     .width(64.dp)
@@ -486,7 +486,7 @@ fun ReviewScannedItemsSheet(
                     item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
 
-                // Bottom action bar
+                
                 Surface(
                     color = DarkBrown2,
                     border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f)),
@@ -547,7 +547,7 @@ fun ModeSelectionView(
             .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        // Context banner
+        
         if (!selectedCategoryName.isNullOrBlank()) {
             Surface(
                 color = PrimaryGold.copy(alpha = 0.12f),
@@ -583,7 +583,7 @@ fun ModeSelectionView(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Manual Setup Card
+        
         ModeCard(
             title = "Manual Setup",
             subtitle = "Type in each item individually",
@@ -595,7 +595,7 @@ fun ModeSelectionView(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // Camera Scan Card
+        
         ModeCard(
             title = "Scan Menu Photo",
             subtitle = "AI reads your printed/digital menu",
@@ -608,7 +608,7 @@ fun ModeSelectionView(
 
         Spacer(modifier = Modifier.height(14.dp))
 
-        // PDF Upload Card
+        
         ModeCard(
             title = "Upload PDF Menu",
             subtitle = "Import directly from a PDF file",
@@ -641,7 +641,7 @@ fun ModeCard(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icon badge
+            
             Box(
                 modifier = Modifier
                     .size(52.dp)
@@ -694,7 +694,7 @@ fun ModeCard(
 fun MenuConfigurationContent(
     categories: List<CategoryEntity>,
     menuItems: List<MenuWithVariants>,
-    selectedCategoryId: Int?,
+    selectedCategoryId: Long?,
     searchQuery: String,
     disabledCount: Int,
     addOnsCount: Int,
@@ -821,7 +821,7 @@ fun MenuConfigurationContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Conditional Scan Button
+                            
                             if (showScanOption) {
                                 Surface(
                                     modifier = Modifier
@@ -860,7 +860,7 @@ fun MenuConfigurationContent(
                                 }
                             }
 
-                            // Add New Button
+                            
                             if (!showScanOption) {
                                 Surface(
                                     modifier = Modifier

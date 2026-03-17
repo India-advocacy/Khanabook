@@ -19,7 +19,7 @@ fun InitialSyncScreen(
 ) {
     val syncState by viewModel.syncState.collectAsState()
 
-    // React to success event
+    
     LaunchedEffect(syncState) {
         if (syncState is InitialSyncState.Success) {
             onSyncCompleteNavigateToMain()
@@ -54,7 +54,7 @@ fun InitialSyncScreen(
                     }
                 }
                 is InitialSyncState.Success -> {
-                    // Handled by LaunchedEffect, but we can show a temporary text
+                    
                     Text("Setup Complete!")
                 }
             }

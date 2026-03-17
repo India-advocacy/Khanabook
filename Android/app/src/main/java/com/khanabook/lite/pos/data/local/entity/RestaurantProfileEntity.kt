@@ -21,7 +21,7 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "email_invoice_consent", defaultValue = "0")
     val emailInvoiceConsent: Boolean = false,
 
-    // Tax
+    
     @ColumnInfo(defaultValue = "India")
     val country: String? = "India",
     @ColumnInfo(name = "gst_enabled", defaultValue = "0")
@@ -38,7 +38,7 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "custom_tax_percentage", defaultValue = "0.0")
     val customTaxPercentage: Double = 0.0,
 
-    // Payment
+    
     @ColumnInfo(defaultValue = "INR")
     val currency: String? = "INR",
     @ColumnInfo(name = "upi_enabled", defaultValue = "0")
@@ -60,7 +60,7 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "own_website_enabled", defaultValue = "0")
     val ownWebsiteEnabled: Boolean = false,
 
-    // Printer
+    
     @ColumnInfo(name = "printer_enabled", defaultValue = "0")
     val printerEnabled: Boolean = false,
     @ColumnInfo(name = "printer_name")
@@ -76,13 +76,13 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "print_customer_whatsapp", defaultValue = "1")
     val printCustomerWhatsapp: Boolean = true,
 
-    // Counters
+    
     @ColumnInfo(name = "daily_order_counter", defaultValue = "0")
-    val dailyOrderCounter: Int = 0,
+    val dailyOrderCounter: Long = 0,
     @ColumnInfo(name = "lifetime_order_counter", defaultValue = "0")
-    val lifetimeOrderCounter: Int = 0,
+    val lifetimeOrderCounter: Long = 0,
     @ColumnInfo(name = "last_reset_date")
-    val lastResetDate: String? = null, // yyyy-MM-dd
+    val lastResetDate: String? = null, 
     @ColumnInfo(name = "session_timeout_minutes", defaultValue = "30")
     val sessionTimeoutMinutes: Int = 30,
 

@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-  Backup Rules (API 30 and below).
-  Exclude the database and shared prefs that hold sensitive data.
--->
+
 <full-backup-content>
-    <!-- Exclude the entire Room database (all SQLite files) -->
+    
     <exclude domain="database" path="." />
-    <!-- Exclude shared preferences (contains any cached session data) -->
+    
     <exclude domain="sharedpref" path="." />
 </full-backup-content>

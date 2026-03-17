@@ -10,44 +10,43 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "itemvariants", indexes = {
-    @Index(name = "idx_itemvariants_tenant_updated", columnList = "restaurant_id, updated_at"),
-    @Index(name = "idx_itemvariants_device", columnList = "restaurant_id, device_id, local_id")
-})
+		@Index(name = "idx_itemvariants_tenant_updated", columnList = "restaurant_id, updated_at"),
+		@Index(name = "idx_itemvariants_device", columnList = "restaurant_id, device_id, local_id") })
 @Getter
 @Setter
 public class ItemVariant extends BaseSyncEntity {
 
-    @Column(name = "menu_item_id", nullable = false)
-    private Integer menuItemId;
+	@Column(name = "menu_item_id", nullable = false)
+	private Integer menuItemId;
 
-    @Column(name = "server_menu_item_id")
-    private Long serverMenuItemId;
+	@Column(name = "server_menu_item_id")
+	private Long serverMenuItemId;
 
-    @Column(name = "variant_name", nullable = false)
-    private String variantName;
+	@Column(name = "variant_name", nullable = false)
+	private String variantName;
 
-    @Column(name = "price", columnDefinition = "NUMERIC(12,2)", nullable = false)
-    private java.math.BigDecimal price;
+	@Column(name = "price", columnDefinition = "NUMERIC(12,2)", nullable = false)
+	private java.math.BigDecimal price;
 
-    @Column(name = "is_available", nullable = false)
-    private Boolean isAvailable = true;
+	@Column(name = "is_available", nullable = false)
+	private Boolean isAvailable = true;
 
-    @Column(name = "sort_order")
-    private Integer sortOrder;
+	@Column(name = "sort_order")
+	private Integer sortOrder;
 
-    @Column(name = "current_stock", columnDefinition = "NUMERIC(12,2)")
-    private java.math.BigDecimal currentStock;
+	@Column(name = "current_stock", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal currentStock;
 
-    @Column(name = "low_stock_threshold", columnDefinition = "NUMERIC(12,2)")
-    private java.math.BigDecimal lowStockThreshold;
+	@Column(name = "low_stock_threshold", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal lowStockThreshold;
 
-    public MenuItem.StockStatus getStockStatus() {
-        if (currentStock == null || currentStock.compareTo(java.math.BigDecimal.ZERO) <= 0) {
-            return MenuItem.StockStatus.OUT_OF_STOCK;
-        }
-        if (lowStockThreshold != null && currentStock.compareTo(lowStockThreshold) <= 0) {
-            return MenuItem.StockStatus.RUNNING_LOW;
-        }
-        return MenuItem.StockStatus.IN_STOCK;
-    }
+	public MenuItem.StockStatus getStockStatus() {
+		if (currentStock == null || currentStock.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+			return MenuItem.StockStatus.OUT_OF_STOCK;
+		}
+		if (lowStockThreshold != null && currentStock.compareTo(lowStockThreshold) <= 0) {
+			return MenuItem.StockStatus.RUNNING_LOW;
+		}
+		return MenuItem.StockStatus.IN_STOCK;
+	}
 }

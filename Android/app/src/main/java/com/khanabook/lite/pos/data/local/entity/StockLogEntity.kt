@@ -23,7 +23,7 @@ data class StockLogEntity(
     @ColumnInfo(name = "variant_id")
     val variantId: Long? = null,
     val delta: String,
-    val reason: String, // 'sale', 'adjustment', 'initial'
+    val reason: String, 
     @ColumnInfo(name = "created_at")
     val createdAt: Long = System.currentTimeMillis(),
 

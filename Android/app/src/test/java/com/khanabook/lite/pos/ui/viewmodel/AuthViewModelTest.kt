@@ -79,7 +79,6 @@ class AuthViewModelTest {
             deviceId = "device",
             isActive = true,
             isSynced = false,
-            createdAt = "2026-03-10"
         )
 
         coEvery { authManager.hashPassword(password) } returns localHash

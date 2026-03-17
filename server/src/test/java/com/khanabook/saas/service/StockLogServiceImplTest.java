@@ -21,7 +21,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,7 +45,7 @@ class StockLogServiceImplTest {
         );
     }
 
-    // ─── MenuItem resolution ──────────────────────────────────────────────────
+    
 
     @Test
     void push_resolvesMenuItemByDeviceAndLocalId() {
@@ -96,7 +95,7 @@ class StockLogServiceImplTest {
     @Test
     void push_menuItemWrongTenant_addedToFailedIds() {
         MenuItem mi = menuItem(200L);
-        mi.setRestaurantId(999L); // different tenant
+        mi.setRestaurantId(999L); 
         StockLog sl = stockLog(1, 1000L, 5, null);
         sl.setLocalId(88);
 
@@ -109,14 +108,14 @@ class StockLogServiceImplTest {
         assertThat(resp.getFailedLocalIds()).contains(88);
     }
 
-    // ─── Variant resolution ───────────────────────────────────────────────────
+    
 
     @Test
     void push_resolvesVariantWhenPresent() {
         MenuItem mi = menuItem(100L);
         ItemVariant iv = itemVariant(50L, TENANT_ID);
         StockLog sl = stockLog(1, 1000L, 5, 10);
-        sl.setServerMenuItemId(100L); // already resolved
+        sl.setServerMenuItemId(100L); 
 
         when(menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt()))
             .thenReturn(Optional.of(mi));
@@ -132,7 +131,7 @@ class StockLogServiceImplTest {
     @Test
     void push_variantIdZero_variantResolutionSkipped() {
         MenuItem mi = menuItem(100L);
-        StockLog sl = stockLog(1, 1000L, 5, 0); // variantId = 0 means no variant
+        StockLog sl = stockLog(1, 1000L, 5, 0); 
         sl.setServerMenuItemId(100L);
 
         when(menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt()))
@@ -145,7 +144,7 @@ class StockLogServiceImplTest {
         assertThat(sl.getServerVariantId()).isNull();
     }
 
-    // ─── Stock recalculation ──────────────────────────────────────────────────
+    
 
     @Test
     void push_successfulSync_triggersRecalculateForAffectedItems() {
@@ -156,7 +155,7 @@ class StockLogServiceImplTest {
         when(menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt()))
             .thenReturn(Optional.of(mi));
 
-        // Make sync service report the item as successfully synced
+        
         when(stockLogRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
             .thenReturn(List.of());
         doAnswer(i -> i.getArgument(0)).when(stockLogRepository).saveAll(any());
@@ -215,18 +214,18 @@ class StockLogServiceImplTest {
 
         service.pushData(TENANT_ID, List.of(sl1, sl2));
 
-        // Same menuId = only one recalculate call (Set deduplication)
+        
         verify(menuItemRepository, times(1)).recalculateStock(100L);
     }
 
-    // ─── Mixed batch (some fail, some succeed) ────────────────────────────────
+    
 
     @Test
     void push_mixedBatch_failedAndSuccessfulPartitioned() {
         MenuItem mi = menuItem(100L);
         StockLog good = stockLog(1, 1000L, 5, null);
         good.setLocalId(1);
-        StockLog bad = stockLog(2, 2000L, 99, null); // localId 99 won't resolve
+        StockLog bad = stockLog(2, 2000L, 99, null); 
         bad.setLocalId(2);
 
         when(menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 5))
@@ -244,7 +243,7 @@ class StockLogServiceImplTest {
         assertThat(resp.getFailedLocalIds()).contains(2);
     }
 
-    // ─── Helpers ─────────────────────────────────────────────────────────────
+    
 
     private StockLog stockLog(int localId, long updatedAt, int menuItemId, Integer variantId) {
         StockLog sl = new StockLog();

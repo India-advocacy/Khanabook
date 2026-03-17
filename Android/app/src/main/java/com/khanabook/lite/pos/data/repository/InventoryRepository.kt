@@ -20,13 +20,13 @@ class InventoryRepository(
         private val sessionManager: SessionManager,
         private val workManager: WorkManager
 ) {
-    suspend fun adjustStock(menuItemId: Int, delta: Double, reason: String) {
+    suspend fun adjustStock(menuItemId: Long, delta: Double, reason: String) {
         val now = System.currentTimeMillis()
         menuDao.updateStock(menuItemId, delta)
         insertStockLog(
                 StockLogEntity(
                         menuItemId = menuItemId,
-                        delta = delta,
+                        delta = delta.toString(),
                         reason = reason,
                         createdAt = now
                 )
@@ -44,11 +44,11 @@ class InventoryRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun updateThreshold(menuItemId: Int, threshold: Double) {
+    suspend fun updateThreshold(menuItemId: Long, threshold: Double) {
         val current = menuDao.getItemById(menuItemId) ?: return
         menuDao.updateItem(
             current.copy(
-                lowStockThreshold = threshold,
+                lowStockThreshold = threshold.toString(),
                 isSynced = false,
                 updatedAt = System.currentTimeMillis()
             )
@@ -56,11 +56,11 @@ class InventoryRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun updateVariantThreshold(variantId: Int, threshold: Double) {
+    suspend fun updateVariantThreshold(variantId: Long, threshold: Double) {
         val current = menuDao.getVariantById(variantId) ?: return
         menuDao.updateVariant(
             current.copy(
-                lowStockThreshold = threshold,
+                lowStockThreshold = threshold.toString(),
                 isSynced = false,
                 updatedAt = System.currentTimeMillis()
             )
@@ -68,7 +68,7 @@ class InventoryRepository(
         triggerBackgroundSync()
     }
 
-    fun getLogsForItem(itemId: Int): Flow<List<StockLogEntity>> =
+    fun getLogsForItem(itemId: Long): Flow<List<StockLogEntity>> =
             inventoryDao.getLogsForItem(itemId)
 
     fun getAllLogs(): Flow<List<StockLogEntity>> = inventoryDao.getAllLogs()

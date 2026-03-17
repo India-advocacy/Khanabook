@@ -11,127 +11,121 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "restaurantprofiles", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"restaurant_id", "device_id", "local_id"})
-}, indexes = {
-    @Index(name = "idx_restaurantprofiles_tenant_updated", columnList = "restaurant_id, updated_at"),
-    @Index(name = "idx_restaurantprofiles_device", columnList = "restaurant_id, device_id, local_id")
-})
+		@UniqueConstraint(columnNames = { "restaurant_id", "device_id", "local_id" }) }, indexes = {
+				@Index(name = "idx_restaurantprofiles_tenant_updated", columnList = "restaurant_id, updated_at"),
+				@Index(name = "idx_restaurantprofiles_device", columnList = "restaurant_id, device_id, local_id") })
 @Getter
 @Setter
 public class RestaurantProfile extends BaseSyncEntity {
 
-    @Column(name = "shop_name")
-    private String shopName;
+	@Column(name = "shop_name")
+	private String shopName;
 
-    @Column(name = "shop_address")
-    private String shopAddress;
+	@Column(name = "shop_address")
+	private String shopAddress;
 
-    @Column(name = "whatsapp_number")
-    private String whatsappNumber;
+	@Column(name = "whatsapp_number")
+	private String whatsappNumber;
 
-    @Column(name = "email")
-    private String email;
+	@Column(name = "email")
+	private String email;
 
-    @Column(name = "logo_path")
-    private String logoPath;
+	@Column(name = "logo_path")
+	private String logoPath;
 
-    @Column(name = "fssai_number")
-    private String fssaiNumber;
+	@Column(name = "fssai_number")
+	private String fssaiNumber;
 
-    @Column(name = "email_invoice_consent")
-    private Boolean emailInvoiceConsent;
+	@Column(name = "email_invoice_consent")
+	private Boolean emailInvoiceConsent;
 
-    // Tax
-    @Column(name = "country")
-    private String country;
+	@Column(name = "country")
+	private String country;
 
-    @Column(name = "gst_enabled")
-    private Boolean gstEnabled;
+	@Column(name = "gst_enabled")
+	private Boolean gstEnabled;
 
-    @Column(name = "gstin")
-    private String gstin;
+	@Column(name = "gstin")
+	private String gstin;
 
-    @Column(name = "is_tax_inclusive")
-    private Boolean isTaxInclusive;
+	@Column(name = "is_tax_inclusive")
+	private Boolean isTaxInclusive;
 
-    @Column(name = "gst_percentage", columnDefinition = "NUMERIC(12,2)")
-    private java.math.BigDecimal gstPercentage;
+	@Column(name = "gst_percentage", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal gstPercentage;
 
-    @Column(name = "custom_tax_name")
-    private String customTaxName;
+	@Column(name = "custom_tax_name")
+	private String customTaxName;
 
-    @Column(name = "custom_tax_number")
-    private String customTaxNumber;
+	@Column(name = "custom_tax_number")
+	private String customTaxNumber;
 
-    @Column(name = "custom_tax_percentage", columnDefinition = "NUMERIC(12,2)")
-    private java.math.BigDecimal customTaxPercentage;
+	@Column(name = "custom_tax_percentage", columnDefinition = "NUMERIC(12,2)")
+	private java.math.BigDecimal customTaxPercentage;
 
-    // Payment
-    @Column(name = "currency")
-    private String currency;
+	@Column(name = "currency")
+	private String currency;
 
-    @Column(name = "upi_enabled")
-    private Boolean upiEnabled;
+	@Column(name = "upi_enabled")
+	private Boolean upiEnabled;
 
-    @Column(name = "upi_qr_path")
-    private String upiQrPath;
+	@Column(name = "upi_qr_path")
+	private String upiQrPath;
 
-    @Column(name = "upi_handle")
-    private String upiHandle;
+	@Column(name = "upi_handle")
+	private String upiHandle;
 
-    @Column(name = "upi_mobile")
-    private String upiMobile;
+	@Column(name = "upi_mobile")
+	private String upiMobile;
 
-    @Column(name = "cash_enabled")
-    private Boolean cashEnabled;
+	@Column(name = "cash_enabled")
+	private Boolean cashEnabled;
 
-    @Column(name = "pos_enabled")
-    private Boolean posEnabled;
+	@Column(name = "pos_enabled")
+	private Boolean posEnabled;
 
-    @Column(name = "zomato_enabled")
-    private Boolean zomatoEnabled;
+	@Column(name = "zomato_enabled")
+	private Boolean zomatoEnabled;
 
-    @Column(name = "swiggy_enabled")
-    private Boolean swiggyEnabled;
+	@Column(name = "swiggy_enabled")
+	private Boolean swiggyEnabled;
 
-    @Column(name = "own_website_enabled")
-    private Boolean ownWebsiteEnabled;
+	@Column(name = "own_website_enabled")
+	private Boolean ownWebsiteEnabled;
 
-    // Printer
-    @Column(name = "printer_enabled")
-    private Boolean printerEnabled;
+	@Column(name = "printer_enabled")
+	private Boolean printerEnabled;
 
-    @Column(name = "printer_name")
-    private String printerName;
+	@Column(name = "printer_name")
+	private String printerName;
 
-    @Column(name = "printer_mac")
-    private String printerMac;
+	@Column(name = "printer_mac")
+	private String printerMac;
 
-    @Column(name = "paper_size")
-    private String paperSize;
+	@Column(name = "paper_size")
+	private String paperSize;
 
-    @Column(name = "auto_print_on_success")
-    private Boolean autoPrintOnSuccess;
+	@Column(name = "auto_print_on_success")
+	private Boolean autoPrintOnSuccess;
 
-    @Column(name = "include_logo_in_print")
-    private Boolean includeLogoInPrint;
+	@Column(name = "include_logo_in_print")
+	private Boolean includeLogoInPrint;
 
-    @Column(name = "print_customer_whatsapp")
-    private Boolean printCustomerWhatsapp;
+	@Column(name = "print_customer_whatsapp")
+	private Boolean printCustomerWhatsapp;
 
-    // Counters
-    @Column(name = "daily_order_counter")
-    private Integer dailyOrderCounter;
+	@Column(name = "daily_order_counter")
+	private Integer dailyOrderCounter;
 
-    @Column(name = "lifetime_order_counter")
-    private Integer lifetimeOrderCounter;
+	@Column(name = "lifetime_order_counter")
+	private Integer lifetimeOrderCounter;
 
-    @Column(name = "last_reset_date")
-    private String lastResetDate;
+	@Column(name = "last_reset_date")
+	private String lastResetDate;
 
-    @Column(name = "session_timeout_minutes")
-    private Integer sessionTimeoutMinutes;
+	@Column(name = "session_timeout_minutes")
+	private Integer sessionTimeoutMinutes;
 
-    @Column(name = "timezone")
-    private String timezone = "Asia/Kolkata";
+	@Column(name = "timezone")
+	private String timezone = "Asia/Kolkata";
 }

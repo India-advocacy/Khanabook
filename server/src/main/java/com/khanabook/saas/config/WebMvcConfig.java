@@ -10,12 +10,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
 
-    private final RateLimitingInterceptor rateLimitingInterceptor;
+	private final RateLimitingInterceptor rateLimitingInterceptor;
 
-    @Override
-    public void addInterceptors(InterceptorRegistry registry) {
-        // Apply rate limiting to all auth endpoints
-        registry.addInterceptor(rateLimitingInterceptor)
-                .addPathPatterns("/api/v1/auth/**");
-    }
+	@Override
+	public void addInterceptors(InterceptorRegistry registry) {
+
+		registry.addInterceptor(rateLimitingInterceptor).addPathPatterns("/api/v1/auth/**");
+	}
 }

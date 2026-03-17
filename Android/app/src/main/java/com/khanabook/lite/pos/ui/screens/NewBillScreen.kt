@@ -39,6 +39,7 @@ import com.khanabook.lite.pos.domain.manager.PaymentModeManager
 import com.khanabook.lite.pos.domain.model.*
 import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.components.ParchmentTextField
+import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.BillingViewModel
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
@@ -66,7 +67,7 @@ fun NewBillScreen(
         }
     }
 
-    // Success Toast for Order Placed
+    
     LaunchedEffect(step) {
         if (step == 4) {
             android.widget.Toast.makeText(context, "Order Placed Successfully!", android.widget.Toast.LENGTH_SHORT).show()
@@ -110,7 +111,7 @@ fun NewBillScreen(
                                 menuViewModel,
                                 onBack = { step = 1 },
                                 onProceedToPayment = { step = 3 },
-                                total = summary.total,
+                                total = summary.total.toDoubleOrNull() ?: 0.0,
                                 itemCount = cartItems.sumOf { it.quantity },
                                 hideHeader = true,
                                 navController = navController
@@ -137,8 +138,8 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
     var name by remember { mutableStateOf("") }
     var whatsapp by remember { mutableStateOf("") }
 
-    // Phone number is mandatory and must be a valid 10-digit number.
-    val isWhatsappValid = whatsapp.isNotEmpty() && isValidPhone(whatsapp)
+    
+    val isWhatsappValid = whatsapp.isNotEmpty() && ValidationUtils.isValidPhone(whatsapp)
     val isNextEnabled = isWhatsappValid
 
     Column(
@@ -149,7 +150,7 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
                             .padding(24.dp)
     ) {
         if (!hideHeader) {
-            // Back arrow + title aligned in the same row
+            
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
                     Icon(
@@ -171,7 +172,7 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
             Spacer(modifier = Modifier.height(32.dp))
         }
 
-        val showPhoneError = whatsapp.isNotEmpty() && !isValidPhone(whatsapp)
+        val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
         OutlinedTextField(
                 value = whatsapp,
                 onValueChange = { if (it.length <= 10) whatsapp = it },
@@ -255,7 +256,7 @@ fun MenuSelectionStep(
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
 
-    // Observe barcode scan result returned from OcrScannerScreen via StateFlow
+    
     val scannedBarcode by (navController
         ?.currentBackStackEntry
         ?.savedStateHandle
@@ -348,7 +349,7 @@ fun MenuSelectionStep(
                         shape = RoundedCornerShape(12.dp)
                 ) {
                     if (variants.isEmpty()) {
-                        // â”€â”€ No variants: simple add/remove row â”€â”€
+                        
                         val cartItem =
                                 cartItems.find { it.item.id == item.id && it.variant == null }
                         Row(
@@ -373,7 +374,7 @@ fun MenuSelectionStep(
                             )
                         }
                     } else {
-                        // â”€â”€ Has variants: show header + per-variant rows â”€â”€
+                        
                         Column(modifier = Modifier.padding(12.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 FoodTypeIcon(item.foodType)
@@ -412,7 +413,7 @@ fun MenuSelectionStep(
                                             modifier = Modifier.weight(1f)
                                     )
                                     Text(
-                                            "₹${"%.0f".format(variant.price)}",
+                                            CurrencyUtils.formatPrice(variant.price),
                                             color = PrimaryGold,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 13.sp,
@@ -445,7 +446,7 @@ fun MenuSelectionStep(
             }
         }
 
-        // Bottom bar: Scan barcode + Proceed
+        
         Card(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 colors = CardDefaults.cardColors(containerColor = PrimaryGold),
@@ -465,14 +466,14 @@ fun MenuSelectionStep(
                             fontWeight = FontWeight.Medium
                     )
                     Text(
-                            "₹${"%.2f".format(total)}",
+                            CurrencyUtils.formatPrice(total),
                             color = DarkBrown1,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 22.sp
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Barcode Scan Button
+                    
                     if (navController != null) {
                         OutlinedButton(
                                 onClick = { navController.navigate("ocr_scanner/billing") },
@@ -549,11 +550,11 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
     var expanded by remember { mutableStateOf(false) }
     var showQrModal by remember { mutableStateOf(false) }
 
-    // Split amounts
+    
     var p1Text by remember { mutableStateOf("") }
     var p2Text by remember { mutableStateOf("") }
 
-    // Set default mode and initialize amounts
+    
     LaunchedEffect(enabledModes) {
         if (enabledModes.isNotEmpty()) {
             selectedMode =
@@ -574,9 +575,10 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
 
     LaunchedEffect(selectedMode, summary.total) {
         if (isSplitMode) {
-            val half = summary.total / 2.0
+            val totalVal = summary.total.toDoubleOrNull() ?: 0.0
+            val half = totalVal / 2.0
             p1Text = "%.2f".format(half)
-            p2Text = "%.2f".format(summary.total - half)
+            p2Text = "%.2f".format(totalVal - half)
         }
     }
 
@@ -584,7 +586,7 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
     val p2 = p2Text.toDoubleOrNull() ?: 0.0
     val isAmountValid =
             if (isSplitMode) {
-                BillCalculator.validatePartPayment(p1, p2, summary.total)
+                BillCalculator.validatePartPayment(p1Text, p2Text, summary.total)
             } else true
 
     Column(
@@ -595,7 +597,7 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
             Text("Scan to Pay", color = PrimaryGold, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // QR Code Box - Clickable
+            
             Box(
                     modifier =
                             Modifier.size(200.dp)
@@ -645,7 +647,7 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
             )
             Spacer(modifier = Modifier.height(24.dp))
         }
-        // Bill Summary in Payment Step
+        
         Card(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 colors = CardDefaults.cardColors(containerColor = DarkBrown2),
@@ -659,7 +661,7 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
                 ) {
                     Text("Payable Amount", color = TextGold, fontSize = 14.sp)
                     Text(
-                            "₹${"%.2f".format(summary.total)}",
+                            "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
                             color = PrimaryGold,
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 20.sp
@@ -758,7 +760,7 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
 
             if (!isAmountValid) {
                 Text(
-                        "Sum must equal ₹${"%.2f".format(summary.total)} (Current: ₹${"%.2f".format(p1 + p2)})",
+                        "Sum must equal ${CurrencyUtils.formatPrice(summary.total)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
                         color = DangerRed,
                         fontSize = 11.sp,
                         modifier = Modifier.padding(top = 4.dp).align(Alignment.Start)
@@ -773,7 +775,7 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
                 onClick = {
                     if (isAmountValid) {
                         scope.launch {
-                            viewModel.setPaymentMode(selectedMode, p1, p2)
+                            viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                             if (viewModel.completeOrder(PaymentStatus.SUCCESS)) {
                                 onComplete()
                             }
@@ -863,7 +865,7 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
 
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                                "₹${"%.2f".format(summary.total)}",
+                                "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
                                 color = Color.Black,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.ExtraBold
@@ -905,7 +907,7 @@ fun SuccessStep(
                 fontWeight = FontWeight.Bold
         )
 
-        val totalAmount = lastBill?.bill?.totalAmount ?: 0.0
+        val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
         Text(
                 "Payment of ₹${"%.2f".format(totalAmount)} received successfully.",
                 color = TextGold,

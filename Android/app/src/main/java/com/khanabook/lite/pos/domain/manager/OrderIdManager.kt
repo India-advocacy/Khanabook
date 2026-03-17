@@ -6,7 +6,7 @@ import java.util.*
 
 object OrderIdManager {
     
-    fun getDailyOrderDisplay(date: String, counter: Int): String {
+    fun getDailyOrderDisplay(date: String, counter: Long): String {
         return "$date-${String.format("%03d", counter)}"
     }
 
@@ -14,12 +14,12 @@ object OrderIdManager {
         return profile.lastResetDate != today
     }
 
-    fun getNextDailyCounter(profile: RestaurantProfileEntity, today: String): Int {
-        return if (profile.lastResetDate != today) 1 else profile.dailyOrderCounter + 1
+    fun getNextDailyCounter(profile: RestaurantProfileEntity, today: String): Long {
+        return if (profile.lastResetDate != today) 1L else profile.dailyOrderCounter + 1L
     }
 
-    fun getNextLifetimeId(profile: RestaurantProfileEntity): Int {
-        return profile.lifetimeOrderCounter + 1
+    fun getNextLifetimeId(profile: RestaurantProfileEntity): Long {
+        return profile.lifetimeOrderCounter + 1L
     }
 
     fun getTodayString(timezone: String = "Asia/Kolkata"): String {

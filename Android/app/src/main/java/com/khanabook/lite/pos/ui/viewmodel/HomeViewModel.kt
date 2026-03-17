@@ -49,7 +49,7 @@ class HomeViewModel @Inject constructor(
                     val completedBills = bills.filter { it.orderStatus == "completed" || it.orderStatus == "paid" }
                     HomeStats(
                         orderCount = completedBills.size,
-                        revenue = completedBills.sumOf { it.totalAmount },
+                        revenue = completedBills.sumOf { it.totalAmount.toDoubleOrNull() ?: 0.0 },
                         customerCount = completedBills.mapNotNull { it.customerWhatsapp }.distinct().size
                     )
                 }

@@ -192,7 +192,7 @@ class UserRepository(
         return userDao.getUserByEmail(email)
     }
 
-    suspend fun updatePasswordHash(userId: Int, newHash: String) {
+    suspend fun updatePasswordHash(userId: Long, newHash: String) {
         userDao.updatePasswordHash(userId, newHash, System.currentTimeMillis())
         triggerBackgroundSync()
     }
@@ -210,12 +210,12 @@ class UserRepository(
         }
     }
 
-    suspend fun updateWhatsappNumber(userId: Int, newPhone: String) {
+    suspend fun updateWhatsappNumber(userId: Long, newPhone: String) {
         userDao.updateWhatsappNumber(userId, newPhone, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 
-    suspend fun updateAccountDetails(userId: Int, newEmail: String, newPhone: String) {
+    suspend fun updateAccountDetails(userId: Long, newEmail: String, newPhone: String) {
         userDao.updateAccountDetails(userId, newEmail, newPhone, System.currentTimeMillis())
         triggerBackgroundSync()
     }
@@ -224,7 +224,7 @@ class UserRepository(
         return userDao.getAllUsers()
     }
 
-    suspend fun setActivationStatus(userId: Int, isActive: Boolean) {
+    suspend fun setActivationStatus(userId: Long, isActive: Boolean) {
         userDao.setActivationStatus(userId, isActive, System.currentTimeMillis())
         triggerBackgroundSync()
     }

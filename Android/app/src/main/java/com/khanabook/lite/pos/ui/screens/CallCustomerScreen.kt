@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.components.KhanaDatePickerField
+import com.khanabook.lite.pos.domain.util.*
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.SearchViewModel
 
@@ -166,7 +167,7 @@ fun CallCustomerScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
                         onClick = {
-                            lifetimeId.toIntOrNull()?.let { viewModel.searchByLifetimeId(it) }
+                            lifetimeId.toLongOrNull()?.let { viewModel.searchByLifetimeId(it) }
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
@@ -234,7 +235,7 @@ fun CallCustomerScreen(
 
                         Text(
                                 text =
-                                        "Last Order: #${currentResult.bill.lifetimeOrderId} on ${currentResult.bill.createdAt.split(" ")[0]}",
+                                        "Last Order: #${currentResult.bill.lifetimeOrderId} on ${DateUtils.formatDateOnly(currentResult.bill.createdAt)}",
                                 color = TextGold.copy(alpha = 0.7f),
                                 fontSize = 12.sp
                         )

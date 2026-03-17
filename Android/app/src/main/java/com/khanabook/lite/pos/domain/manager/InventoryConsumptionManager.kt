@@ -12,20 +12,18 @@ class InventoryConsumptionManager @Inject constructor(
     private val menuRepository: MenuRepository,
     private val inventoryRepository: InventoryRepository
 ) {
-    /**
-     * Deducts stock directly from MenuItem or ItemVariant based on the items in a bill.
-     */
+    
     suspend fun consumeMaterialsForBill(items: List<BillItemEntity>) {
         for (item in items) {
             val delta = "-${item.quantity}"
-            val variantId = item.variantId
-            val menuItemId = item.menuItemId
+            val variantId: Long? = item.variantId
+            val menuItemId: Long? = item.menuItemId
 
             if (variantId != null) {
-                // Deduct from variant
+                
                 menuRepository.updateVariantStock(variantId, delta)
 
-                // Log the stock change
+                
                 inventoryRepository.insertStockLog(
                     StockLogEntity(
                         menuItemId = menuItemId ?: 0,
@@ -36,10 +34,10 @@ class InventoryConsumptionManager @Inject constructor(
                     )
                 )
             } else if (menuItemId != null) {
-                // Deduct from base item
+                
                 menuRepository.updateStock(menuItemId, delta)
 
-                // Log the stock change
+                
                 inventoryRepository.insertStockLog(
                     StockLogEntity(
                         menuItemId = menuItemId,

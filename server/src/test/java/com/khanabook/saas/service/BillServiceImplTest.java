@@ -52,7 +52,7 @@ class BillServiceImplTest {
         bill.setLocalId(1);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
-        bill.setCreatedAt(1704106800000L); // 2024-01-01 11:00:00 UTC
+        bill.setCreatedAt(1704106800000L); 
         bill.setUpdatedAt(1704106800000L);
 
         RestaurantProfile profile = new RestaurantProfile();
@@ -80,7 +80,7 @@ class BillServiceImplTest {
         bill.setRestaurantId(TENANT_ID);
         long now = System.currentTimeMillis();
         bill.setUpdatedAt(now);
-        // createdAt is null!
+        
 
         RestaurantProfile profile = new RestaurantProfile();
         profile.setTimezone("Asia/Kolkata");
@@ -108,8 +108,8 @@ class BillServiceImplTest {
         bill.setLocalId(1);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
-        // Epoch: Jan 1 2024 02:00:00 UTC
-        // In New York (EST): Dec 31 2023 21:00:00
+        
+        
         bill.setCreatedAt(1704074400000L); 
 
         RestaurantProfile profile = new RestaurantProfile();

@@ -6,13 +6,16 @@ import lombok.Data;
 import java.util.List;
 
 public interface RestaurantProfileService {
-    PushSyncResponse pushData(Long tenantId, List<RestaurantProfile> payload);
-    List<RestaurantProfile> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
-    CounterResponse incrementAndGetCounters(Long tenantId);
 
-    @Data
-    class CounterResponse {
-        private Integer dailyCounter;
-        private Integer lifetimeCounter;
-    }
+	PushSyncResponse pushData(Long tenantId, List<RestaurantProfile> payload);
+
+	List<RestaurantProfile> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
+
+	CounterResponse incrementAndGetCounters(Long tenantId);
+
+	@Data
+	class CounterResponse {
+		private Integer dailyCounter;
+		private Integer lifetimeCounter;
+	}
 }

@@ -31,27 +31,27 @@ class BillingLogicTest {
             cartQuantity = currentQty + 1
         }
         
-        // Add 1st (5-1=4 > 2, no error)
+        
         addToCartSim(0)
         assertNull("Error at 1: $errorMessage", errorMessage)
         
-        // Add 2nd (5-2=3 > 2, no error)
+        
         addToCartSim(1)
         assertNull("Error at 2: $errorMessage", errorMessage)
         
-        // Add 3rd (5-3=2 <= 2, "Running out of stock")
+        
         addToCartSim(2)
         assertEquals("Running out of stock for Burger", errorMessage)
         
-        // Add 4th (5-4=1 <= 2, "Running out of stock")
+        
         addToCartSim(3)
         assertEquals("Running out of stock for Burger", errorMessage)
         
-        // Add 5th (5-5=0, "Reached maximum stock")
+        
         addToCartSim(4)
         assertEquals("Reached maximum stock for Burger", errorMessage)
         
-        // Add 6th (Attempts to add when cart is 5, "Reached maximum stock" and return)
+        
         addToCartSim(5)
         assertEquals("Reached maximum stock for Burger", errorMessage)
     }

@@ -19,182 +19,156 @@ import java.util.stream.Collectors;
 
 @Service
 public class GenericSyncService {
-    private static final Logger log = LoggerFactory.getLogger(GenericSyncService.class);
+	private static final Logger log = LoggerFactory.getLogger(GenericSyncService.class);
 
-    @Transactional
-    public <T extends BaseSyncEntity> PushSyncResponse handlePushSync(
-            Long tenantId,
-            List<T> payload,
-            SyncRepository<T, Long> repository) {
+	@Transactional
+	public <T extends BaseSyncEntity> PushSyncResponse handlePushSync(Long tenantId, List<T> payload,
+			SyncRepository<T, Long> repository) {
 
-        if (tenantId == null) {
-            throw new IllegalArgumentException("Tenant ID (Restaurant ID) cannot be null. Ensure valid JWT is provided.");
-        }
+		if (tenantId == null) {
+			throw new IllegalArgumentException(
+					"Tenant ID (Restaurant ID) cannot be null. Ensure valid JWT is provided.");
+		}
 
-        if (payload == null || payload.isEmpty()) {
-            return new PushSyncResponse(new ArrayList<>(), new ArrayList<>());
-        }
+		if (payload == null || payload.isEmpty()) {
+			return new PushSyncResponse(new ArrayList<>(), new ArrayList<>());
+		}
 
-        List<Integer> successfulLocalIds = new ArrayList<>();
-        List<Integer> failedLocalIds = new ArrayList<>();
-        
-        // 0. PRE-PROCESSING: Apply recovery logic to ensure localIds are populated
-        // This MUST happen before we collect incomingLocalIds, otherwise they are omitted if null in JSON.
-        for (T record : payload) {
-            if (record.getLocalId() == null && record.getId() != null) {
-                record.setLocalId(record.getId().intValue());
-                record.setId(null); // Clear server ID for new insert
-            }
-        }
+		List<Integer> successfulLocalIds = new ArrayList<>();
+		List<Integer> failedLocalIds = new ArrayList<>();
 
-        // 1. Extract all localIds from the incoming payload
-        List<Integer> incomingLocalIds = payload.stream()
-                .map(BaseSyncEntity::getLocalId)
-                .filter(java.util.Objects::nonNull)
-                .distinct()
-                .collect(Collectors.toList());
+		for (T record : payload) {
+			if (record.getLocalId() == null && record.getId() != null) {
+				record.setLocalId(record.getId().intValue());
+				record.setId(null);
+			}
+		}
 
-        BaseSyncEntity firstRecord = payload.get(0);
-        String deviceId = firstRecord.getDeviceId();
-        
-        // 1.5 VALIDATE: All records in a batch SHOULD usually come from the same device.
-        // If they don't, we log a warning but proceed by grouping if necessary (or just using per-record deviceId later).
-        // For now, we enforce consistency or log clearly.
-        for (T record : payload) {
-            String recordDeviceId = record.getDeviceId();
-            if (recordDeviceId != null && !recordDeviceId.equals(deviceId)) {
-                log.warn("Mixed device IDs in sync batch for Tenant {}: {} and {}. Proceeding with per-record logic.", 
-                    tenantId, deviceId, recordDeviceId);
-            }
-        }
-        
-        long serverTime = System.currentTimeMillis();
-        
-        // CRIT-05 fix: Only certain entities should allow singleton-style tenant-level matching
-        boolean isSingletonType = firstRecord instanceof RestaurantProfile || firstRecord instanceof User;
-        boolean singletonStylePayload = isSingletonType &&
-                payload.size() == 1 && (incomingLocalIds.isEmpty() || incomingLocalIds.contains(1));
+		List<Integer> incomingLocalIds = payload.stream().map(BaseSyncEntity::getLocalId)
+				.filter(java.util.Objects::nonNull).distinct().collect(Collectors.toList());
 
-        // 2. Fetch all existing records from the DB in ONE query (matching Tenant + EXACT Device + Local IDs)
-        List<T> existingRecords = new ArrayList<>(repository.findByRestaurantIdAndDeviceIdAndLocalIdIn(
-                tenantId, deviceId, incomingLocalIds));
+		BaseSyncEntity firstRecord = payload.get(0);
+		String deviceId = firstRecord.getDeviceId();
 
-        // Singleton-style records use localId=1 across reinstalls, so allow a tenant+localId fallback.
-        if (singletonStylePayload) {
-            List<T> crossDeviceRecords = repository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1));
-            
-            // For Users, we should be even more specific if possible (e.g., match by email)
-            // to avoid colliding multiple "Admin" users from different devices if they both happened to use localId=1.
-            for (T record : crossDeviceRecords) {
-                boolean matchFound = false;
-                if (record instanceof User existingUser && firstRecord instanceof User incomingUser) {
-                    if (existingUser.getEmail() != null && existingUser.getEmail().equalsIgnoreCase(incomingUser.getEmail())) {
-                        matchFound = true;
-                    }
-                } else {
-                    // For RestaurantProfile or other non-user singletons, tenantId+localId=1 is usually unique enough.
-                    matchFound = true; 
-                }
+		for (T record : payload) {
+			String recordDeviceId = record.getDeviceId();
+			if (recordDeviceId != null && !recordDeviceId.equals(deviceId)) {
+				log.warn("Mixed device IDs in sync batch for Tenant {}: {} and {}. Proceeding with per-record logic.",
+						tenantId, deviceId, recordDeviceId);
+			}
+		}
 
-                if (matchFound) {
-                    boolean alreadyMatched = existingRecords.stream()
-                            .anyMatch(existing -> existing.getId() != null && existing.getId().equals(record.getId()));
-                    if (!alreadyMatched) {
-                        existingRecords.add(record);
-                    }
-                }
-            }
-        }
+		long serverTime = System.currentTimeMillis();
 
-        // 3. Match exact device records by localId first. Singleton-style payloads also get a tenant-level fallback.
-        Map<Integer, T> existingRecordMap = existingRecords.stream()
-                .collect(Collectors.toMap(
-                        BaseSyncEntity::getLocalId,
-                        Function.identity(),
-                        (existing, replacement) -> existing.getUpdatedAt() > replacement.getUpdatedAt() ? existing : replacement
-                ));
+		boolean isSingletonType = firstRecord instanceof RestaurantProfile || firstRecord instanceof User;
+		boolean singletonStylePayload = isSingletonType && payload.size() == 1
+				&& (incomingLocalIds.isEmpty() || incomingLocalIds.contains(1));
 
-        // Use a map for records to save to prevent multiple INSERT/UPDATE of same localId in one batch
-        Map<Integer, T> recordsToSaveMap = new HashMap<>();
+		List<T> existingRecords = new ArrayList<>(
+				repository.findByRestaurantIdAndDeviceIdAndLocalIdIn(tenantId, deviceId, incomingLocalIds));
 
-        // 4. Process the payload in memory
-        for (T incomingRecord : payload) {
-            try {
-                if (incomingRecord.getLocalId() == null) {
-                    if (singletonStylePayload) {
-                        incomingRecord.setLocalId(1);
-                    } else {
-                        log.warn("Skipping record with NULL localId for device: {}", deviceId);
-                        // We can't really report this back by ID if the ID is NULL, but we acknowledge it's skipped.
-                        continue;
-                    }
-                }
+		if (singletonStylePayload) {
+			List<T> crossDeviceRecords = repository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1));
 
-                incomingRecord.setRestaurantId(tenantId);
-                incomingRecord.setServerUpdatedAt(serverTime); // Enforce Server Time
+			for (T record : crossDeviceRecords) {
+				boolean matchFound = false;
+				if (record instanceof User existingUser && firstRecord instanceof User incomingUser) {
+					if (existingUser.getEmail() != null
+							&& existingUser.getEmail().equalsIgnoreCase(incomingUser.getEmail())) {
+						matchFound = true;
+					}
+				} else {
 
-                // Ensure createdAt is populated (default to updatedAt if null)
-                if (incomingRecord.getCreatedAt() == null) {
-                    incomingRecord.setCreatedAt(incomingRecord.getUpdatedAt() != null ? 
-                        incomingRecord.getUpdatedAt() : serverTime);
-                }
+					matchFound = true;
+				}
 
-                // Match existing record. IMPORTANT: Use the record's OWN deviceId for the map key 
-                // if we were doing mixed devices, but here we still rely on localId being unique per device.
-                T existingRecord = null;
-                if (incomingRecord.getLocalId() != null) {
-                    // Try to find by explicit server ID first if provided
-                    if (incomingRecord.getId() != null) {
-                         existingRecord = existingRecords.stream()
-                             .filter(r -> incomingRecord.getId().equals(r.getId()))
-                             .findFirst().orElse(null);
-                    }
-                    // Fallback to localId map
-                    if (existingRecord == null) {
-                        existingRecord = existingRecordMap.get(incomingRecord.getLocalId());
-                    }
-                }
+				if (matchFound) {
+					boolean alreadyMatched = existingRecords.stream()
+							.anyMatch(existing -> existing.getId() != null && existing.getId().equals(record.getId()));
+					if (!alreadyMatched) {
+						existingRecords.add(record);
+					}
+				}
+			}
+		}
 
-                if (existingRecord != null) {
-                    if (incomingRecord.getUpdatedAt() > existingRecord.getUpdatedAt()) {
-                        // CRIT-05 security: User entities should never have their passwordHash cleared by sync
-                        if (incomingRecord instanceof User user && existingRecord instanceof User existingUser) {
-                            if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
-                                user.setPasswordHash(existingUser.getPasswordHash());
-                            }
-                        }
-                        incomingRecord.setId(existingRecord.getId());
+		Map<Integer, T> existingRecordMap = existingRecords.stream()
+				.collect(Collectors.toMap(BaseSyncEntity::getLocalId, Function.identity(), (existing,
+						replacement) -> existing.getUpdatedAt() > replacement.getUpdatedAt() ? existing : replacement));
 
-                        T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
-                        if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
-                            recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);
-                        }
-                        successfulLocalIds.add(incomingRecord.getLocalId());
-                    } else {
-                        // CRIT-06 fix: Acknowledge the record even if the server version is newer.
-                        // This prevents the client from infinitely retrying a record that lost the LWW race.
-                        successfulLocalIds.add(incomingRecord.getLocalId());
-                    }
-                } else {
-                    // It doesn't exist, insert new
-                    T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
-                    if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
-                        recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);
-                    }
-                    successfulLocalIds.add(incomingRecord.getLocalId());
-                }
-            } catch (Exception e) {
-                log.error("Sync Error for device {}: {}", incomingRecord.getDeviceId(), e.getMessage());
-            }
-        }
+		Map<Integer, T> recordsToSaveMap = new HashMap<>();
 
-        // 5. Save all records to the DB in a single batch
-        if (!recordsToSaveMap.isEmpty()) {
-            repository.saveAll(new ArrayList<>(recordsToSaveMap.values()));
-        }
+		for (T incomingRecord : payload) {
+			try {
+				if (incomingRecord.getLocalId() == null) {
+					if (singletonStylePayload) {
+						incomingRecord.setLocalId(1);
+					} else {
+						log.warn("Skipping record with NULL localId for device: {}", deviceId);
 
-        log.info("Successfully batch synced {} records for Tenant ID: {}", successfulLocalIds.size(), tenantId);
-        
-        return new PushSyncResponse(successfulLocalIds, failedLocalIds);
-    }
+						continue;
+					}
+				}
+
+				incomingRecord.setRestaurantId(tenantId);
+				incomingRecord.setServerUpdatedAt(serverTime);
+
+				if (incomingRecord.getCreatedAt() == null) {
+					incomingRecord.setCreatedAt(
+							incomingRecord.getUpdatedAt() != null ? incomingRecord.getUpdatedAt() : serverTime);
+				}
+
+				T existingRecord = null;
+				if (incomingRecord.getLocalId() != null) {
+
+					if (incomingRecord.getId() != null) {
+						existingRecord = existingRecords.stream().filter(r -> incomingRecord.getId().equals(r.getId()))
+								.findFirst().orElse(null);
+					}
+
+					if (existingRecord == null) {
+						existingRecord = existingRecordMap.get(incomingRecord.getLocalId());
+					}
+				}
+
+				if (existingRecord != null) {
+					if (incomingRecord.getUpdatedAt() > existingRecord.getUpdatedAt()) {
+
+						if (incomingRecord instanceof User user && existingRecord instanceof User existingUser) {
+							if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
+								user.setPasswordHash(existingUser.getPasswordHash());
+							}
+						}
+						incomingRecord.setId(existingRecord.getId());
+
+						T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
+						if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
+							recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);
+						}
+						successfulLocalIds.add(incomingRecord.getLocalId());
+					} else {
+
+						successfulLocalIds.add(incomingRecord.getLocalId());
+					}
+				} else {
+
+					T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
+					if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
+						recordsToSaveMap.put(incomingRecord.getLocalId(), incomingRecord);
+					}
+					successfulLocalIds.add(incomingRecord.getLocalId());
+				}
+			} catch (Exception e) {
+				log.error("Sync Error for device {}: {}", incomingRecord.getDeviceId(), e.getMessage());
+			}
+		}
+
+		if (!recordsToSaveMap.isEmpty()) {
+			repository.saveAll(new ArrayList<>(recordsToSaveMap.values()));
+		}
+
+		log.info("Successfully batch synced {} records for Tenant ID: {}", successfulLocalIds.size(), tenantId);
+
+		return new PushSyncResponse(successfulLocalIds, failedLocalIds);
+	}
 }

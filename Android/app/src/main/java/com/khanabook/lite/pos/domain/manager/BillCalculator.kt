@@ -29,12 +29,12 @@ object BillCalculator {
         val bd100 = BigDecimal.valueOf(100)
         
         val totalGst = if (isInclusive) {
-            // Formula: Tax = Amount - (Amount / (1 + Rate/100))
+            
             val multiplier = BigDecimal.ONE.add(bdGstPct.divide(bd100, 4, RoundingMode.HALF_UP))
             val baseAmount = bdSubtotal.divide(multiplier, 2, RoundingMode.HALF_UP)
             bdSubtotal.subtract(baseAmount)
         } else {
-            // Formula: Tax = Amount * (Rate/100)
+            
             bdSubtotal.multiply(bdGstPct).divide(bd100, 2, RoundingMode.HALF_UP)
         }
         
@@ -61,7 +61,7 @@ object BillCalculator {
         isInclusive: Boolean = false
     ): String {
         return if (isInclusive) {
-            // Total is already equal to subtotal in inclusive mode
+            
             BigDecimal(subtotal).setScale(2, RoundingMode.HALF_UP).toString()
         } else {
             val total = BigDecimal(subtotal)
@@ -80,7 +80,7 @@ object BillCalculator {
         return sum.compareTo(bdTotal) == 0
     }
 
-    // Helper for legacy Double support if needed during migration
+    
     fun toFixedString(value: Double): String {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).toString()
     }

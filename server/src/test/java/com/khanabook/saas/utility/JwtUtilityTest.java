@@ -17,7 +17,7 @@ class JwtUtilityTest {
     void setUp() {
         jwtUtility = new JwtUtility();
         ReflectionTestUtils.setField(jwtUtility, "secret", SECRET);
-        ReflectionTestUtils.setField(jwtUtility, "expirationMs", 3_600_000L); // 1 hour
+        ReflectionTestUtils.setField(jwtUtility, "expirationMs", 3_600_000L); 
     }
 
     @Test
@@ -40,10 +40,10 @@ class JwtUtilityTest {
 
     @Test
     void expiredToken_detectedCorrectly() throws Exception {
-        // Set expiration to 1ms so token expires instantly
+        
         ReflectionTestUtils.setField(jwtUtility, "expirationMs", 1L);
         String token = jwtUtility.generateToken("user@test.com", 1L);
-        Thread.sleep(10); // ensure expiry
+        Thread.sleep(10); 
         assertThat(jwtUtility.isTokenExpired(token)).isTrue();
     }
 
@@ -65,7 +65,7 @@ class JwtUtilityTest {
 
     @Test
     void shortSecret_stillProducesValidToken() {
-        // SHA-256 key derivation path
+        
         ReflectionTestUtils.setField(jwtUtility, "secret", "short");
         String token = jwtUtility.generateToken("user@test.com", 55L);
         assertThat(jwtUtility.extractRestaurantId(token)).isEqualTo(55L);

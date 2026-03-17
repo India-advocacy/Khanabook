@@ -17,7 +17,7 @@ object PaymentModeManager {
         if (profile.swiggyEnabled) modes.add(PaymentMode.SWIGGY)
         if (profile.ownWebsiteEnabled) modes.add(PaymentMode.OWN_WEBSITE)
 
-        // Part-payments are enabled only if the components are enabled
+        
         if (profile.cashEnabled && profile.upiEnabled) modes.add(PaymentMode.PART_CASH_UPI)
         if (profile.cashEnabled && profile.posEnabled) modes.add(PaymentMode.PART_CASH_POS)
         if (profile.upiEnabled && profile.posEnabled) modes.add(PaymentMode.PART_UPI_POS)

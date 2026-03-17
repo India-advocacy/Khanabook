@@ -15,7 +15,7 @@ data class CategoryEntity(
     val id: Long = 0,
     val name: String,
     @ColumnInfo(name = "is_veg")
-    val isVeg: Boolean, // 1=Veg, 0=Non-Veg
+    val isVeg: Boolean, 
     @ColumnInfo(name = "sort_order", defaultValue = "0")
     val sortOrder: Int = 0,
     @ColumnInfo(name = "is_active", defaultValue = "1")
