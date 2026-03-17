@@ -1,6 +1,6 @@
-﻿# ðŸ› KhanaBook: Built for the Heart of the Shop
+# 🍱 KhanaBook: Built for the Heart of the Shop
 
-Hey there! Welcome to the engine room of **KhanaBook**! ðŸ‘‹
+Hey there! Welcome to the engine room of **KhanaBook**! 👋
 
 Running a food stall, cafe, or a bustling restaurant is hard enough. KhanaBook is here to make the "business side" of things feel effortless. It is a companion for the people who keep our neighborhoods fed, whether it's the local biryani corner or a breakfast joint.
 
@@ -8,32 +8,32 @@ This repository contains both the **KhanaBook Lite (Android App)** and the **Kha
 
 ---
 
-## ðŸ”Œ Why "Offline-First"? Because Life Happens.
+## 🔌 Why "Offline-First"? Because Life Happens.
 
-Most billing apps break the moment the Wi-Fi drops. We built this differently. We know how it goesâ€”the kitchen is heating up, orders are flying in, and suddenly... the internet goes out. In a busy shop, that shouldn't be a crisis. 
+Most billing apps break the moment the Wi-Fi drops. We built this differently. We know how it goes—the kitchen is heating up, orders are flying in, and suddenly... the internet goes out. In a busy shop, that shouldn't be a crisis. 
 
 We built KhanaBook to be **offline-first**. It works whether you're in a basement cafe or a street-side stall.
-- **âš¡ Works Everywhere:** Create bills instantly without worrying about a signal.
-- **ðŸ”„ Smart Syncing:** The moment you're back online, the app quietly syncs everything (bills, menu changes, users) to the server via our robust **Bidirectional Master Sync**. Your data is safely recorded without you ever having to hit "refresh."
+- **⚡ Works Everywhere:** Create bills instantly without worrying about a signal.
+- **🔄 Smart Syncing:** The moment you're back online, the app quietly syncs everything (bills, menu changes, users) to the server via our robust **Bidirectional Master Sync**. Your data is safely recorded without you ever having to hit "refresh."
 
 ---
 
-## âœ¨ Features That Actually Matter
+## ✨ Features That Actually Matter
 
 We focused on the things that actually matter when you're in the thick of it:
 
-- **ðŸ¥˜ Your Menu, Your Way:** Organize your dishes into simple categories. We handle variants and pricing in a few taps.
-- **ðŸ§¾ Simple, Honest Billing:** GST, variants, and payments are handled in a flow that feels natural. Send professional-looking invoices directly to your customer's WhatsApp, or print them on the spot with a **Bluetooth thermal printer** ESC/POS integration.
-- **ðŸ“¸ Smart Menu Import (OCR):** Too busy to type the menu? Just take a picture of your physical menuâ€”KhanaBook uses Google ML Kit OCR to parse and import it instantly.
-- **ðŸ”’ Your Data is Yours:** We use **Multi-Tenancy** on the server to strictly isolate restaurant data, and local **SQLCipher** (AES-256 encryption) on the app.
+- **🥡 Your Menu, Your Way:** Organize your dishes into simple categories. We handle variants and pricing in a few taps.
+- **🧾 Simple, Honest Billing:** GST, variants, and payments are handled in a flow that feels natural. Send professional-looking invoices directly to your customer's WhatsApp, or print them on the spot with a **Bluetooth thermal printer** ESC/POS integration.
+- **📸 Smart Menu Import (OCR):** Too busy to type the menu? Just take a picture of your physical menu—KhanaBook uses Google ML Kit OCR to parse and import it instantly.
+- **🔒 Your Data is Yours:** We use **Multi-Tenancy** on the server to strictly isolate restaurant data, and local **SQLCipher** (AES-256 encryption) on the app.
 
 ---
 
-## ðŸ“± Android App (KhanaBook Lite)
+## 📱 Android App (KhanaBook Lite)
 
 A mobile Point of Sale (POS) app that doesn't need the internet to work and keeps your data exactly where it belongs: with you.
 
-### ðŸ› ï¸ Tech Stack & Architecture
+### 🛠️ Tech Stack & Architecture
 - **Language/UI:** Kotlin & Jetpack Compose (MVVM Architecture)
 - **Dependency Injection:** Dagger Hilt
 - **Local Database:** Room with SQLCipher for AES-256 encrypted local storage.
@@ -42,7 +42,7 @@ A mobile Point of Sale (POS) app that doesn't need the internet to work and keep
 - **Hardware:** Bluetooth/Thermal Printer ESC/POS integration.
 - **Authentication:** Google Sign-In, Firebase AppCheck, JWT Tokens, and offline fallback authentication.
 
-### ðŸš€ Getting Started
+### 🚀 Getting Started
 1. **Requirements:** **Android Studio (Ladybug or newer)** and **JDK 17**.
 2. **Setup Secrets:** Create a `local.properties` file in the root folder (`Android/local.properties`) and add your secure keys:
    ```properties
@@ -53,22 +53,22 @@ A mobile Point of Sale (POS) app that doesn't need the internet to work and keep
 
 ---
 
-## ðŸ–¥ï¸ Backend Server (KhanaBook SaaS)
+## 🖥️ Backend Server (KhanaBook SaaS)
 
 The engine that receives synced offline data, handles conflict resolution, and ensures strict multi-tenant cloud storage.
 
-### ðŸ› ï¸ Tech Stack
+### 🛠️ Tech Stack
 - **Framework:** Java 17 & Spring Boot 3.2.3
 - **Database:** PostgreSQL with Spring Data JPA & Hibernate
 - **Security:** Spring Security & stateless JWT Authentication
 - **Rate Limiting:** Bucket4j (Protects Auth & Sync endpoints from brute force)
 - **API Documentation:** SpringDoc OpenAPI (Swagger UI)
 
-### ðŸ§± Architecture Highlights
+### 🧱 Architecture Highlights
 - **Multi-Tenant System:** Every request is authenticated via JWT. A custom `TenantContext` ensures data isolation so one restaurant cannot access another's data.
 - **Robust Sync Engine:** The `GenericSyncService` powers our bidirectional syncing. It uses update timestamps and handles conflicts to ensure the local Master node (the Android App) and Server stay perfectly aligned without data loss.
 
-### ðŸš€ Getting Started
+### 🚀 Getting Started
 1. **Requirements:** **JDK 17** & **PostgreSQL**.
 2. **Setup Database:** Create a local PostgreSQL database named `khanabook_db`.
 3. **Configure Settings:** Update `server/src/main/resources/application.properties` with your database credentials and a solid `jwt.secret.key`.
@@ -81,19 +81,18 @@ The engine that receives synced offline data, handles conflict resolution, and e
 
 ---
 
-## ðŸ› Recent Fixes & Stability Updates
-- **Coroutines:** Fixed build-breaking Coroutine context issues (`isActive` scoping) in `SessionManager`.
-- **Security:** Hardened authentication flow. Brute-force protection is now fully enforced locally with a 5-minute lockout after failed attempts.
-- **Data Integrity:** Resolved critical sync edge cases involving missing timestamps, null-pointer safeguards, and prevented WhatsApp numbers from bleeding into login Identifiers.
-- **Performance:** Eliminated N+1 DB query storms in the Menu OCR importer.
+## 🍱 Recent Fixes & Stability Updates
+- **Security Hardening:** Removed plaintext OTP logging, corrected OTP verification bypass logic, and implemented stricter JWT validation.
+- **Data Integrity:** Standardized all primary and foreign key IDs to `Long` across the Android application and server. Migrated monetary fields to `BigDecimal` (stored as `String`) for absolute financial precision.
+- **Concurrency:** Implemented `Mutex` serialization for critical order completion flows to prevent race conditions.
+- **Sync Refinement:** Improved backend conflict resolution for shared local IDs (e.g., `localId=1` for Admins) and enforced device consistency in sync batches.
+- **Crash Recovery:** Hardened `GlobalCrashHandler` with recursive crash detection and loop protection.
 
 ---
 
-## ðŸ“œ License & Privacy
+## 📜 License & Privacy
 
 **KhanaBook Server:** MIT License. See the `server/LICENSE` file for more details.  
 **KhanaBook Lite (Android):** Internal/private project. All rights reserved.
 
-Happy Billing! â˜•ðŸ¥˜
-
-
+Happy Billing! ☕🥡
