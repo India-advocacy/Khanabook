@@ -399,7 +399,7 @@ fun ReviewScannedItemsSheet(
                             animationSpec = tween(200),
                             label = "item_bg"
                         )
-                        Row(
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(10.dp))
@@ -410,77 +410,163 @@ fun ReviewScannedItemsSheet(
                                     shape = RoundedCornerShape(10.dp)
                                 )
                                 .clickable { onToggleSelection(index) }
-                                .padding(horizontal = 12.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                                .padding(horizontal = 12.dp, vertical = 10.dp)
                         ) {
-                            
-                            Box(
-                                modifier = Modifier
-                                    .size(24.dp)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(
-                                        if (draft.isSelected) PrimaryGold else Color.Transparent
-                                    )
-                                    .border(
-                                        1.5.dp,
-                                        if (draft.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
-                                        RoundedCornerShape(6.dp)
-                                    ),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                if (draft.isSelected) {
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(
+                                            if (draft.isSelected) PrimaryGold else Color.Transparent
+                                        )
+                                        .border(
+                                            1.5.dp,
+                                            if (draft.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
+                                            RoundedCornerShape(6.dp)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    if (draft.isSelected) {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = null,
+                                            tint = DarkBrown1,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                
+                                Column(modifier = Modifier.weight(1f)) {
+                                    BasicTextField(
+                                        value = draft.name,
+                                        onValueChange = { onUpdateDraft(index, draft.copy(name = it)) },
+                                        textStyle = TextStyle(
+                                            color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
+                                        ),
+                                        cursorBrush = SolidColor(PrimaryGold)
+                                    )
+                                    if (!draft.categoryName.isNullOrBlank()) {
+                                        Text(
+                                            draft.categoryName,
+                                            color = PrimaryGold.copy(alpha = 0.6f),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                
+                                if (draft.variants.size <= 1) {
+                                    Row(
+                                        modifier = Modifier
+                                            .width(72.dp)
+                                            .background(DarkBrown1.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("₹", color = PrimaryGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        BasicTextField(
+                                            value = if (draft.price == 0.0) "" else draft.price.toInt().toString(),
+                                            onValueChange = { raw ->
+                                                val p = raw.toDoubleOrNull() ?: 0.0
+                                                onUpdateDraft(index, draft.copy(price = p))
+                                            },
+                                            textStyle = TextStyle(
+                                                color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
+                                                fontSize = 12.sp,
+                                                textAlign = TextAlign.End
+                                            ),
+                                            cursorBrush = SolidColor(PrimaryGold),
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                    }
+                                }
+                                
+                                IconButton(
+                                    onClick = { onToggleFoodType(index) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
                                     Icon(
-                                        Icons.Default.Check,
+                                        Icons.Default.Circle,
                                         contentDescription = null,
-                                        tint = DarkBrown1,
-                                        modifier = Modifier.size(14.dp)
+                                        tint = if (draft.foodType == "veg") Color(0xFF4CAF50) else Color(0xFFE53935),
+                                        modifier = Modifier.size(12.dp).border(1.dp, Color.White, CircleShape)
                                     )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.width(12.dp))
-
                             
-                            BasicTextField(
-                                value = draft.name,
-                                onValueChange = { onUpdateDraft(index, draft.copy(name = it)) },
-                                textStyle = TextStyle(
-                                    color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
-                                ),
-                                cursorBrush = SolidColor(PrimaryGold),
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            
-                            Row(
-                                modifier = Modifier
-                                    .width(64.dp)
-                                    .background(DarkBrown1.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("₹", color = PrimaryGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                BasicTextField(
-                                    value = if (draft.price == 0.0) "" else draft.price.toInt().toString(),
-                                    onValueChange = { raw ->
-                                        val p = raw.toDoubleOrNull() ?: 0.0
-                                        onUpdateDraft(index, draft.copy(price = p))
-                                    },
-                                    textStyle = TextStyle(
-                                        color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                                        fontSize = 12.sp
-                                    ),
-                                    cursorBrush = SolidColor(PrimaryGold),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    modifier = Modifier.weight(1f)
-                                )
+                            if (draft.variants.size > 1) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(start = 36.dp, top = 8.dp, end = 24.dp),
+                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    draft.variants.forEachIndexed { vIndex, variant ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            BasicTextField(
+                                                value = variant.name,
+                                                onValueChange = { newName ->
+                                                    val newVariants = draft.variants.toMutableList()
+                                                    newVariants[vIndex] = variant.copy(name = newName)
+                                                    onUpdateDraft(index, draft.copy(variants = newVariants))
+                                                },
+                                                textStyle = TextStyle(
+                                                    color = TextGold.copy(alpha = 0.8f),
+                                                    fontSize = 12.sp
+                                                ),
+                                                cursorBrush = SolidColor(PrimaryGold),
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            
+                                            Row(
+                                                modifier = Modifier
+                                                    .width(64.dp)
+                                                    .background(DarkBrown1.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text("₹", color = PrimaryGold, fontSize = 11.sp)
+                                                BasicTextField(
+                                                    value = if (variant.price == 0.0) "" else variant.price.toInt().toString(),
+                                                    onValueChange = { raw ->
+                                                        val p = raw.toDoubleOrNull() ?: 0.0
+                                                        val newVariants = draft.variants.toMutableList()
+                                                        newVariants[vIndex] = variant.copy(price = p)
+                                                        onUpdateDraft(index, draft.copy(variants = newVariants))
+                                                    },
+                                                    textStyle = TextStyle(
+                                                        color = TextLight.copy(alpha = 0.9f),
+                                                        fontSize = 11.sp,
+                                                        textAlign = TextAlign.End
+                                                    ),
+                                                    cursorBrush = SolidColor(PrimaryGold),
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
-
                         }
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }

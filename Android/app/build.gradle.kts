@@ -34,12 +34,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        
-        
-        
-        
-        
-        
+        // ── Meta / WhatsApp / NVIDIA API Config ───────────────────────────────────
         val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
@@ -50,21 +45,17 @@ android {
         val phoneId = localProperties.getProperty("WHATSAPP_PHONE_NUMBER_ID") ?: ""
         val templateName = localProperties.getProperty("WHATSAPP_OTP_TEMPLATE_NAME") ?: ""
         val backendUrl = localProperties.getProperty("BACKEND_URL") ?: "http://192.168.211.80:8080/"
+        val nvidiaKey = localProperties.getProperty("NVIDIA_API_KEY") ?: ""
 
         buildConfigField("String", "META_ACCESS_TOKEN", "\"$metaToken\"")
         buildConfigField("String", "WHATSAPP_PHONE_NUMBER_ID", "\"$phoneId\"")
         buildConfigField("String", "WHATSAPP_OTP_TEMPLATE_NAME", "\"$templateName\"")
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
+        buildConfigField("String", "NVIDIA_API_KEY", "\"$nvidiaKey\"")
     }
 
     signingConfigs {
         create("release") {
-            
-            
-            
-            
-            
-            
             val localProperties = Properties()
             val localPropertiesFile = rootProject.file("local.properties")
             if (localPropertiesFile.exists()) {
@@ -130,45 +121,45 @@ dependencies {
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
     implementation(libs.androidx.navigation.compose)
 
-    
+    // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
-    
+    // Hilt
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
 
-    
+    // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
     ksp(libs.androidx.hilt.compiler)
 
-    
+    // Security
     implementation("org.mindrot:jbcrypt:0.4")
     implementation(libs.sqlcipher)
     implementation(libs.androidx.sqlite.ktx)
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
-    
+    // Social Login
     implementation(libs.play.services.auth)
 
 
-    
+    // Google Sign-In via Credential Manager (modern API)
     implementation("androidx.credentials:credentials:1.3.0")
     implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
     implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation(libs.coil.compose)
 
-    
+    // Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp.logging)
     implementation(libs.zxing.android)
     implementation(libs.mlkit.text.recognition)
     
-    
+    // CameraX
     implementation(libs.androidx.camera.core)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)

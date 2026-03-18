@@ -38,14 +38,14 @@ class InventoryConsumptionTest {
                 menuItemId = 101,
                 itemName = "Biryani",
                 quantity = 3,
-                price = 200.0,
-                itemTotal = 600.0
+                price = "200.00",
+                itemTotal = "600.00"
             )
         )
 
         inventoryConsumptionManager.consumeMaterialsForBill(billItems)
 
-        verify(menuRepository).updateStock(101, -3.0)
+        verify(menuRepository).updateStock(101, "-3")
 
         val logCaptor = argumentCaptor<StockLogEntity>()
         verify(inventoryRepository).insertStockLog(logCaptor.capture())
@@ -53,7 +53,7 @@ class InventoryConsumptionTest {
         val log = logCaptor.firstValue
         org.junit.Assert.assertEquals(101, log.menuItemId)
         org.junit.Assert.assertEquals(null, log.variantId)
-        org.junit.Assert.assertEquals(-3.0, log.delta, 0.001)
+        org.junit.Assert.assertEquals("-3", log.delta)
         org.junit.Assert.assertEquals("Sale (Bill #42)", log.reason)
     }
 
@@ -68,14 +68,14 @@ class InventoryConsumptionTest {
                 variantId = 501,
                 variantName = "Large",
                 quantity = 2,
-                price = 30.0,
-                itemTotal = 60.0
+                price = "30.00",
+                itemTotal = "60.00"
             )
         )
 
         inventoryConsumptionManager.consumeMaterialsForBill(billItems)
 
-        verify(menuRepository).updateVariantStock(501, -2.0)
+        verify(menuRepository).updateVariantStock(501, "-2")
 
         val logCaptor = argumentCaptor<StockLogEntity>()
         verify(inventoryRepository).insertStockLog(logCaptor.capture())
@@ -83,7 +83,7 @@ class InventoryConsumptionTest {
         val log = logCaptor.firstValue
         org.junit.Assert.assertEquals(101, log.menuItemId)
         org.junit.Assert.assertEquals(501, log.variantId)
-        org.junit.Assert.assertEquals(-2.0, log.delta, 0.001)
+        org.junit.Assert.assertEquals("-2", log.delta)
         org.junit.Assert.assertEquals("Sale (Bill #7)", log.reason)
     }
 }

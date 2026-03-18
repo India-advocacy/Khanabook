@@ -271,225 +271,213 @@ fun MenuSelectionStep(
         }
     }
 
+    LaunchedEffect(categories) {
+        if (selectedCategoryId == null && categories.isNotEmpty()) {
+            menuViewModel.selectCategory(categories.first().id)
+        }
+    }
+
     val derivedItemCount by remember {
         derivedStateOf { cartItems.sumOf { it.quantity } }
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        if (!hideHeader) {
-            Row(
-                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                        Icons.AutoMirrored.Filled.ArrowBack,
-                        null,
-                        tint = PrimaryGold,
-                        modifier = Modifier.clickable { onBack() }
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Text("New Bill", color = PrimaryGold, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            }
-        }
-
-        if (categories.isNotEmpty()) {
-            val selectedIndex =
-                    categories.indexOfFirst { it.id == selectedCategoryId }.coerceAtLeast(0)
-            ScrollableTabRow(
-                    selectedTabIndex = selectedIndex,
-                    containerColor = PrimaryGold,
-                    contentColor = DarkBrown1,
-                    edgePadding = 16.dp,
-                    divider = {},
-                    indicator = { tabPositions ->
-                        if (selectedIndex < tabPositions.size) {
-                            TabRowDefaults.SecondaryIndicator(
-                                    modifier =
-                                            Modifier.tabIndicatorOffset(
-                                                    tabPositions[selectedIndex]
-                                            ),
-                                    color = DarkBrown1
-                            )
-                        }
-                    }
-            ) {
-                categories.forEach { category ->
-                    Tab(
-                            selected = category.id == selectedCategoryId,
-                            onClick = { menuViewModel.selectCategory(category.id) },
-                            text = {
-                                Text(
-                                        category.name,
-                                        fontSize = 13.sp,
-                                        fontWeight =
-                                                if (category.id == selectedCategoryId)
-                                                        FontWeight.Bold
-                                                else FontWeight.Medium
-                                )
-                            },
-                            selectedContentColor = DarkBrown1,
-                            unselectedContentColor = DarkBrown1.copy(alpha = 0.7f)
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            if (!hideHeader) {
+                Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            null,
+                            tint = PrimaryGold,
+                            modifier = Modifier.clickable { onBack() }
                     )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("New Bill", color = PrimaryGold, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
             }
-        }
 
-        LazyColumn(
-                modifier = Modifier.weight(1f).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(items, key = { it.menuItem.id }) { menuWithVariants ->
-                val item = menuWithVariants.menuItem
-                val variants = menuWithVariants.variants
-                var showVariantPicker by remember { mutableStateOf(false) }
-
-                Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                        shape = RoundedCornerShape(12.dp)
-                ) {
-                    if (variants.isEmpty()) {
-                        
-                        val cartItem =
-                                cartItems.find { it.item.id == item.id && it.variant == null }
-                        Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            FoodTypeIcon(item.foodType)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                        item.name,
-                                        color = TextLight,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp
+            if (categories.isNotEmpty()) {
+                val selectedIndex =
+                        categories.indexOfFirst { it.id == selectedCategoryId }.coerceAtLeast(0)
+                ScrollableTabRow(
+                        selectedTabIndex = selectedIndex,
+                        containerColor = PrimaryGold,
+                        contentColor = DarkBrown1,
+                        edgePadding = 16.dp,
+                        divider = {},
+                        indicator = { tabPositions ->
+                            if (selectedIndex < tabPositions.size) {
+                                TabRowDefaults.SecondaryIndicator(
+                                        modifier =
+                                                Modifier.tabIndicatorOffset(
+                                                        tabPositions[selectedIndex]
+                                                ),
+                                        color = DarkBrown1
                                 )
-                                Text("₹${item.basePrice}", color = TextGold, fontSize = 12.sp)
                             }
-                            QuantitySelector(
-                                    quantity = cartItem?.quantity ?: 0,
-                                    onAdd = { billingViewModel.addToCart(item) },
-                                    onRemove = { billingViewModel.removeFromCart(item) }
-                            )
                         }
-                    } else {
-                        
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                ) {
+                    categories.forEach { category ->
+                        Tab(
+                                selected = category.id == selectedCategoryId,
+                                onClick = { menuViewModel.selectCategory(category.id) },
+                                text = {
+                                    Text(
+                                            category.name,
+                                            fontSize = 13.sp,
+                                            fontWeight =
+                                                    if (category.id == selectedCategoryId)
+                                                            FontWeight.Bold
+                                                    else FontWeight.Medium
+                                    )
+                                },
+                                selectedContentColor = DarkBrown1,
+                                unselectedContentColor = DarkBrown1.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            }
+
+            LazyColumn(
+                    modifier = Modifier.weight(1f).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(items, key = { it.menuItem.id }) { menuWithVariants ->
+                    val item = menuWithVariants.menuItem
+                    val variants = menuWithVariants.variants
+                    var showVariantPicker by remember { mutableStateOf(false) }
+
+                    Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                            shape = RoundedCornerShape(12.dp)
+                    ) {
+                        if (variants.isEmpty()) {
+
+                            val cartItem =
+                                    cartItems.find { it.item.id == item.id && it.variant == null }
+                            Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 FoodTypeIcon(item.foodType)
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Column {
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
                                             item.name,
                                             color = TextLight,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp
                                     )
-                                    Text(
-                                            "${variants.size} Variants",
-                                            color = PrimaryGold,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Medium
-                                    )
+                                    Text("₹${item.basePrice}", color = TextGold, fontSize = 12.sp)
                                 }
+                                QuantitySelector(
+                                        quantity = cartItem?.quantity ?: 0,
+                                        onAdd = { billingViewModel.addToCart(item) },
+                                        onRemove = { billingViewModel.removeFromCart(item) }
+                                )
                             }
-                            Spacer(modifier = Modifier.height(10.dp))
-                            HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
-                            Spacer(modifier = Modifier.height(8.dp))
-                            variants.forEach { variant ->
-                                val variantCartItem =
-                                        cartItems.find {
-                                            it.item.id == item.id && it.variant?.id == variant.id
-                                        }
-                                Row(
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                            variant.variantName,
-                                            color = TextGold,
-                                            fontSize = 13.sp,
-                                            modifier = Modifier.weight(1f)
-                                    )
-                                    Text(
-                                            CurrencyUtils.formatPrice(variant.price),
-                                            color = PrimaryGold,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            modifier = Modifier.padding(end = 12.dp)
-                                    )
-                                    QuantitySelector(
-                                            quantity = variantCartItem?.quantity ?: 0,
-                                            onAdd = { billingViewModel.addToCart(item, variant) },
-                                            onRemove = {
-                                                billingViewModel.removeFromCart(item, variant)
+                        } else {
+
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    FoodTypeIcon(item.foodType)
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(
+                                                item.name,
+                                                color = TextLight,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 14.sp
+                                        )
+                                        Text(
+                                                "${variants.size} Variants",
+                                                color = PrimaryGold,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(10.dp))
+                                HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                variants.forEach { variant ->
+                                    val variantCartItem =
+                                            cartItems.find {
+                                                it.item.id == item.id && it.variant?.id == variant.id
                                             }
-                                    )
+                                    Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                                variant.variantName,
+                                                color = TextGold,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                                CurrencyUtils.formatPrice(variant.price),
+                                                color = PrimaryGold,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.padding(end = 12.dp)
+                                        )
+                                        QuantitySelector(
+                                                quantity = variantCartItem?.quantity ?: 0,
+                                                onAdd = { billingViewModel.addToCart(item, variant) },
+                                                onRemove = {
+                                                    billingViewModel.removeFromCart(item, variant)
+                                                }
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                if (showVariantPicker) {
-                    VariantPickerDialog(
-                            itemName = item.name,
-                            variants = variants,
-                            onDismiss = { showVariantPicker = false },
-                            onSelect = { variant ->
-                                billingViewModel.addToCart(item, variant)
-                                showVariantPicker = false
-                            }
-                    )
+                    if (showVariantPicker) {
+                        VariantPickerDialog(
+                                itemName = item.name,
+                                variants = variants,
+                                onDismiss = { showVariantPicker = false },
+                                onSelect = { variant ->
+                                    billingViewModel.addToCart(item, variant)
+                                    showVariantPicker = false
+                                }
+                        )
+                    }
                 }
             }
-        }
 
-        
-        Card(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = PrimaryGold),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            Row(
-                    modifier = Modifier.padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+
+            Card(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = PrimaryGold),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                            "$derivedItemCount Items Added",
-                            color = DarkBrown1,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                            CurrencyUtils.formatPrice(total),
-                            color = DarkBrown1,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 22.sp
-                    )
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    
-                    if (navController != null) {
-                        OutlinedButton(
-                                onClick = { navController.navigate("ocr_scanner/billing") },
-                                shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.5.dp, DarkBrown1),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = DarkBrown1),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)
-                        ) {
-                            Icon(
-                                    Icons.Default.QrCodeScanner,
-                                    contentDescription = "Scan Barcode",
-                                    modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(6.dp))
-                            Text("Scan", fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        }
+                Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                                "$derivedItemCount Items Added",
+                                color = DarkBrown1,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                        )
+                        Text(
+                                CurrencyUtils.formatPrice(total),
+                                color = DarkBrown1,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 22.sp
+                        )
                     }
                     Button(
                             onClick = onProceedToPayment,
@@ -508,8 +496,27 @@ fun MenuSelectionStep(
                 }
             }
         }
-    }
-}
+
+
+        if (navController != null) {
+            FloatingActionButton(
+                onClick = { navController.navigate("ocr_scanner/billing") },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 16.dp, bottom = 100.dp), 
+                containerColor = PrimaryGold,
+                contentColor = DarkBrown1,
+                shape = CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(8.dp)
+            ) {
+                Icon(
+                    Icons.Default.QrCodeScanner,
+                    contentDescription = "Scan Barcode",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }}
 
 @Composable
 fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {

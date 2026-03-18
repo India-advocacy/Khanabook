@@ -21,6 +21,9 @@ class BillRepositoryTest {
     private lateinit var billDao: BillDao
 
     @Mock
+    private lateinit var restaurantDao: com.khanabook.lite.pos.data.local.dao.RestaurantDao
+
+    @Mock
     private lateinit var inventoryConsumptionManager: InventoryConsumptionManager
 
     @Mock
@@ -31,7 +34,7 @@ class BillRepositoryTest {
     @Before
     fun setup() {
         MockitoAnnotations.openMocks(this)
-        billRepository = BillRepository(billDao, inventoryConsumptionManager, workManager)
+        billRepository = BillRepository(billDao, restaurantDao, inventoryConsumptionManager, workManager)
     }
 
     @Test
@@ -42,15 +45,15 @@ class BillRepositoryTest {
             dailyOrderId = 1,
             dailyOrderDisplay = "B1",
             lifetimeOrderId = 1,
-            subtotal = 100.0,
-            totalAmount = 100.0,
+            subtotal = "100.00",
+            totalAmount = "100.00",
             paymentMode = "cash",
             paymentStatus = "success",
             orderStatus = OrderStatus.COMPLETED.dbValue, 
-            createdAt = "2024-01-01"
+            createdAt = System.currentTimeMillis()
         )
-        val items = listOf(BillItemEntity(billId = 1, menuItemId = 1, itemName = "Item 1", quantity = 1, price = 100.0, itemTotal = 100.0))
-        val payments = listOf(BillPaymentEntity(billId = 1, paymentMode = "cash", amount = 100.0))
+        val items = listOf(BillItemEntity(billId = 1, menuItemId = 1, itemName = "Item 1", quantity = 1, price = "100.00", itemTotal = "100.00"))
+        val payments = listOf(BillPaymentEntity(billId = 1, paymentMode = "cash", amount = "100.00"))
 
         
         billRepository.insertFullBill(bill, items, payments)
@@ -68,14 +71,14 @@ class BillRepositoryTest {
             dailyOrderId = 1,
             dailyOrderDisplay = "B1",
             lifetimeOrderId = 1,
-            subtotal = 100.0,
-            totalAmount = 100.0,
+            subtotal = "100.00",
+            totalAmount = "100.00",
             paymentMode = "cash",
             paymentStatus = "failed",
             orderStatus = "draft",
-            createdAt = "2024-01-01"
+            createdAt = System.currentTimeMillis()
         )
-        val items = listOf(BillItemEntity(billId = 1, menuItemId = 1, itemName = "Item 1", quantity = 1, price = 100.0, itemTotal = 100.0))
+        val items = listOf(BillItemEntity(billId = 1, menuItemId = 1, itemName = "Item 1", quantity = 1, price = "100.00", itemTotal = "100.00"))
         val payments = emptyList<BillPaymentEntity>()
 
         

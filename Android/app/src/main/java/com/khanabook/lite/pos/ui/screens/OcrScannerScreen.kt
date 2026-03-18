@@ -138,9 +138,14 @@ fun OcrScannerScreen(
                     } else {
                         android.provider.MediaStore.Images.Media.getBitmap(context.contentResolver, it)
                     }
-                    viewModel.processMenuImage(context, bitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, true))
-                } catch (e: Exception) {
-                    errorMessage = "Failed to load image: ${e.message}"
+                    val bitmapCopy = bitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
+                    if (bitmapCopy != null) {
+                        viewModel.processMenuImage(context, bitmapCopy)
+                    } else {
+                        errorMessage = "Failed to process image: Out of memory"
+                    }
+                } catch (t: Throwable) {
+                    errorMessage = "Failed to load image: ${t.message}"
                 }
             }
         }
