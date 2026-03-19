@@ -309,9 +309,9 @@ class MenuViewModel @Inject constructor(
                     }
 
                     val page = renderer.openPage(i)
-                    // Render at high resolution for better OCR (e.g., 2.5x scale)
-                    val width = (page.width * 2.5).toInt()
-                    val height = (page.height * 2.5).toInt()
+                    // Render at high resolution for better OCR (e.g., 4.0x scale)
+                    val width = (page.width * 4.0).toInt()
+                    val height = (page.height * 4.0).toInt()
                     val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
                     
                     // Fill background with white

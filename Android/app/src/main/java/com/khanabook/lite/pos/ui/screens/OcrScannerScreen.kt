@@ -102,7 +102,6 @@ fun OcrScannerScreen(
     ) { uri ->
         uri?.let {
             viewModel.extractTextFromPdf(context, it)
-            onBack() 
         }
     }
 
