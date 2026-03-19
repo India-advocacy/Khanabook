@@ -56,7 +56,11 @@ class MenuViewModel @Inject constructor(
 
     fun addCategory(name: String, isVeg: Boolean) {
         viewModelScope.launch {
-            categoryRepository.insertCategory(CategoryEntity(name = name, isVeg = isVeg))
+            try {
+                categoryRepository.insertCategory(CategoryEntity(name = name, isVeg = isVeg))
+            } catch (e: Exception) {
+                android.util.Log.e("MenuViewModel", "Error adding category", e)
+            }
         }
     }
 
@@ -418,82 +422,92 @@ class MenuViewModel @Inject constructor(
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Saving menu...") }
             
-            val selectedDrafts = _ocrImportUiState.value.drafts.filter { it.isSelected }
-            if (selectedDrafts.isEmpty()) {
-                withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    _ocrImportUiState.update { it.copy(isProcessing = false, error = "No items selected to add.") }
-                }
-                return@launch
-            }
-
-            // 1. Group items by their detected category names
-            val groupedByDetected = selectedDrafts.groupBy { it.categoryName }
-            
-            var totalAdded = 0
-            
-            // 2. Process each group
-            groupedByDetected.forEach { (detectedName, items) ->
-                // Determine target category ID
-                val targetCategoryId: Long = if (detectedName != null) {
-                    // Find or create category by name
-                    val existingCat = categoryRepository.getAllCategoriesFlow().first()
-                        .find { it.name.equals(detectedName, ignoreCase = true) }
-                    
-                    existingCat?.id ?: categoryRepository.insertCategory(
-                        CategoryEntity(name = detectedName, isVeg = items.all { it.foodType == "veg" })
-                    )
-                } else if (defaultCategoryId != null) {
-                    defaultCategoryId
-                } else {
-                    // No category detected and no default selected? Create a "General" category
-                    val existingGeneral = categoryRepository.getAllCategoriesFlow().first()
-                        .find { it.name.equals("General", ignoreCase = true) }
-                    existingGeneral?.id ?: categoryRepository.insertCategory(CategoryEntity(name = "General", isVeg = true))
+            try {
+                val selectedDrafts = _ocrImportUiState.value.drafts.filter { it.isSelected }
+                if (selectedDrafts.isEmpty()) {
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        _ocrImportUiState.update { it.copy(isProcessing = false, error = "No items selected to add.") }
+                    }
+                    return@launch
                 }
 
-                if (overwrite) {
-                    val existingItems = menuRepository.getItemsByCategoryOnce(targetCategoryId)
-                    existingItems.forEach { menuRepository.deleteItem(it) }
-                }
-
-                val existingAfterClear = if (overwrite) emptyList() else menuRepository.getItemsByCategoryOnce(targetCategoryId)
-                val existingNames = existingAfterClear.map { it.name.lowercase() }.toHashSet()
-
-                for (draft in items) {
-                    if (draft.name.lowercase() !in existingNames) {
-                        val itemId = menuRepository.insertItem(
-                            MenuItemEntity(
-                                categoryId = targetCategoryId,
-                                name = draft.name,
-                                basePrice = draft.price.toString(),
-                                foodType = draft.foodType,
-                                createdAt = System.currentTimeMillis()
-                            )
-                        )
+                // 1. Group items by their detected category names
+                val groupedByDetected = selectedDrafts.groupBy { it.categoryName }
+                
+                var totalAdded = 0
+                
+                // 2. Process each group
+                groupedByDetected.forEach { (detectedName, items) ->
+                    // Determine target category ID
+                    val targetCategoryId: Long = if (detectedName != null) {
+                        // Find or create category by name
+                        val existingCat = categoryRepository.getAllCategoriesFlow().first()
+                            .find { it.name.equals(detectedName, ignoreCase = true) }
                         
-                        if (draft.variants.isNotEmpty()) {
-                            draft.variants.filter { it.isSelected }.forEach { variant ->
-                                menuRepository.insertVariant(
-                                    ItemVariantEntity(
-                                        menuItemId = itemId,
-                                        variantName = variant.name,
-                                        price = variant.price.toString()
-                                    )
+                        existingCat?.id ?: categoryRepository.insertCategory(
+                            CategoryEntity(name = detectedName, isVeg = items.all { it.foodType == "veg" })
+                        )
+                    } else if (defaultCategoryId != null) {
+                        defaultCategoryId
+                    } else {
+                        // No category detected and no default selected? Create a "General" category
+                        val existingGeneral = categoryRepository.getAllCategoriesFlow().first()
+                            .find { it.name.equals("General", ignoreCase = true) }
+                        existingGeneral?.id ?: categoryRepository.insertCategory(CategoryEntity(name = "General", isVeg = true))
+                    }
+
+                    if (overwrite) {
+                        val existingItems = menuRepository.getItemsByCategoryOnce(targetCategoryId)
+                        existingItems.forEach { menuRepository.deleteItem(it) }
+                    }
+
+                    val existingAfterClear = if (overwrite) emptyList() else menuRepository.getItemsByCategoryOnce(targetCategoryId)
+                    val existingNames = existingAfterClear.map { it.name.lowercase() }.toHashSet()
+
+                    for (draft in items) {
+                        if (draft.name.lowercase() !in existingNames) {
+                            val itemId = menuRepository.insertItem(
+                                MenuItemEntity(
+                                    categoryId = targetCategoryId,
+                                    name = draft.name,
+                                    basePrice = draft.price.toString(),
+                                    foodType = draft.foodType,
+                                    createdAt = System.currentTimeMillis()
                                 )
+                            )
+                            
+                            if (draft.variants.isNotEmpty()) {
+                                draft.variants.filter { it.isSelected }.forEach { variant ->
+                                    menuRepository.insertVariant(
+                                        ItemVariantEntity(
+                                            menuItemId = itemId,
+                                            variantName = variant.name,
+                                            price = variant.price.toString()
+                                        )
+                                    )
+                                }
                             }
+                            totalAdded++
                         }
-                        totalAdded++
                     }
                 }
-            }
 
-            withContext(kotlinx.coroutines.Dispatchers.Main) {
-                _ocrImportUiState.update { it.copy(
-                    drafts = emptyList(),
-                    rawText = "",
-                    isProcessing = false,
-                    successMessage = "Successfully added $totalAdded items to your menu!"
-                )}
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    _ocrImportUiState.update { it.copy(
+                        drafts = emptyList(),
+                        rawText = "",
+                        isProcessing = false,
+                        successMessage = "Successfully added $totalAdded items to your menu!"
+                    )}
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MenuViewModel", "Error saving imported menu", e)
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    _ocrImportUiState.update { it.copy(
+                        isProcessing = false, 
+                        error = "Failed to save: ${e.localizedMessage ?: "Unknown error"}"
+                    )}
+                }
             }
         }
     }

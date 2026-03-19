@@ -18,6 +18,25 @@ class CategoryRepository(
         private val workManager: WorkManager
 ) {
     suspend fun insertCategory(category: CategoryEntity): Long {
+        val existing = categoryDao.getCategoryByName(category.name)
+        if (existing != null) {
+            if (existing.isDeleted) {
+                // Undelete
+                val enrichedCategory = existing.copy(
+                    isDeleted = false,
+                    isActive = true,
+                    isVeg = category.isVeg,
+                    isSynced = false,
+                    updatedAt = System.currentTimeMillis()
+                )
+                categoryDao.updateCategory(enrichedCategory)
+                triggerBackgroundSync()
+                return enrichedCategory.id
+            } else {
+                return existing.id
+            }
+        }
+
         val restaurantId = sessionManager.getRestaurantId()
         val deviceId = sessionManager.getDeviceId()
 

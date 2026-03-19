@@ -21,6 +21,9 @@ interface CategoryDao {
     @Query("SELECT * FROM categories WHERE id = :id LIMIT 1")
     suspend fun getCategoryById(id: Long): CategoryEntity?
 
+    @Query("SELECT * FROM categories WHERE name = :name COLLATE NOCASE LIMIT 1")
+    suspend fun getCategoryByName(name: String): CategoryEntity?
+
     @Query("SELECT * FROM categories WHERE is_active = 1 AND is_deleted = 0 ORDER BY sort_order ASC")
     fun getActiveCategoriesFlow(): Flow<List<CategoryEntity>>
 
