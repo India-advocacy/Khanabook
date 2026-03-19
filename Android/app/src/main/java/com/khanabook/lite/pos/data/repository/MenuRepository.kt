@@ -65,12 +65,24 @@ class MenuRepository(
 
     suspend fun updateStock(id: Long, delta: String) {
         val current = menuDao.getItemById(id) ?: return
-        val newStock = java.math.BigDecimal(current.currentStock).add(java.math.BigDecimal(delta)).toString()
+        val newStock = try {
+            java.math.BigDecimal(current.currentStock.ifBlank { "0.0" })
+                .add(java.math.BigDecimal(delta.ifBlank { "0.0" }))
+                .toString()
+        } catch (e: NumberFormatException) {
+            android.util.Log.w("MenuRepository", "Invalid stock value: '${current.currentStock}' or delta: '$delta'", e)
+            "0.0"
+        }
         updateItem(current.copy(currentStock = newStock))
     }
 
     fun getItemsByCategoryFlow(categoryId: Long): Flow<List<MenuItemEntity>> {
         return menuDao.getItemsByCategoryFlow(categoryId)
+    }
+
+    /** One-shot, non-flow fetch – safe to call from any coroutine context. */
+    suspend fun getItemsByCategoryOnce(categoryId: Long): List<MenuItemEntity> {
+        return menuDao.getItemsByCategoryOnce(categoryId)
     }
 
     fun getAllItemsFlow(): Flow<List<MenuItemEntity>> {
@@ -119,7 +131,14 @@ class MenuRepository(
 
     suspend fun updateVariantStock(id: Long, delta: String) {
         val current = menuDao.getVariantById(id) ?: return
-        val newStock = java.math.BigDecimal(current.currentStock).add(java.math.BigDecimal(delta)).toString()
+        val newStock = try {
+            java.math.BigDecimal(current.currentStock.ifBlank { "0.0" })
+                .add(java.math.BigDecimal(delta.ifBlank { "0.0" }))
+                .toString()
+        } catch (e: NumberFormatException) {
+            android.util.Log.w("MenuRepository", "Invalid variant stock: '${current.currentStock}' or delta: '$delta'", e)
+            "0.0"
+        }
         updateVariant(current.copy(currentStock = newStock))
     }
 

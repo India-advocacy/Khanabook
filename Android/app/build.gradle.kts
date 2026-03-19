@@ -34,7 +34,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
-        // ── Meta / WhatsApp / NVIDIA API Config ───────────────────────────────────
+        // ── Meta / WhatsApp API Config ───────────────────────────────────
         val localProperties = Properties()
         val localPropertiesFile = rootProject.file("local.properties")
         if (localPropertiesFile.exists()) {
@@ -45,13 +45,11 @@ android {
         val phoneId = localProperties.getProperty("WHATSAPP_PHONE_NUMBER_ID") ?: ""
         val templateName = localProperties.getProperty("WHATSAPP_OTP_TEMPLATE_NAME") ?: ""
         val backendUrl = localProperties.getProperty("BACKEND_URL") ?: "http://192.168.211.80:8080/"
-        val nvidiaKey = localProperties.getProperty("NVIDIA_API_KEY") ?: ""
 
         buildConfigField("String", "META_ACCESS_TOKEN", "\"$metaToken\"")
         buildConfigField("String", "WHATSAPP_PHONE_NUMBER_ID", "\"$phoneId\"")
         buildConfigField("String", "WHATSAPP_OTP_TEMPLATE_NAME", "\"$templateName\"")
         buildConfigField("String", "BACKEND_URL", "\"$backendUrl\"")
-        buildConfigField("String", "NVIDIA_API_KEY", "\"$nvidiaKey\"")
     }
 
     signingConfigs {

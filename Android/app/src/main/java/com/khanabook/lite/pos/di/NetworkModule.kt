@@ -3,7 +3,6 @@ package com.khanabook.lite.pos.di
 import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.data.remote.WhatsAppApiService
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
-import com.khanabook.lite.pos.data.remote.api.NvidiaNimApiService
 import com.khanabook.lite.pos.data.remote.interceptor.AuthInterceptor
 import com.khanabook.lite.pos.domain.util.NetworkMonitor
 import dagger.Module
@@ -24,7 +23,6 @@ import javax.inject.Singleton
 object NetworkModule {
 
     private const val META_BASE_URL = "https://graph.facebook.com/v17.0/"
-    private const val NVIDIA_BASE_URL = "https://integrate.api.nvidia.com/v1/"
     private const val BACKEND_BASE_URL = BuildConfig.BACKEND_URL
 
     @Provides
@@ -69,35 +67,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    @Named("NvidiaOkHttpClient")
-    fun provideNvidiaOkHttpClient(
-        loggingInterceptor: HttpLoggingInterceptor
-    ): OkHttpClient {
-        return OkHttpClient.Builder()
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
-            .addInterceptor(loggingInterceptor)
-            .build()
-    }
-
-    @Provides
-    @Singleton
     @Named("MetaRetrofit")
     fun provideMetaRetrofit(okHttpClient: OkHttpClient): Retrofit {
         return Retrofit.Builder()
             .baseUrl(META_BASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(okHttpClient)
-            .build()
-    }
-
-    @Provides
-    @Singleton
-    @Named("NvidiaRetrofit")
-    fun provideNvidiaRetrofit(@Named("NvidiaOkHttpClient") okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .baseUrl(NVIDIA_BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .client(okHttpClient)
             .build()
@@ -123,12 +96,6 @@ object NetworkModule {
     @Singleton
     fun provideWhatsAppApiService(@Named("MetaRetrofit") retrofit: Retrofit): WhatsAppApiService {
         return retrofit.create(WhatsAppApiService::class.java)
-    }
-
-    @Provides
-    @Singleton
-    fun provideNvidiaNimApiService(@Named("NvidiaRetrofit") retrofit: Retrofit): NvidiaNimApiService {
-        return retrofit.create(NvidiaNimApiService::class.java)
     }
 
     @Provides

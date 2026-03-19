@@ -34,6 +34,7 @@ class MenuViewModelTest {
         val friedChicken = drafts.find { it.name == "Bismi Fried Chicken" }
         assertTrue("Fried Chicken not found", friedChicken != null)
         assertEquals(380.0, friedChicken!!.price, 0.0)
+        assertEquals("non-veg", friedChicken.foodType)
         assertEquals(2, friedChicken.variants.size)
         assertEquals("Full", friedChicken.variants[0].name)
         assertEquals(380.0, friedChicken.variants[0].price, 0.0)
@@ -64,8 +65,10 @@ class MenuViewModelTest {
             Item Two - 100
         """.trimIndent()
         val drafts = MenuViewModel.parseDraftsFromText(menuText)
-        assertEquals(1, drafts.size)
-        assertEquals("Item Two", drafts[0].name)
-        assertEquals(100.0, drafts[0].price, 0.0)
+        assertEquals(2, drafts.size)
+        assertEquals("Item One", drafts[0].name)
+        assertEquals(0.0, drafts[0].price, 0.0)
+        assertEquals("Item Two", drafts[1].name)
+        assertEquals(100.0, drafts[1].price, 0.0)
     }
 }

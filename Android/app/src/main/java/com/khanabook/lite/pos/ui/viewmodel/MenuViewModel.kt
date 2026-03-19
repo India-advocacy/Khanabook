@@ -12,9 +12,6 @@ import com.khanabook.lite.pos.data.local.entity.CategoryEntity
 import com.khanabook.lite.pos.data.local.entity.ItemVariantEntity
 import com.khanabook.lite.pos.data.local.entity.MenuItemEntity
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
-import com.khanabook.lite.pos.data.remote.api.NvidiaChatRequest
-import com.khanabook.lite.pos.data.remote.api.NvidiaMessage
-import com.khanabook.lite.pos.data.remote.api.NvidiaNimApiService
 import com.khanabook.lite.pos.data.repository.CategoryRepository
 import com.khanabook.lite.pos.data.repository.MenuRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,8 +27,7 @@ import javax.inject.Inject
 @HiltViewModel
 class MenuViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
-    private val menuRepository: MenuRepository,
-    private val nvidiaNimApiService: NvidiaNimApiService
+    private val menuRepository: MenuRepository
 ) : ViewModel() {
 
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategoriesFlow()
@@ -108,6 +104,13 @@ class MenuViewModel @Inject constructor(
         }
     }
 
+    fun clearCategoryItems(categoryId: Long) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val items = menuRepository.getItemsByCategoryOnce(categoryId)
+            items.forEach { menuRepository.deleteItem(it) }
+        }
+    }
+
     fun addVariant(menuItemId: Long, name: String, price: Double) {
         viewModelScope.launch {
             menuRepository.insertVariant(
@@ -134,7 +137,8 @@ class MenuViewModel @Inject constructor(
 
     data class DraftVariant(
         val name: String,
-        val price: Double
+        val price: Double,
+        val isSelected: Boolean = true
     )
 
     data class DraftMenuItem(
@@ -193,6 +197,23 @@ class MenuViewModel @Inject constructor(
         }
     }
 
+    fun moveDraftToCategory(index: Int, newCategory: String?) {
+        val current = _ocrImportUiState.value.drafts.toMutableList()
+        if (index in current.indices) {
+            current[index] = current[index].copy(categoryName = newCategory)
+            _ocrImportUiState.update { it.copy(drafts = current) }
+        }
+    }
+
+    fun reorderDrafts(fromIndex: Int, toIndex: Int) {
+        val current = _ocrImportUiState.value.drafts.toMutableList()
+        if (fromIndex in current.indices && toIndex in current.indices) {
+            val item = current.removeAt(fromIndex)
+            current.add(toIndex, item)
+            _ocrImportUiState.update { it.copy(drafts = current) }
+        }
+    }
+
     fun toggleDraftFoodType(index: Int) {
         val current = _ocrImportUiState.value.drafts.toMutableList()
         if (index in current.indices) {
@@ -208,120 +229,128 @@ class MenuViewModel @Inject constructor(
         }
     }
 
-    fun extractTextFromPdf(context: Context, uri: Uri) {
-        _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Reading PDF...", error = null) }
-        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            try {
-                com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(context.applicationContext)
-                val inputStream = context.contentResolver.openInputStream(uri)
-                    ?: throw Exception("Cannot open file. Check permissions.")
-                inputStream.use { input ->
-                    val document = com.tom_roush.pdfbox.pdmodel.PDDocument.load(input)
-                    val pageCount = document.numberOfPages
-                    val stripper = com.tom_roush.pdfbox.text.PDFTextStripper()
-                    val sb = StringBuilder()
-                    for (page in 1..pageCount) {
-                        stripper.startPage = page
-                        stripper.endPage = page
-                        sb.append(stripper.getText(document))
-                        sb.append("\n")
+    fun processImportFile(context: Context, uri: Uri) {
+        val contentResolver = context.contentResolver
+        val type = contentResolver.getType(uri)
+        
+        val fileName = getFileName(context, uri).lowercase()
+        val isPdf = type == "application/pdf" || fileName.endsWith(".pdf")
+        val isImage = type?.startsWith("image/") == true || 
+                     listOf(".jpg", ".jpeg", ".png", ".webp").any { fileName.endsWith(it) }
+
+        if (isPdf) {
+            extractTextFromPdf(context, uri)
+        } else if (isImage) {
+            viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                try {
+                    val bitmap = uriToBitmap(context, uri)
+                    if (bitmap != null) {
+                        processMenuImage(context, bitmap)
+                    } else {
                         withContext(kotlinx.coroutines.Dispatchers.Main) {
-                            _ocrImportUiState.update { it.copy(
-                                processingLabel = "Reading page $page of $pageCount..."
-                            )}
+                            _ocrImportUiState.update { it.copy(isProcessing = false, error = "Could not load image.") }
                         }
                     }
-                    document.close()
-                    val fullText = sb.toString()
+                } catch (e: Exception) {
                     withContext(kotlinx.coroutines.Dispatchers.Main) {
-                        if (fullText.isBlank()) {
-                            _ocrImportUiState.update { it.copy(
-                                isProcessing = false,
-                                error = "PDF appears to be image-based. Try the camera scan instead."
-                            )}
-                        } else {
-                            submitOcrText(fullText)
+                        _ocrImportUiState.update { it.copy(isProcessing = false, error = "Error loading image: ${e.message}") }
+                    }
+                }
+            }
+        } else {
+            _ocrImportUiState.update { it.copy(isProcessing = false, error = "Unsupported file format. Please use PDF or Image.") }
+        }
+    }
+
+    private fun uriToBitmap(context: Context, uri: Uri): android.graphics.Bitmap? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri)
+            android.graphics.BitmapFactory.decodeStream(inputStream)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    private fun getFileName(context: Context, uri: Uri): String {
+        var name = ""
+        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        cursor?.use {
+            if (it.moveToFirst()) {
+                val index = it.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                if (index != -1) name = it.getString(index)
+            }
+        }
+        return name
+    }
+
+    fun extractTextFromPdf(context: Context, uri: Uri) {
+        _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Analysing PDF...", error = null) }
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val pfd = context.contentResolver.openFileDescriptor(uri, "r")
+                    ?: throw Exception("Cannot open PDF file.")
+                
+                val renderer = android.graphics.pdf.PdfRenderer(pfd)
+                val pageCount = renderer.pageCount
+                val allDrafts = mutableListOf<DraftMenuItem>()
+                val seenNames = mutableSetOf<String>()
+                
+                val recognizer = com.google.mlkit.vision.text.TextRecognition.getClient(
+                    com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
+                )
+
+                for (i in 0 until pageCount) {
+                    withContext(kotlinx.coroutines.Dispatchers.Main) {
+                        _ocrImportUiState.update { it.copy(processingLabel = "Reading page ${i + 1} of $pageCount...") }
+                    }
+
+                    val page = renderer.openPage(i)
+                    // Render at high resolution for better OCR (e.g., 2.5x scale)
+                    val width = (page.width * 2.5).toInt()
+                    val height = (page.height * 2.5).toInt()
+                    val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+                    
+                    // Fill background with white
+                    bitmap.eraseColor(android.graphics.Color.WHITE)
+                    
+                    page.render(bitmap, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    page.close()
+
+                    val image = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)
+                    // Process synchronously in IO thread
+                    val visionText = com.google.android.gms.tasks.Tasks.await(recognizer.process(image))
+                    
+                    val pageDrafts = com.khanabook.lite.pos.domain.util.OcrSpatialParser.parse(visionText)
+                    pageDrafts.forEach { draft ->
+                        if (seenNames.add(draft.name.lowercase())) {
+                            allDrafts.add(draft)
                         }
+                    }
+                    bitmap.recycle()
+                }
+
+                recognizer.close()
+                renderer.close()
+                pfd.close()
+
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    _ocrImportUiState.update { 
+                        it.copy(
+                            drafts = allDrafts,
+                            isProcessing = false,
+                            error = if (allDrafts.isEmpty()) "No items extracted. Please try again." else null
+                        )
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("PDF_EXTRACT", "Error processing PDF", e)
                 withContext(kotlinx.coroutines.Dispatchers.Main) {
                     _ocrImportUiState.update { it.copy(
                         isProcessing = false,
-                        error = "Failed to read PDF: ${e.message?.take(80)}"
+                        error = "Failed to process PDF: ${e.message?.take(80)}"
                     )}
                 }
             }
-        }
-    }
-
-    fun submitOcrText(text: String) {
-        viewModelScope.launch {
-            _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Extracting menu items...", rawText = text) }
-            
-            val drafts = try {
-                if (BuildConfig.NVIDIA_API_KEY.isNotBlank()) {
-                    extractDraftsWithNvidia(text) ?: parseDraftsFromText(text)
-                } else {
-                    parseDraftsFromText(text)
-                }
-            } catch (e: Exception) {
-                parseDraftsFromText(text)
-            }
-            
-            _ocrImportUiState.update { 
-                it.copy(
-                    drafts = drafts,
-                    isProcessing = false,
-                    error = if (drafts.isEmpty()) "No items extracted. Please try again." else null
-                )
-            }
-        }
-    }
-
-    private suspend fun extractDraftsWithNvidia(text: String): List<DraftMenuItem>? {
-        return try {
-            val prompt = """
-                Extract menu items from the following OCR text with 100% accuracy on NAMES and PRICES.
-                Return ONLY a valid JSON array of objects.
-                If an item has multiple prices (e.g., Full/Half), use the "variants" array.
-                Ignore headers, page numbers, and descriptions.
-                
-                Each object must have:
-                - "name": String
-                - "price": Double (The primary or first price found)
-                - "variants": Array of { "name": String, "price": Double } (Optional)
-                
-                Text to process:
-                ${text.take(3000)}
-            """.trimIndent()
-
-            val request = NvidiaChatRequest(
-                messages = listOf(
-                    NvidiaMessage(role = "system", content = "You are a precise menu data extractor. You output ONLY valid JSON. No conversational text."),
-                    NvidiaMessage(role = "user", content = prompt)
-                )
-            )
-
-            val response = nvidiaNimApiService.getChatCompletions(
-                authorization = "Bearer ${BuildConfig.NVIDIA_API_KEY}",
-                request = request
-            )
-
-            val jsonContent = response.choices?.firstOrNull()?.message?.content?.let { content ->
-                val start = content.indexOf("[")
-                val end = content.lastIndexOf("]")
-                if (start != -1 && end != -1) content.substring(start, end + 1) else null
-            }
-
-            if (jsonContent != null) {
-                val itemType = object : TypeToken<List<DraftMenuItem>>() {}.type
-                Gson().fromJson<List<DraftMenuItem>>(jsonContent, itemType)
-            } else null
-        } catch (e: Exception) {
-            Log.e("MenuViewModel", "NVIDIA NIM Extraction failed", e)
-            null
         }
     }
 
@@ -336,14 +365,13 @@ class MenuViewModel @Inject constructor(
 
         recognizer.process(image)
             .addOnSuccessListener { visionText ->
-                val text = visionText.text
-                if (text.isBlank()) {
+                if (visionText.text.isBlank()) {
                     _ocrImportUiState.update { it.copy(
                         isProcessing = false,
                         error = "No text found. Ensure the menu is well-lit and in focus."
                     )}
                 } else {
-                    submitOcrText(text)
+                    processSpatialVisionText(visionText)
                 }
             }
             .addOnFailureListener {
@@ -358,6 +386,23 @@ class MenuViewModel @Inject constructor(
             }
     }
 
+    private fun processSpatialVisionText(visionText: com.google.mlkit.vision.text.Text) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            val drafts = com.khanabook.lite.pos.domain.util.OcrSpatialParser.parse(visionText)
+            
+            withContext(kotlinx.coroutines.Dispatchers.Main) {
+                _ocrImportUiState.update { 
+                    it.copy(
+                        drafts = drafts,
+                        isProcessing = false,
+                        rawText = visionText.text,
+                        error = if (drafts.isEmpty()) "No items extracted. Please try again or use a clearer photo." else null
+                    )
+                }
+            }
+        }
+    }
+
     private fun scaleBitmapIfNeeded(bitmap: android.graphics.Bitmap): android.graphics.Bitmap {
         val maxDim = 2048
         val w = bitmap.width
@@ -369,55 +414,93 @@ class MenuViewModel @Inject constructor(
         )
     }
 
-    fun saveDraftsToCategory(categoryId: Long) {
+    fun saveImportedMenu(defaultCategoryId: Long?, overwrite: Boolean = false) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Saving menu...") }
+            
             val selectedDrafts = _ocrImportUiState.value.drafts.filter { it.isSelected }
+            if (selectedDrafts.isEmpty()) {
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    _ocrImportUiState.update { it.copy(isProcessing = false, error = "No items selected to add.") }
+                }
+                return@launch
+            }
 
-            val existingItems = menuRepository.getItemsByCategoryFlow(categoryId).first()
-            val existingNames = existingItems.map { it.name.lowercase() }.toHashSet()
-
-            var addedCount = 0
-            for (draft in selectedDrafts) {
-                if (draft.name.lowercase() !in existingNames) {
-                    val itemId = menuRepository.insertItem(
-                        MenuItemEntity(
-                            categoryId = categoryId,
-                            name = draft.name,
-                            basePrice = draft.price.toString(),
-                            foodType = draft.foodType,
-                            currentStock = "0.0",
-                            lowStockThreshold = "10.0",
-                            createdAt = System.currentTimeMillis()
-                        )
+            // 1. Group items by their detected category names
+            val groupedByDetected = selectedDrafts.groupBy { it.categoryName }
+            
+            var totalAdded = 0
+            
+            // 2. Process each group
+            groupedByDetected.forEach { (detectedName, items) ->
+                // Determine target category ID
+                val targetCategoryId: Long = if (detectedName != null) {
+                    // Find or create category by name
+                    val existingCat = categoryRepository.getAllCategoriesFlow().first()
+                        .find { it.name.equals(detectedName, ignoreCase = true) }
+                    
+                    existingCat?.id ?: categoryRepository.insertCategory(
+                        CategoryEntity(name = detectedName, isVeg = items.all { it.foodType == "veg" })
                     )
-                    
-                    if (draft.variants.isNotEmpty()) {
-                        draft.variants.forEach { variant ->
-                            menuRepository.insertVariant(
-                                ItemVariantEntity(
-                                    menuItemId = itemId,
-                                    variantName = variant.name,
-                                    price = variant.price.toString(),
-                                    sortOrder = 0,
-                                    currentStock = "0.0",
-                                    lowStockThreshold = "10.0"
-                                )
+                } else if (defaultCategoryId != null) {
+                    defaultCategoryId
+                } else {
+                    // No category detected and no default selected? Create a "General" category
+                    val existingGeneral = categoryRepository.getAllCategoriesFlow().first()
+                        .find { it.name.equals("General", ignoreCase = true) }
+                    existingGeneral?.id ?: categoryRepository.insertCategory(CategoryEntity(name = "General", isVeg = true))
+                }
+
+                if (overwrite) {
+                    val existingItems = menuRepository.getItemsByCategoryOnce(targetCategoryId)
+                    existingItems.forEach { menuRepository.deleteItem(it) }
+                }
+
+                val existingAfterClear = if (overwrite) emptyList() else menuRepository.getItemsByCategoryOnce(targetCategoryId)
+                val existingNames = existingAfterClear.map { it.name.lowercase() }.toHashSet()
+
+                for (draft in items) {
+                    if (draft.name.lowercase() !in existingNames) {
+                        val itemId = menuRepository.insertItem(
+                            MenuItemEntity(
+                                categoryId = targetCategoryId,
+                                name = draft.name,
+                                basePrice = draft.price.toString(),
+                                foodType = draft.foodType,
+                                createdAt = System.currentTimeMillis()
                             )
+                        )
+                        
+                        if (draft.variants.isNotEmpty()) {
+                            draft.variants.filter { it.isSelected }.forEach { variant ->
+                                menuRepository.insertVariant(
+                                    ItemVariantEntity(
+                                        menuItemId = itemId,
+                                        variantName = variant.name,
+                                        price = variant.price.toString()
+                                    )
+                                )
+                            }
                         }
+                        totalAdded++
                     }
-                    
-                    addedCount++
                 }
             }
+
             withContext(kotlinx.coroutines.Dispatchers.Main) {
                 _ocrImportUiState.update { it.copy(
                     drafts = emptyList(),
                     rawText = "",
                     isProcessing = false,
-                    successMessage = "$addedCount item${if (addedCount == 1) "" else "s"} added to menu!"
+                    successMessage = "Successfully added $totalAdded items to your menu!"
                 )}
             }
         }
+    }
+
+    fun saveDraftsToCategory(categoryId: Long, overwrite: Boolean = false) {
+        // Keeping this for backward compatibility if needed elsewhere
+        saveImportedMenu(categoryId, overwrite)
     }
 
     fun clearSuccessMessage() {
@@ -431,7 +514,7 @@ class MenuViewModel @Inject constructor(
         private val headerLineRegex = Regex("""(?i)^(full|half|qty|price|s\.\s*no|veg|non.?veg).*$""")
         private val allCapsHeaderRegex = Regex("""^[A-Z\s\-&]{3,}$""")
         
-        private val leadingBulletRegex = Regex("""^\s*(?:[-*•]+|\d+[.):]?)\s*""")
+        private val leadingBulletRegex = Regex("""^\s*(?:[-*•]+|\d+[.):])\s*""")
         private val trailingSeparatorRegex = Regex("""[\s\-:|.…]+$""")
         private val trailingCurrencyRegex = Regex("""(?i)(?:[\u20B9\u20A8]|rs\.?|inr)\s*$""")
         
@@ -492,9 +575,16 @@ class MenuViewModel @Inject constructor(
         private fun parseDraftLine(line: String, variantHeaders: List<String>): DraftMenuItem? {
             val noBullet = line.replace(leadingBulletRegex, "").trim()
             if (noBullet.isBlank()) return null
+            if (skipLineRegex.matches(noBullet)) return null
 
             val priceMatches = genericPriceRegex.findAll(noBullet).toList()
-            if (priceMatches.isEmpty()) return null // Require a price for local extraction
+            
+            if (priceMatches.isEmpty()) {
+                // If no price found, treat entire line as name with price 0
+                val name = toTitleCase(noBullet.replace(trailingSeparatorRegex, ""))
+                if (name.length < 2) return null
+                return DraftMenuItem(name = name, price = 0.0)
+            }
 
             val firstNamePos = priceMatches.first().range.first
             val lastNamePos = priceMatches.last().range.last
@@ -523,10 +613,16 @@ class MenuViewModel @Inject constructor(
                 DraftVariant(vName, price)
             }
 
+            // Automatic Non-Veg detection
+            val lowerName = name.lowercase()
+            val nonVegKeywords = listOf("chicken", "murg", "mutton", "egg", "anda", "fish", "prawn", "meat", "non-veg", "non veg", "seekh", "kebab", "tikka")
+            val isNonVeg = nonVegKeywords.any { lowerName.contains(it) }
+
             return DraftMenuItem(
                 name = name,
                 price = priceValues.first(),
-                variants = variants
+                variants = variants,
+                foodType = if (isNonVeg) "non-veg" else "veg"
             )
         }
 

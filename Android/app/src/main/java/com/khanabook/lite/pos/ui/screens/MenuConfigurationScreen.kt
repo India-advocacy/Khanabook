@@ -71,16 +71,55 @@ fun MenuConfigurationScreen(
     var showAddItemDialog by remember { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<MenuItemEntity?>(null) }
     var showVariantsFor by remember { mutableStateOf<MenuWithVariants?>(null) }
+    var showImportConfirmDialog by remember { mutableStateOf(false) }
+    var showClearConfirmDialog by remember { mutableStateOf<Long?>(null) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
     val selectedCategoryName = remember(categories, selectedCategoryId) {
         categories.firstOrNull { it.id == selectedCategoryId }?.name
     }
 
-    val pdfPickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    var showImportSourceDialog by remember { mutableStateOf(false) }
+
+    val filePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
     ) { uri: android.net.Uri? ->
-        uri?.let { viewModel.extractTextFromPdf(context, it) }
+        uri?.let { viewModel.processImportFile(context, it) }
+    }
+
+    if (showImportSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showImportSourceDialog = false },
+            containerColor = DarkBrown2,
+            title = { Text("Smart AI Import", color = PrimaryGold) },
+            text = { Text("Choose how you want to import your menu:", color = TextLight) },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        onScanClick(selectedCategoryName)
+                        showImportSourceDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1)
+                ) {
+                    Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Camera Scan")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { 
+                        filePickerLauncher.launch(arrayOf("application/pdf", "image/*"))
+                        showImportSourceDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1)
+                ) {
+                    Icon(Icons.Default.UploadFile, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Upload File")
+                }
+            }
+        )
     }
 
     Box(
@@ -100,7 +139,7 @@ fun MenuConfigurationScreen(
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PrimaryGold)
                 }
                 Text(
-                    if (configMode == null) "Menu Configuration" else if (configMode == "manual") "Manual Configuration" else "Scan/Upload Menu",
+                    if (configMode == null) "Menu Configuration" else if (configMode == "manual") "Manual Configuration" else "Smart AI Import",
                     modifier = Modifier.weight(1f),
                     color = PrimaryGold,
                     fontSize = 20.sp,
@@ -121,8 +160,7 @@ fun MenuConfigurationScreen(
                 ModeSelectionView(
                     selectedCategoryName = selectedCategoryName,
                     onManualClick = { viewModel.setConfigMode("manual") },
-                    onScanClick = { viewModel.setConfigMode("scan") },
-                    onPdfClick = { pdfPickerLauncher.launch("application/pdf") }
+                    onSmartImportClick = { showImportSourceDialog = true }
                 )
             } else {
                 
@@ -135,10 +173,11 @@ fun MenuConfigurationScreen(
                     addOnsCount = addOnsCount,
                     viewModel = viewModel,
                     onScanClick = { onScanClick(selectedCategoryName) },
-                    onPdfClick = { pdfPickerLauncher.launch("application/pdf") },
+                    onPdfClick = { filePickerLauncher.launch(arrayOf("application/pdf", "image/*")) },
                     showScanOption = configMode == "scan",
                     onAddCategory = { showAddCategoryDialog = true },
                     onAddItem = { showAddItemDialog = true },
+                    onClearItems = { id -> showClearConfirmDialog = id },
                     onEditItem = { editingItem = it },
                     onShowVariants = { showVariantsFor = it },
                     onDeleteCategory = { cat ->
@@ -149,8 +188,7 @@ fun MenuConfigurationScreen(
                         viewModel.deleteItem(item)
                         android.widget.Toast.makeText(context, "\"${item.name}\" deleted", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                )
-            }
+                )            }
         }
 
         if (showAddCategoryDialog) {
@@ -168,8 +206,13 @@ fun MenuConfigurationScreen(
             ItemDialog(
                 onDismiss = { showAddItemDialog = false },
                 onConfirm = { name, price, foodType ->
-                    selectedCategoryId?.let { viewModel.addItem(it, name, price, foodType) }
-                    android.widget.Toast.makeText(context, "\"$name\" added to menu", android.widget.Toast.LENGTH_SHORT).show()
+                    val catId = selectedCategoryId
+                    if (catId != null) {
+                        viewModel.addItem(catId, name, price, foodType)
+                        android.widget.Toast.makeText(context, "\"$name\" added to menu", android.widget.Toast.LENGTH_SHORT).show()
+                    } else {
+                        android.widget.Toast.makeText(context, "Please select a category first", android.widget.Toast.LENGTH_SHORT).show()
+                    }
                     showAddItemDialog = false
                 }
             )
@@ -229,20 +272,77 @@ fun MenuConfigurationScreen(
             }
         }
 
-        if (scannedDrafts.isNotEmpty()) {
-            ReviewScannedItemsSheet(
-                drafts = scannedDrafts,
-                onDismiss = { viewModel.clearDrafts() },
-                onConfirm = {
-                    selectedCategoryId?.let { viewModel.saveDraftsToCategory(it) }
-                },
-                onUpdateDraft = { index, updated -> viewModel.updateDraft(index, updated) },
-                onToggleSelection = { index -> viewModel.toggleDraftSelection(index) },
-                onToggleFoodType = { index -> viewModel.toggleDraftFoodType(index) },
-                onSelectAll = { viewModel.selectAllDrafts(true) },
-                onDeselectAll = { viewModel.selectAllDrafts(false) }
-            )
-        }
+    if (showClearConfirmDialog != null) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmDialog = null },
+            containerColor = DarkBrown2,
+            title = { Text("Clear Category?", color = NonVegRed) },
+            text = { Text("This will permanently delete ALL items in \"$selectedCategoryName\". Are you sure?", color = TextLight) },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        showClearConfirmDialog?.let { viewModel.clearCategoryItems(it) }
+                        showClearConfirmDialog = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NonVegRed, contentColor = Color.White)
+                ) { Text("Delete All") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmDialog = null }) { Text("Cancel", color = PrimaryGold) }
+            }
+        )
+    }
+
+    if (showImportConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showImportConfirmDialog = false },
+            containerColor = DarkBrown2,
+            title = { Text("Import Options", color = PrimaryGold) },
+            text = { 
+                Text(
+                    "You are importing items into \"${selectedCategoryName ?: "selected category"}\". Would you like to add them to your existing menu or completely overwrite it?",
+                    color = TextLight
+                ) 
+            },
+            confirmButton = {
+                Button(
+                    onClick = { 
+                        viewModel.saveImportedMenu(selectedCategoryId, overwrite = true)
+                        showImportConfirmDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NonVegRed, contentColor = Color.White)
+                ) {
+                    Text("Overwrite Existing")
+                }
+            },
+            dismissButton = {
+                Button(
+                    onClick = { 
+                        viewModel.saveImportedMenu(selectedCategoryId, overwrite = false)
+                        showImportConfirmDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1)
+                ) {
+                    Text("Add New Items")
+                }
+            }
+        )
+    }
+
+    if (scannedDrafts.isNotEmpty()) {
+        ReviewScannedItemsSheet(
+            drafts = scannedDrafts,
+            onDismiss = { viewModel.clearDrafts() },
+            onConfirm = {
+                showImportConfirmDialog = true
+            },
+            onUpdateDraft = { index, updated -> viewModel.updateDraft(index, updated) },
+            onToggleSelection = { index -> viewModel.toggleDraftSelection(index) },
+            onToggleFoodType = { index -> viewModel.toggleDraftFoodType(index) },
+            onSelectAll = { viewModel.selectAllDrafts(true) },
+            onDeselectAll = { viewModel.selectAllDrafts(false) }
+        )
+    }
 
         LaunchedEffect(ocrState.successMessage) {
             ocrState.successMessage?.let {
@@ -333,7 +433,7 @@ fun ReviewScannedItemsSheet(
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                     .background(DarkBrown1)
             ) {
-                
+
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
                     contentAlignment = Alignment.Center
@@ -346,7 +446,7 @@ fun ReviewScannedItemsSheet(
                     )
                 }
 
-                
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -373,7 +473,7 @@ fun ReviewScannedItemsSheet(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                
+
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -385,183 +485,287 @@ fun ReviewScannedItemsSheet(
                     Text("Price", color = TextGold.copy(alpha = 0.6f), fontSize = 11.sp, textAlign = TextAlign.Center, modifier = Modifier.width(64.dp))
                 }
 
-                
+
                 LazyColumn(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    itemsIndexed(drafts) { index, draft ->
-                        val bgColor by animateColorAsState(
-                            targetValue = if (draft.isSelected) DarkBrown2 else Color.Transparent,
-                            animationSpec = tween(200),
-                            label = "item_bg"
-                        )
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(bgColor)
-                                .border(
-                                    width = 0.5.dp,
-                                    color = if (draft.isSelected) BorderGold else BorderGold.copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                                .clickable { onToggleSelection(index) }
-                                .padding(horizontal = 12.dp, vertical = 10.dp)
-                        ) {
+                    val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
+                    
+                    groupedDrafts.forEach { (categoryName, indexedItems) ->
+                        val allInCategorySelected = indexedItems.all { it.value.isSelected }
+                        
+                        // Category Header with Selection
+                        item(key = "header_$categoryName") {
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                
                                 Box(
                                     modifier = Modifier
-                                        .size(24.dp)
-                                        .clip(RoundedCornerShape(6.dp))
+                                        .size(20.dp)
+                                        .clip(RoundedCornerShape(5.dp))
                                         .background(
-                                            if (draft.isSelected) PrimaryGold else Color.Transparent
+                                            if (allInCategorySelected) PrimaryGold else Color.Transparent
                                         )
                                         .border(
                                             1.5.dp,
-                                            if (draft.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
-                                            RoundedCornerShape(6.dp)
-                                        ),
+                                            if (allInCategorySelected) PrimaryGold else TextGold.copy(alpha = 0.5f),
+                                            RoundedCornerShape(5.dp)
+                                        )
+                                        .clickable { 
+                                            val targetSelection = !allInCategorySelected
+                                            indexedItems.forEach { indexed ->
+                                                if (indexed.value.isSelected != targetSelection) {
+                                                    onToggleSelection(indexed.index)
+                                                }
+                                            }
+                                        },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    if (draft.isSelected) {
+                                    if (allInCategorySelected) {
                                         Icon(
                                             Icons.Default.Check,
                                             contentDescription = null,
                                             tint = DarkBrown1,
-                                            modifier = Modifier.size(14.dp)
+                                            modifier = Modifier.size(12.dp)
                                         )
                                     }
                                 }
-
+                                
                                 Spacer(modifier = Modifier.width(12.dp))
-
                                 
-                                Column(modifier = Modifier.weight(1f)) {
-                                    BasicTextField(
-                                        value = draft.name,
-                                        onValueChange = { onUpdateDraft(index, draft.copy(name = it)) },
-                                        textStyle = TextStyle(
-                                            color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
-                                        ),
-                                        cursorBrush = SolidColor(PrimaryGold)
+                                Text(
+                                    categoryName.uppercase(),
+                                    color = PrimaryGold,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        items(indexedItems.size) { i ->
+                            val index = indexedItems[i].index
+                            val draft = indexedItems[i].value
+                            val bgColor by animateColorAsState(
+                                targetValue = if (draft.isSelected) DarkBrown2 else Color.Transparent,
+                                animationSpec = tween(200),
+                                label = "item_bg"
+                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(bgColor)
+                                    .border(
+                                        width = 0.5.dp,
+                                        color = if (draft.isSelected) BorderGold else BorderGold.copy(alpha = 0.15f),
+                                        shape = RoundedCornerShape(10.dp)
                                     )
-                                    if (!draft.categoryName.isNullOrBlank()) {
-                                        Text(
-                                            draft.categoryName,
-                                            color = PrimaryGold.copy(alpha = 0.6f),
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                
-                                if (draft.variants.size <= 1) {
-                                    Row(
+                                    .clickable { onToggleSelection(index) }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    
+                                    Box(
                                         modifier = Modifier
-                                            .width(72.dp)
-                                            .background(DarkBrown1.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                            .padding(horizontal = 6.dp, vertical = 4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                            .size(24.dp)
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(
+                                                if (draft.isSelected) PrimaryGold else Color.Transparent
+                                            )
+                                            .border(
+                                                1.5.dp,
+                                                if (draft.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
+                                                RoundedCornerShape(6.dp)
+                                            ),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text("₹", color = PrimaryGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        if (draft.isSelected) {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = DarkBrown1,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    
+                                    // Item Name and Category
+                                    Column(modifier = Modifier.weight(1f)) {
                                         BasicTextField(
-                                            value = if (draft.price == 0.0) "" else draft.price.toInt().toString(),
-                                            onValueChange = { raw ->
-                                                val p = raw.toDoubleOrNull() ?: 0.0
-                                                onUpdateDraft(index, draft.copy(price = p))
-                                            },
+                                            value = draft.name,
+                                            onValueChange = { onUpdateDraft(index, draft.copy(name = it)) },
                                             textStyle = TextStyle(
                                                 color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
-                                                fontSize = 12.sp,
-                                                textAlign = TextAlign.End
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                textDecoration = if (!draft.isSelected) TextDecoration.LineThrough else null
                                             ),
-                                            cursorBrush = SolidColor(PrimaryGold),
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            modifier = Modifier.weight(1f)
+                                            cursorBrush = SolidColor(PrimaryGold)
+                                        )
+                                        
+                                        // Edit Category inline
+                                        BasicTextField(
+                                            value = draft.categoryName ?: "",
+                                            onValueChange = { onUpdateDraft(index, draft.copy(categoryName = it.ifBlank { null })) },
+                                            textStyle = TextStyle(
+                                                color = PrimaryGold.copy(alpha = 0.7f),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Medium
+                                            ),
+                                            decorationBox = { innerTextField ->
+                                                if (draft.categoryName.isNullOrBlank()) {
+                                                    Text("Tap to set category", color = PrimaryGold.copy(alpha = 0.3f), fontSize = 10.sp)
+                                                }
+                                                innerTextField()
+                                            },
+                                            cursorBrush = SolidColor(PrimaryGold)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    
+                                    if (draft.variants.size <= 1) {
+                                        Row(
+                                            modifier = Modifier
+                                                .width(72.dp)
+                                                .background(DarkBrown1.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                                .padding(horizontal = 6.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("₹", color = PrimaryGold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            BasicTextField(
+                                                value = if (draft.price == 0.0) "" else draft.price.toInt().toString(),
+                                                onValueChange = { raw ->
+                                                    val p = raw.toDoubleOrNull() ?: 0.0
+                                                    onUpdateDraft(index, draft.copy(price = p))
+                                                },
+                                                textStyle = TextStyle(
+                                                    color = if (draft.isSelected) TextLight else TextLight.copy(alpha = 0.4f),
+                                                    fontSize = 12.sp,
+                                                    textAlign = TextAlign.End
+                                                ),
+                                                cursorBrush = SolidColor(PrimaryGold),
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                    
+                                    IconButton(
+                                        onClick = { onToggleFoodType(index) },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Circle,
+                                            contentDescription = null,
+                                            tint = if (draft.foodType == "veg") Color(0xFF4CAF50) else Color(0xFFE53935),
+                                            modifier = Modifier.size(12.dp).border(1.dp, Color.White, CircleShape)
                                         )
                                     }
                                 }
-                                
-                                IconButton(
-                                    onClick = { onToggleFoodType(index) },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Circle,
-                                        contentDescription = null,
-                                        tint = if (draft.foodType == "veg") Color(0xFF4CAF50) else Color(0xFFE53935),
-                                        modifier = Modifier.size(12.dp).border(1.dp, Color.White, CircleShape)
-                                    )
-                                }
-                            }
 
-                            
-                            if (draft.variants.size > 1) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(start = 36.dp, top = 8.dp, end = 24.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    draft.variants.forEachIndexed { vIndex, variant ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            BasicTextField(
-                                                value = variant.name,
-                                                onValueChange = { newName ->
-                                                    val newVariants = draft.variants.toMutableList()
-                                                    newVariants[vIndex] = variant.copy(name = newName)
-                                                    onUpdateDraft(index, draft.copy(variants = newVariants))
-                                                },
-                                                textStyle = TextStyle(
-                                                    color = TextGold.copy(alpha = 0.8f),
-                                                    fontSize = 12.sp
-                                                ),
-                                                cursorBrush = SolidColor(PrimaryGold),
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                            
+                                
+                                if (draft.variants.size > 1) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(start = 36.dp, top = 8.dp, end = 24.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        draft.variants.forEachIndexed { vIndex, variant ->
                                             Row(
-                                                modifier = Modifier
-                                                    .width(64.dp)
-                                                    .background(DarkBrown1.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                                                modifier = Modifier.fillMaxWidth(),
                                                 verticalAlignment = Alignment.CenterVertically
                                             ) {
-                                                Text("₹", color = PrimaryGold, fontSize = 11.sp)
+                                                // Variant Selection Checkbox
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(18.dp)
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(
+                                                            if (variant.isSelected) PrimaryGold.copy(alpha = 0.8f) else Color.Transparent
+                                                        )
+                                                        .border(
+                                                            1.dp,
+                                                            if (variant.isSelected) PrimaryGold else TextGold.copy(alpha = 0.4f),
+                                                            RoundedCornerShape(4.dp)
+                                                        )
+                                                        .clickable { 
+                                                            val newVariants = draft.variants.toMutableList()
+                                                            newVariants[vIndex] = variant.copy(isSelected = !variant.isSelected)
+                                                            onUpdateDraft(index, draft.copy(variants = newVariants))
+                                                        },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    if (variant.isSelected) {
+                                                        Icon(
+                                                            Icons.Default.Check,
+                                                            contentDescription = null,
+                                                            tint = DarkBrown1,
+                                                            modifier = Modifier.size(12.dp)
+                                                        )
+                                                    }
+                                                }
+
+                                                Spacer(modifier = Modifier.width(10.dp))
+
                                                 BasicTextField(
-                                                    value = if (variant.price == 0.0) "" else variant.price.toInt().toString(),
-                                                    onValueChange = { raw ->
-                                                        val p = raw.toDoubleOrNull() ?: 0.0
+                                                    value = variant.name,
+                                                    onValueChange = { newName ->
                                                         val newVariants = draft.variants.toMutableList()
-                                                        newVariants[vIndex] = variant.copy(price = p)
+                                                        newVariants[vIndex] = variant.copy(name = newName)
                                                         onUpdateDraft(index, draft.copy(variants = newVariants))
                                                     },
                                                     textStyle = TextStyle(
-                                                        color = TextLight.copy(alpha = 0.9f),
-                                                        fontSize = 11.sp,
-                                                        textAlign = TextAlign.End
+                                                        color = if (variant.isSelected) TextGold.copy(alpha = 0.8f) else TextGold.copy(alpha = 0.3f),
+                                                        fontSize = 12.sp,
+                                                        textDecoration = if (!variant.isSelected) TextDecoration.LineThrough else null
                                                     ),
                                                     cursorBrush = SolidColor(PrimaryGold),
-                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                                     modifier = Modifier.weight(1f)
                                                 )
+                                                
+                                                Row(
+                                                    modifier = Modifier
+                                                        .width(64.dp)
+                                                        .background(DarkBrown1.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                                        .padding(horizontal = 4.dp, vertical = 2.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text("₹", color = if (variant.isSelected) PrimaryGold else PrimaryGold.copy(alpha = 0.3f), fontSize = 11.sp)
+                                                    BasicTextField(
+                                                        value = if (variant.price == 0.0) "" else variant.price.toInt().toString(),
+                                                        onValueChange = { raw ->
+                                                            val p = raw.toDoubleOrNull() ?: 0.0
+                                                            val newVariants = draft.variants.toMutableList()
+                                                            newVariants[vIndex] = variant.copy(price = p)
+                                                            onUpdateDraft(index, draft.copy(variants = newVariants))
+                                                        },
+                                                        textStyle = TextStyle(
+                                                            color = if (variant.isSelected) TextLight.copy(alpha = 0.9f) else TextLight.copy(alpha = 0.3f),
+                                                            fontSize = 11.sp,
+                                                            textAlign = TextAlign.End
+                                                        ),
+                                                        cursorBrush = SolidColor(PrimaryGold),
+                                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                        modifier = Modifier.weight(1f)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -569,10 +773,9 @@ fun ReviewScannedItemsSheet(
                             }
                         }
                     }
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
 
-                
+
                 Surface(
                     color = DarkBrown2,
                     border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f)),
@@ -606,7 +809,7 @@ fun ReviewScannedItemsSheet(
                             ),
                             modifier = Modifier.weight(2f)
                         ) {
-                            Icon(Icons.Default.PlaylistAddCheck, null, modifier = Modifier.size(18.dp))
+                            Icon(Icons.AutoMirrored.Filled.PlaylistAddCheck, null, modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(
                                 "Add $selectedCount Item${if (selectedCount == 1) "" else "s"} to Menu",
@@ -624,8 +827,7 @@ fun ReviewScannedItemsSheet(
 fun ModeSelectionView(
     selectedCategoryName: String?,
     onManualClick: () -> Unit,
-    onScanClick: () -> Unit,
-    onPdfClick: () -> Unit
+    onSmartImportClick: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -683,25 +885,13 @@ fun ModeSelectionView(
 
         
         ModeCard(
-            title = "Scan Menu Photo",
-            subtitle = "AI reads your printed/digital menu",
-            description = "Point camera at a menu card, English works best.",
-            icon = Icons.Default.CameraAlt,
+            title = "Smart AI Import",
+            subtitle = "Scan or Upload your menu",
+            description = "Import automatically from a photo (camera) or file (PDF/Image).",
+            icon = Icons.Default.AutoFixHigh,
             iconBg = Color(0xFF6A1B9A),
             badge = "AI",
-            onClick = onScanClick
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        
-        ModeCard(
-            title = "Upload PDF Menu",
-            subtitle = "Import directly from a PDF file",
-            description = "Works with text-based PDFs (not scanned images).",
-            icon = Icons.Default.PictureAsPdf,
-            iconBg = Color(0xFFB71C1C),
-            onClick = onPdfClick
+            onClick = onSmartImportClick
         )
     }
 }
@@ -790,6 +980,7 @@ fun MenuConfigurationContent(
     showScanOption: Boolean,
     onAddCategory: () -> Unit,
     onAddItem: () -> Unit,
+    onClearItems: (Long) -> Unit,
     onEditItem: (MenuItemEntity) -> Unit,
     onShowVariants: (MenuWithVariants) -> Unit,
     onDeleteCategory: (CategoryEntity) -> Unit,
@@ -884,6 +1075,15 @@ fun MenuConfigurationContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("ITEM (${menuItems.size})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                        if (menuItems.isNotEmpty() && selectedCategoryId != null) {
+                            Text(
+                                "DELETE ALL", 
+                                fontSize = 10.sp, 
+                                fontWeight = FontWeight.Bold, 
+                                color = Color.Red.copy(alpha = 0.7f), 
+                                modifier = Modifier.clickable { onClearItems(selectedCategoryId) }
+                            )
+                        }
                     }
 
                     Box(modifier = Modifier.fillMaxSize()) {

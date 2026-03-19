@@ -36,6 +36,9 @@ interface MenuDao {
     @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND is_deleted = 0 ORDER BY name ASC")
     fun getItemsByCategoryFlow(categoryId: Long): Flow<List<MenuItemEntity>>
 
+    @Query("SELECT * FROM menu_items WHERE category_id = :categoryId AND is_deleted = 0 ORDER BY name ASC")
+    suspend fun getItemsByCategoryOnce(categoryId: Long): List<MenuItemEntity>
+
     @Query("SELECT * FROM menu_items WHERE is_deleted = 0 AND (name LIKE :query OR category_id IN (SELECT id FROM categories WHERE name LIKE :query AND is_deleted = 0))")
     fun searchItems(query: String): Flow<List<MenuItemEntity>>
 
