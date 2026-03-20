@@ -8,6 +8,7 @@ import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +30,7 @@ class LogoutViewModel @Inject constructor(
     private val syncManager: SyncManager,
     private val userRepository: UserRepository
 ) : ViewModel() {
+    private val debugTag = "KhanaBookDebugAuth"
 
     private val _logoutState = MutableStateFlow<LogoutState>(LogoutState.Idle)
     val logoutState: StateFlow<LogoutState> = _logoutState.asStateFlow()
@@ -71,10 +73,12 @@ class LogoutViewModel @Inject constructor(
 
     private fun performHardLogout() {
         viewModelScope.launch {
+            Log.d(debugTag, "performHardLogout: starting clearSession + clearing DB")
             sessionManager.clearSession()
             
             appDatabase.clearAllTables()
             userRepository.setCurrentUser(null)
+            Log.d(debugTag, "performHardLogout: completed clearSession + cleared DB")
             _logoutState.value = LogoutState.LoggedOut
         }
     }

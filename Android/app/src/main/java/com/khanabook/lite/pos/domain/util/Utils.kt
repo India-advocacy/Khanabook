@@ -90,12 +90,25 @@ fun shareBillAsPdf(context: Context, billWithItems: BillWithItems, profile: Rest
         )
 
         val phone = billWithItems.bill.customerWhatsapp
-        val formattedPhone = phone
+        var formattedPhone = phone?.replace(Regex("[^0-9]"), "")
+        if (formattedPhone != null && formattedPhone.length == 10) {
+            formattedPhone = "91$formattedPhone"
+        }
 
         if (formattedPhone != null) {
+            try {
+                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                val clip = android.content.ClipData.newPlainText("Customer WhatsApp", formattedPhone)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(context, "Number copied! If chat doesn't open, paste it in WhatsApp search.", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                // Ignore clipboard errors
+            }
+
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
                 putExtra(Intent.EXTRA_STREAM, pdfUri)
+                putExtra(Intent.EXTRA_TEXT, "Invoice from ${profile?.shopName ?: "KhanaBook"}")
                 putExtra("jid", "$formattedPhone@s.whatsapp.net")
                 `package` = "com.whatsapp"
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

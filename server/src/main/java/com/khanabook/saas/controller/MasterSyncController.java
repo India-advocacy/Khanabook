@@ -1,5 +1,6 @@
 package com.khanabook.saas.controller;
 
+import com.khanabook.saas.debug.DebugNDJSONLogger;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -46,6 +47,39 @@ public class MasterSyncController {
 		response.setBills(billService.pullData(tenantId, lastSyncTimestamp, deviceId));
 		response.setBillItems(billItemService.pullData(tenantId, lastSyncTimestamp, deviceId));
 		response.setBillPayments(billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId));
+
+		int profilesCount = response.getProfiles() == null ? 0 : response.getProfiles().size();
+		int usersCount = response.getUsers() == null ? 0 : response.getUsers().size();
+		int categoriesCount = response.getCategories() == null ? 0 : response.getCategories().size();
+		int menuItemsCount = response.getMenuItems() == null ? 0 : response.getMenuItems().size();
+		int itemVariantsCount = response.getItemVariants() == null ? 0 : response.getItemVariants().size();
+		int stockLogsCount = response.getStockLogs() == null ? 0 : response.getStockLogs().size();
+		int billsCount = response.getBills() == null ? 0 : response.getBills().size();
+		int billItemsCount = response.getBillItems() == null ? 0 : response.getBillItems().size();
+		int billPaymentsCount = response.getBillPayments() == null ? 0 : response.getBillPayments().size();
+
+		java.util.Map<String, Object> debugData = new java.util.HashMap<>();
+		debugData.put("tenantIdPresent", tenantId != null);
+		debugData.put("tenantId", tenantId == null ? -1L : tenantId);
+		debugData.put("lastSyncTimestamp", lastSyncTimestamp == null ? -1L : lastSyncTimestamp);
+		debugData.put("deviceId", deviceId);
+		debugData.put("profilesCount", profilesCount);
+		debugData.put("usersCount", usersCount);
+		debugData.put("categoriesCount", categoriesCount);
+		debugData.put("menuItemsCount", menuItemsCount);
+		debugData.put("itemVariantsCount", itemVariantsCount);
+		debugData.put("stockLogsCount", stockLogsCount);
+		debugData.put("billsCount", billsCount);
+		debugData.put("billItemsCount", billItemsCount);
+		debugData.put("billPaymentsCount", billPaymentsCount);
+
+		DebugNDJSONLogger.log(
+				"pre-debug",
+				"H3_SYNC_RETURNS_EMPTY_OR_WRONG_TENANT",
+				"MasterSyncController:pullMasterSync",
+				"Master sync pull computed payload sizes",
+				debugData
+		);
 
 		return ResponseEntity.ok(response);
 	}

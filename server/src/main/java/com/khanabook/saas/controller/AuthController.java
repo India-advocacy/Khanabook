@@ -1,5 +1,6 @@
 package com.khanabook.saas.controller;
 
+import com.khanabook.saas.debug.DebugNDJSONLogger;
 import com.khanabook.saas.service.AuthService;
 import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.Valid;
@@ -22,26 +23,75 @@ public class AuthController {
 
 	@PostMapping("/login")
 	public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+		DebugNDJSONLogger.log(
+				"pre-debug",
+				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
+				"AuthController:login",
+				"Auth login endpoint called",
+				java.util.Map.of(
+						"deviceIdPresent", request.getDeviceId() != null,
+						"phoneNumberProvided", request.getPhoneNumber() != null,
+						"phoneNumberLen", request.getPhoneNumber() == null ? -1 : request.getPhoneNumber().length()
+				)
+		);
 		return ResponseEntity.ok(authService.login(request));
 	}
 
 	@PostMapping("/signup")
 	public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest request) {
+		DebugNDJSONLogger.log(
+				"pre-debug",
+				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
+				"AuthController:signup",
+				"Auth signup endpoint called",
+				java.util.Map.of(
+						"deviceIdPresent", request.getDeviceId() != null,
+						"phoneNumberProvided", request.getPhoneNumber() != null,
+						"phoneNumberLen", request.getPhoneNumber() == null ? -1 : request.getPhoneNumber().length()
+				)
+		);
 		return ResponseEntity.ok(authService.signup(request));
 	}
 
 	@PostMapping("/google")
 	public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
+		DebugNDJSONLogger.log(
+				"pre-debug",
+				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
+				"AuthController:google",
+				"Auth google endpoint called",
+				java.util.Map.of(
+						"deviceIdPresent", request.getDeviceId() != null
+				)
+		);
 		return ResponseEntity.ok(authService.googleLogin(request));
 	}
 
 	@GetMapping("/check-user")
 	public ResponseEntity<Boolean> checkUser(@RequestParam String phoneNumber) {
+		DebugNDJSONLogger.log(
+				"pre-debug",
+				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
+				"AuthController:check-user",
+				"Auth check-user endpoint called",
+				java.util.Map.of(
+						"phoneNumberLen", phoneNumber == null ? -1 : phoneNumber.length()
+				)
+		);
 		return ResponseEntity.ok(authService.checkUserExists(phoneNumber));
 	}
 
 	@PostMapping("/reset-password")
 	public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+		DebugNDJSONLogger.log(
+				"pre-debug",
+				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
+				"AuthController:reset-password",
+				"Auth reset-password endpoint called",
+				java.util.Map.of(
+						"phoneNumberLen", request.getPhoneNumber() == null ? -1 : request.getPhoneNumber().length()
+				)
+		);
 		authService.resetPassword(request.getPhoneNumber(), request.getNewPassword());
 		return ResponseEntity.ok().build();
 	}

@@ -1,11 +1,13 @@
 package com.khanabook.lite.pos.domain.util
 
+import android.util.Log
 import com.google.mlkit.vision.text.Text
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel.DraftMenuItem
 import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel.DraftVariant
 import java.util.regex.Pattern
 
 object OcrSpatialParser {
+    private const val TAG = "OCR_PARSER_DEBUG"
 
     private val priceRegex = Pattern.compile("""(?:[\u20B9\u20A8]|rs\.?|inr)?\s*((?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d{1,2})?)(?:\s*/-)?""", Pattern.CASE_INSENSITIVE)
     private val weightRegex = Regex("""(?i)\d+\s*(g|kg|ml|ltr|pcs|lb|oz)\b""")
@@ -17,6 +19,8 @@ object OcrSpatialParser {
     fun parse(visionText: Text): List<DraftMenuItem> {
         val lines = visionText.textBlocks.flatMap { it.lines }
         if (lines.isEmpty()) return emptyList()
+
+        Log.d(TAG, "parse start: lines=${lines.size} blocks=${visionText.textBlocks.size}")
 
         // 1. Sort lines by Y-coordinate
         val sortedLines = lines.sortedBy { it.boundingBox?.top ?: 0 }
@@ -58,6 +62,8 @@ object OcrSpatialParser {
         val variantHeaderKeywords = listOf("full", "half", "qty", "price", "size", "large", "medium", "small", "regular", "portion", "plate")
         val itemKeywords = listOf("biriyani", "chicken", "murg", "mutton", "egg", "anda", "fish", "prawn", "meat", "seekh", "kebab", "tikka", "paneer", "mashroom", "veg", "aloo", "gobi", "dal", "roti", "naan", "paratha")
 
+        val maxRowsToLog = 25
+        var rowIdx = 0
         for (row in rows) {
             try {
                 val sortedRow = row.sortedBy { it.boundingBox?.left ?: 0 }
@@ -65,6 +71,13 @@ object OcrSpatialParser {
                 val lower = rowText.lowercase()
 
                 val priceInfos = findPricesWithCoordinates(row)
+
+                if (rowIdx < maxRowsToLog) {
+                    Log.d(
+                        TAG,
+                        "row[$rowIdx] text='${rowText.take(180)}' currentCategory=$currentCategory priceInfos=${priceInfos.size} headers=${currentHeaders.size}"
+                    )
+                }
                 
                 if (priceInfos.isEmpty()) {
                     // Category/Header detection
@@ -92,6 +105,12 @@ object OcrSpatialParser {
                             if (catPart.isNotEmpty() && (catPart.uppercase() == catPart || !catPart.any { it.isDigit() })) {
                                 currentCategory = toTitleCase(catPart)
                             }
+                            if (rowIdx < maxRowsToLog) {
+                                Log.d(
+                                    TAG,
+                                    "row[$rowIdx] header detected: headers=${currentHeaders.map { it.name }} categoryNow=$currentCategory"
+                                )
+                            }
                             continue
                         }
                     }
@@ -103,7 +122,14 @@ object OcrSpatialParser {
                         if (rowText.length > 2 && (rowText == rowText.uppercase() || !rowText.any { it.isDigit() })) {
                             if (!isItemLike || currentCategory == null || rowText == rowText.uppercase()) {
                                 currentCategory = toTitleCase(rowText)
-                                if (variantHeaderKeywords.none { lower.contains(it) }) currentHeaders.clear()
+                                val clearing = variantHeaderKeywords.none { lower.contains(it) }
+                                if (clearing) currentHeaders.clear()
+                                if (rowIdx < maxRowsToLog) {
+                                    Log.d(
+                                        TAG,
+                                        "row[$rowIdx] category detected: categoryNow=$currentCategory clearedHeaders=$clearing"
+                                    )
+                                }
                             }
                         }
                     }
@@ -138,6 +164,13 @@ object OcrSpatialParser {
                     DraftVariant(vLabel, price.value)
                 }
 
+                if (rowIdx < maxRowsToLog) {
+                    Log.d(
+                        TAG,
+                        "row[$rowIdx] item: name='${correctedName.take(120)}' categoryNow=$currentCategory priceInfos=${priceInfos.size} headers=${currentHeaders.size} variantLabels=${variants.map { it.name }}"
+                    )
+                }
+
                 drafts.add(
                     DraftMenuItem(
                         name = correctedName,
@@ -150,7 +183,10 @@ object OcrSpatialParser {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+            rowIdx++
         }
+
+        Log.d(TAG, "parse end: drafts=${drafts.size} categories=${drafts.mapNotNull { it.categoryName }.distinct()}")
         return drafts
     }
 

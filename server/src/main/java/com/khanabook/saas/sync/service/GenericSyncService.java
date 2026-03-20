@@ -1,5 +1,6 @@
 package com.khanabook.saas.sync.service;
 
+import com.khanabook.saas.debug.DebugNDJSONLogger;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
@@ -33,6 +34,23 @@ public class GenericSyncService {
 		if (payload == null || payload.isEmpty()) {
 			return new PushSyncResponse(new ArrayList<>(), new ArrayList<>());
 		}
+
+		long distinctDevices = payload.stream()
+				.map(r -> r.getDeviceId() != null ? r.getDeviceId() : "unknown")
+				.distinct()
+				.count();
+
+		DebugNDJSONLogger.log(
+				"pre-debug",
+				"H4_PUSH_MERGE_ENGINE",
+				"GenericSyncService:handlePushSync",
+				"Push sync started",
+				java.util.Map.of(
+						"tenantId", tenantId,
+						"payloadSize", payload.size(),
+						"distinctDevices", distinctDevices
+				)
+		);
 
 		List<Integer> successfulLocalIds = new ArrayList<>();
 		List<Integer> failedLocalIds = new ArrayList<>();
@@ -154,6 +172,18 @@ public class GenericSyncService {
 					}
 				} catch (Exception e) {
 					log.error("Sync Error for device {}: {}", incomingRecord.getDeviceId(), e.getMessage());
+					DebugNDJSONLogger.log(
+							"pre-debug",
+							"H4_PUSH_MERGE_ENGINE",
+							"GenericSyncService:handlePushSync",
+							"Sync Error while staging a record",
+							java.util.Map.of(
+									"deviceIdPresent", incomingRecord.getDeviceId() != null,
+									"deviceId", incomingRecord.getDeviceId() == null ? "null" : incomingRecord.getDeviceId(),
+									"exceptionClass", e.getClass().getSimpleName(),
+									"exceptionMessage", e.getMessage() == null ? "" : e.getMessage()
+							)
+					);
 				}
 			}
 			
@@ -165,6 +195,19 @@ public class GenericSyncService {
 		}
 
 		log.info("Successfully batch synced {} records for Tenant ID: {}", successfulLocalIds.size(), tenantId);
+
+		DebugNDJSONLogger.log(
+				"pre-debug",
+				"H4_PUSH_MERGE_ENGINE",
+				"GenericSyncService:handlePushSync",
+				"Push sync completed",
+				java.util.Map.of(
+						"tenantId", tenantId,
+						"successfulLocalIdsSize", successfulLocalIds.size(),
+						"failedLocalIdsSize", failedLocalIds.size(),
+						"recordsSavedSize", allRecordsToSave.size()
+				)
+		);
 
 		return new PushSyncResponse(successfulLocalIds, failedLocalIds);
 	}

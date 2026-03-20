@@ -1,6 +1,7 @@
 package com.khanabook.lite.pos.domain.manager
 
 import android.content.Context
+import android.util.Log
 import android.content.SharedPreferences
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -26,6 +27,8 @@ private const val SESSION_CHECK_INTERVAL_MS = 60_000L
 
 @Singleton
 class SessionManager @Inject constructor(@ApplicationContext private val context: Context) {
+    private val debugTag = "KhanaBookDebugAuth"
+
     private val masterKey = MasterKey.Builder(context)
         .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .build()
@@ -103,7 +106,11 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
 
     
     fun getAuthToken(): String? {
-        return securePrefs.getString("auth_token", null)
+        val token = securePrefs.getString("auth_token", null)
+        val present = !token.isNullOrBlank()
+        val looksLikeJwt = present && token!!.length > 100 && token.split(".").size == 3
+        Log.d(debugTag, "getAuthToken present=$present looksLikeJwt=$looksLikeJwt")
+        return token
     }
 
     fun saveAuthToken(token: String) {
@@ -150,8 +157,20 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
     }
 
     fun clearSession() {
+        val tokenBefore = securePrefs.getString("auth_token", null)
+        Log.d(
+            debugTag,
+            "clearSession tokenBeforePresent=${!tokenBefore.isNullOrBlank()} (NOTE: securePrefs not cleared in current code)"
+        )
+
         sessionCheckJob?.cancel()
         prefs.edit().clear().apply()
         _isSessionExpired.value = true
+
+        val tokenAfter = securePrefs.getString("auth_token", null)
+        Log.d(
+            debugTag,
+            "clearSession tokenAfterPresent=${!tokenAfter.isNullOrBlank()} (NOTE: securePrefs unchanged in current code)"
+        )
     }
 }

@@ -29,6 +29,7 @@ class MenuViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val menuRepository: MenuRepository
 ) : ViewModel() {
+    private val ocrDebugTag = "OCR_DEBUG"
 
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategoriesFlow()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -291,6 +292,7 @@ class MenuViewModel @Inject constructor(
         _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Analysing PDF...", error = null) }
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             try {
+                val fileName = getFileName(context, uri)
                 val pfd = context.contentResolver.openFileDescriptor(uri, "r")
                     ?: throw Exception("Cannot open PDF file.")
                 
@@ -298,6 +300,8 @@ class MenuViewModel @Inject constructor(
                 val pageCount = renderer.pageCount
                 val allDrafts = mutableListOf<DraftMenuItem>()
                 val seenNames = mutableSetOf<String>()
+
+                Log.d(ocrDebugTag, "extractTextFromPdf start fileName='${fileName}' pageCount=$pageCount")
                 
                 val recognizer = com.google.mlkit.vision.text.TextRecognition.getClient(
                     com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
@@ -323,8 +327,14 @@ class MenuViewModel @Inject constructor(
                     val image = com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)
                     // Process synchronously in IO thread
                     val visionText = com.google.android.gms.tasks.Tasks.await(recognizer.process(image))
-                    
+
+                    val rawLen = visionText.text?.length ?: 0
                     val pageDrafts = com.khanabook.lite.pos.domain.util.OcrSpatialParser.parse(visionText)
+                    Log.d(
+                        ocrDebugTag,
+                        "PDF page ${i + 1}/$pageCount recognizedRawLen=$rawLen parsedDrafts=${pageDrafts.size} bitmap=${width}x${height}"
+                    )
+                    
                     pageDrafts.forEach { draft ->
                         if (seenNames.add(draft.name.lowercase())) {
                             allDrafts.add(draft)
@@ -346,6 +356,8 @@ class MenuViewModel @Inject constructor(
                         )
                     }
                 }
+
+                Log.d(ocrDebugTag, "extractTextFromPdf done totalUniqueDrafts=${allDrafts.size}")
             } catch (e: Exception) {
                 Log.e("PDF_EXTRACT", "Error processing PDF", e)
                 withContext(kotlinx.coroutines.Dispatchers.Main) {

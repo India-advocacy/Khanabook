@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import android.util.Log
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -13,6 +14,7 @@ import javax.inject.Inject
 class SplashViewModel @Inject constructor(
     private val sessionManager: SessionManager
 ) : ViewModel() {
+    private val debugTag = "KhanaBookDebugAuth"
 
     sealed class SplashState {
         object Loading : SplashState()
@@ -36,11 +38,17 @@ class SplashViewModel @Inject constructor(
             val token = sessionManager.getAuthToken()
             val isSyncCompleted = sessionManager.isInitialSyncCompleted()
 
-            _state.value = when {
+            val chosen = when {
                 token == null -> SplashState.NavigateToLogin
                 !isSyncCompleted -> SplashState.NavigateToInitialSync
                 else -> SplashState.NavigateToMain
             }
+
+            Log.d(
+                debugTag,
+                "Splash navigation chosen=${chosen::class.simpleName} tokenPresent=${token != null} isSyncCompleted=$isSyncCompleted"
+            )
+            _state.value = chosen
         }
     }
 }
