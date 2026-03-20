@@ -182,8 +182,8 @@ class BillingViewModel @Inject constructor(
 
     fun setPaymentMode(mode: PaymentMode, p1: String = "0.0", p2: String = "0.0") {
         _paymentMode.value = mode
-        _partAmount1.value = p1
-        _partAmount2.value = p2
+        _partAmount1.value = p1.ifBlank { "0.0" }
+        _partAmount2.value = p2.ifBlank { "0.0" }
     }
 
     suspend fun completeOrder(status: PaymentStatus): Boolean = orderMutex.withLock {

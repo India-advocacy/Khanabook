@@ -122,7 +122,7 @@ class BluetoothPrinterManager(private val context: Context) {
         try { context.unregisterReceiver(discoveryReceiver) } catch (_: Exception) {}
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(discoveryReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            context.registerReceiver(discoveryReceiver, filter, Context.RECEIVER_EXPORTED)
         } else {
             context.registerReceiver(discoveryReceiver, filter)
         }

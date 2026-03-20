@@ -73,13 +73,16 @@ object BillCalculator {
     }
 
     fun validatePartPayment(a1: String, a2: String, total: String): Boolean {
-        val sum = BigDecimal(a1).add(BigDecimal(a2))
-            .setScale(2, RoundingMode.HALF_UP)
-        val bdTotal = BigDecimal(total).setScale(2, RoundingMode.HALF_UP)
-        
-        return sum.compareTo(bdTotal) == 0
-    }
+        return try {
+            val sum = BigDecimal(a1.ifBlank { "0" }).add(BigDecimal(a2.ifBlank { "0" }))
+                .setScale(2, RoundingMode.HALF_UP)
+            val bdTotal = BigDecimal(total.ifBlank { "0" }).setScale(2, RoundingMode.HALF_UP)
 
+            sum.compareTo(bdTotal) == 0
+        } catch (e: Exception) {
+            false
+        }
+    }
     
     fun toFixedString(value: Double): String {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).toString()
