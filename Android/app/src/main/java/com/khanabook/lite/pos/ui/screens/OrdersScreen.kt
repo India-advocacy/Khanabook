@@ -77,6 +77,30 @@ fun OrdersScreen(
         ) {
             DateRangePicker(
                 state = dateRangePickerState,
+                modifier = Modifier.weight(1f),
+                title = {
+                    Text(
+                        text = "Select Custom Range",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 16.dp, bottom = 8.dp),
+                        textAlign = TextAlign.Center,
+                        color = PrimaryGold,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                },
+                headline = {
+                    DateRangePickerDefaults.DateRangePickerHeadline(
+                        selectedStartDateMillis = dateRangePickerState.selectedStartDateMillis,
+                        selectedEndDateMillis = dateRangePickerState.selectedEndDateMillis,
+                        displayMode = dateRangePickerState.displayMode,
+                        dateFormatter = DatePickerDefaults.dateFormatter(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                    )
+                },
                 colors = DatePickerDefaults.colors(
                     containerColor = DarkBrown2,
                     titleContentColor = PrimaryGold,
@@ -369,11 +393,11 @@ fun RowScope.TableCell(
 private fun getPayModeColor(mode: PaymentMode): Color {
     return when (mode) {
         PaymentMode.CASH -> SuccessGreen
-        PaymentMode.UPI -> Color(0xFF5D4037) 
-        PaymentMode.POS -> Color(0xFF673AB7) 
+        PaymentMode.UPI -> Brown500 
+        PaymentMode.POS -> PosPurple 
         PaymentMode.ZOMATO -> VegGreen 
-        PaymentMode.SWIGGY -> Color(0xFFE65100) 
-        else -> Color(0xFF455A64)
+        PaymentMode.SWIGGY -> SwiggyOrange 
+        else -> OtherPaymentGrey
     }
 }
 

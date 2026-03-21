@@ -51,7 +51,8 @@ class UserRepository(
                     isSynced = true,
                     createdAt = System.currentTimeMillis()
                 )
-                userDao.insertUser(localUser)
+                val id = userDao.insertUser(localUser)
+                localUser = localUser.copy(id = id)
             } else {
                 localUser = localUser.copy(
                     name = response.userName,
@@ -60,7 +61,8 @@ class UserRepository(
                     restaurantId = response.restaurantId,
                     isSynced = true
                 )
-                userDao.insertUser(localUser)
+                val id = userDao.insertUser(localUser)
+                localUser = localUser.copy(id = id)
             }
 
             setCurrentUser(localUser)
@@ -94,7 +96,8 @@ class UserRepository(
                     isSynced = true,
                     createdAt = System.currentTimeMillis()
                 )
-                userDao.insertUser(localUser)
+                val id = userDao.insertUser(localUser)
+                localUser = localUser.copy(id = id)
             } else {
                 localUser = localUser.copy(
                     name = response.userName,
@@ -103,7 +106,8 @@ class UserRepository(
                     restaurantId = response.restaurantId,
                     isSynced = true
                 )
-                userDao.insertUser(localUser)
+                val id = userDao.insertUser(localUser)
+                localUser = localUser.copy(id = id)
             }
 
             setCurrentUser(localUser)
@@ -138,7 +142,8 @@ class UserRepository(
                     isSynced = true,
                     createdAt = System.currentTimeMillis()
                 )
-                userDao.insertUser(localUser)
+                val id = userDao.insertUser(localUser)
+                localUser = localUser.copy(id = id)
             } else {
                 localUser = localUser.copy(
                     name = response.userName,
@@ -147,7 +152,8 @@ class UserRepository(
                     restaurantId = response.restaurantId,
                     isSynced = true
                 )
-                userDao.insertUser(localUser)
+                val id = userDao.insertUser(localUser)
+                localUser = localUser.copy(id = id)
             }
 
             setCurrentUser(localUser)
@@ -159,9 +165,18 @@ class UserRepository(
 
     suspend fun loadPersistedUser() {
         val email = prefs.getString(KEY_USER_EMAIL, null)
-        if (email != null) {
+        val activeUserId = sessionManager.getActiveUserId()
+
+        if (activeUserId != null) {
+            val user = userDao.getUserById(activeUserId)
+            _currentUser.value = user
+            if (user != null) {
+                prefs.edit().putString(KEY_USER_EMAIL, user.email).apply()
+            }
+        } else if (email != null) {
             val user = userDao.getUserByEmail(email)
             _currentUser.value = user
+            user?.let { sessionManager.saveActiveUserId(it.id); sessionManager.saveActiveUserRole(it.role) }
         }
     }
 
@@ -169,9 +184,12 @@ class UserRepository(
         _currentUser.value = user
         if (user != null) {
             prefs.edit().putString(KEY_USER_EMAIL, user.email).apply()
+            sessionManager.saveActiveUserId(user.id)
+            sessionManager.saveActiveUserRole(user.role)
             triggerBackgroundSync()
         } else {
             prefs.edit().remove(KEY_USER_EMAIL).apply()
+            sessionManager.clearLocalUserSession()
         }
     }
 
@@ -222,6 +240,10 @@ class UserRepository(
 
     fun getAllUsers(): Flow<List<UserEntity>> {
         return userDao.getAllUsers()
+    }
+
+    fun getActiveStaff(): Flow<List<UserEntity>> {
+        return userDao.getActiveStaff()
     }
 
     suspend fun setActivationStatus(userId: Long, isActive: Boolean) {

@@ -1080,7 +1080,7 @@ fun StepItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: Strin
                     modifier = Modifier
                         .size(14.dp)
                         .align(Alignment.BottomEnd)
-                        .background(Color(0xFF4CAF50), CircleShape),
+                        .background(VegGreen, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Default.Check, null, tint = Color.White, modifier = Modifier.size(10.dp))

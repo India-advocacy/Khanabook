@@ -75,6 +75,7 @@ import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.ParchmentBG
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
+import com.khanabook.lite.pos.ui.theme.OcrScannerPink
 import java.util.concurrent.Executors
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -389,7 +390,7 @@ private fun ScanControls(
                     androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(10.dp))
                     Text(
                         text = errorMessage,
-                        color = Color(0xFFFFB4A9),
+                        color = OcrScannerPink,
                         fontSize = 13.sp
                     )
                 }

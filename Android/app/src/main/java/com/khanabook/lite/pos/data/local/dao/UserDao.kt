@@ -12,8 +12,14 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE email = :email AND is_deleted = 0 LIMIT 1")
     suspend fun getUserByEmail(email: String): UserEntity?
 
+    @Query("SELECT * FROM users WHERE id = :id AND is_deleted = 0 LIMIT 1")
+    suspend fun getUserById(id: Long): UserEntity?
+
     @Query("SELECT * FROM users WHERE is_deleted = 0 LIMIT 1")
     suspend fun getAnyUser(): UserEntity?
+
+    @Query("SELECT * FROM users WHERE role = 'staff' AND is_active = 1 AND is_deleted = 0 ORDER BY name ASC")
+    fun getActiveStaff(): Flow<List<UserEntity>>
 
     @Query(
         "UPDATE users SET password_hash = :newHash, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"

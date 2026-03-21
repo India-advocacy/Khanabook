@@ -155,6 +155,29 @@ fun ReportsScreen(
                     DateRangePicker(
                         state = dateRangePickerState,
                         modifier = Modifier.weight(1f),
+                        title = {
+                            Text(
+                                text = "Select Custom Range",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 16.dp, bottom = 8.dp),
+                                textAlign = TextAlign.Center,
+                                color = PrimaryGold,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp
+                            )
+                        },
+                        headline = {
+                            DateRangePickerDefaults.DateRangePickerHeadline(
+                                selectedStartDateMillis = dateRangePickerState.selectedStartDateMillis,
+                                selectedEndDateMillis = dateRangePickerState.selectedEndDateMillis,
+                                displayMode = dateRangePickerState.displayMode,
+                                dateFormatter = DatePickerDefaults.dateFormatter(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp)
+                            )
+                        },
                         colors = DatePickerDefaults.colors(
                             containerColor = DarkBrown2,
                             titleContentColor = PrimaryGold,
@@ -245,7 +268,7 @@ fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, mo
         onClick = onClick,
         modifier = modifier.height(44.dp),
         shape = RoundedCornerShape(8.dp),
-        color = if (isSelected) Color(0xFF42210B).copy(alpha = 0.8f) else Color.Transparent,
+        color = if (isSelected) BrownSelected.copy(alpha = 0.8f) else Color.Transparent,
         border = if (isSelected) BorderStroke(1.dp, PrimaryGold) else BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f)),
         contentColor = if (isSelected) PrimaryGold else TextGold.copy(alpha = 0.7f)
     ) {
@@ -370,7 +393,7 @@ fun PartPaymentCard(
 ) {
     Card(
         modifier = modifier,
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E3A1E).copy(alpha = 0.4f)),
+        colors = CardDefaults.cardColors(containerColor = GreenReportBg.copy(alpha = 0.4f)),
         border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f)),
         shape = RoundedCornerShape(8.dp)
     ) {
@@ -450,12 +473,12 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
             
             Box(modifier = Modifier.weight(2.3f), contentAlignment = Alignment.Center) {
                 val (color, label) = when (row.paymentMode) {
-                    PaymentMode.ZOMATO -> Color(0xFFB71C1C) to "Zomato"
-                    PaymentMode.SWIGGY -> Color(0xFFE65100) to "Swiggy"
-                    PaymentMode.CASH -> Color(0xFF4E342E) to "Cash"
-                    PaymentMode.UPI -> Color(0xFF4527A0) to "UPI"
-                    PaymentMode.PART_CASH_UPI -> Color(0xFF1B5E20) to "Part-Payment\n(Cash+UPI)"
-                    else -> Color(0xFF37474F) to row.paymentMode.displayLabel
+                    PaymentMode.ZOMATO -> ZomatoRed to "Zomato"
+                    PaymentMode.SWIGGY -> SwiggyOrange to "Swiggy"
+                    PaymentMode.CASH -> CashBrown to "Cash"
+                    PaymentMode.UPI -> UpiPurple to "UPI"
+                    PaymentMode.PART_CASH_UPI -> PartPaymentGreen to "Part-Payment\n(Cash+UPI)"
+                    else -> UnknownPaymentGrey to row.paymentMode.displayLabel
                 }
                 Surface(
                     color = color,
@@ -519,10 +542,9 @@ fun OrderDetailsDialog(
                     .padding(16.dp)
                     .fillMaxWidth()
             ) {
-                Row(
+                Box(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "Order Details",
@@ -530,7 +552,10 @@ fun OrderDetailsDialog(
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.align(Alignment.CenterEnd)
+                    ) {
                         Icon(Icons.Default.Close, contentDescription = "Close", tint = PrimaryGold)
                     }
                 }

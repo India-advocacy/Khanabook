@@ -1,4 +1,11 @@
 <resources>
     <string name="app_name">KhanaBookLite</string>
+    <string name="khanabook">KhanaBook</string>
+    <string name="lite">LITE</string>
+    <string name="smart_billing_slogan">Smart Billing for Smart Restaurants</string>
+    <string name="back_online">Back online</string>
+    <string name="offline_working_locally">Offline - Working Locally</string>
+    <string name="search_bill">Search &amp; Bill</string>
+    <string name="check_order_status">Check Order Status</string>
     <string name="default_web_client_id">836086274000-csivf8msgpphl69hn6ftqdeb1mjceaak.apps.googleusercontent.com</string>
 </resources>

@@ -20,7 +20,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 21,
+        version = 23,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -74,6 +74,17 @@ abstract class AppDatabase : RoomDatabase() {
                     db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `currency` TEXT DEFAULT 'INR'")
                 } catch (e: Exception) {
                     db.execSQL("UPDATE `restaurant_profile` SET `currency` = 'INR' WHERE `currency` IS NULL")
+                }
+            }
+        }
+
+        val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                try {
+                    db.execSQL("ALTER TABLE `users` ADD COLUMN `role` TEXT NOT NULL DEFAULT 'owner'")
+                    db.execSQL("ALTER TABLE `users` ADD COLUMN `pin_hash` TEXT")
+                } catch (e: Exception) {
+                    // Ignore if columns exist
                 }
             }
         }

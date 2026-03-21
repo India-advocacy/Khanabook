@@ -37,6 +37,7 @@ class SplashViewModel @Inject constructor(
             
             val token = sessionManager.getAuthToken()
             val isSyncCompleted = sessionManager.isInitialSyncCompleted()
+            val activeUserId = sessionManager.getActiveUserId()
 
             val chosen = when {
                 token == null -> SplashState.NavigateToLogin
@@ -46,7 +47,7 @@ class SplashViewModel @Inject constructor(
 
             Log.d(
                 debugTag,
-                "Splash navigation chosen=${chosen::class.simpleName} tokenPresent=${token != null} isSyncCompleted=$isSyncCompleted"
+                "Splash navigation chosen=${chosen::class.simpleName} tokenPresent=${token != null} isSyncCompleted=$isSyncCompleted activeUserId=$activeUserId"
             )
             _state.value = chosen
         }

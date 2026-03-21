@@ -95,7 +95,7 @@ object InvoiceFormatter {
         add("$line\n")
         
         add("Bill : ${bill.bill.dailyOrderId.toString().padStart(3, '0')}\n")
-        val dateStr = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.bill.createdAt)
+        val dateStr = com.khanabook.lite.pos.domain.util.DateUtils.formatDateOnly(bill.bill.createdAt)
         add("Date: $dateStr\n")
         bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add("Cust : $it\n") }
         bill.bill.customerWhatsapp?.takeIf { it.isNotBlank() }?.let { add("WA   : $it\n") }
@@ -167,8 +167,8 @@ object InvoiceFormatter {
         
         sb.append("\n*--- INVOICE ---*\n")
         sb.append("*Bill #:* ${bill.bill.dailyOrderId.toString().padStart(3, '0')}\n")
-        val formattedDate = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.bill.createdAt)
-        sb.append("*Date:* ${formattedDate.replace("\n", " ")}\n")
+        val formattedDate = com.khanabook.lite.pos.domain.util.DateUtils.formatDateOnly(bill.bill.createdAt)
+        sb.append("*Date:* ${formattedDate}\n")
         
         if (!bill.bill.customerName.isNullOrBlank()) sb.append("*Customer:* ${bill.bill.customerName}\n")
         if (!bill.bill.customerWhatsapp.isNullOrBlank()) sb.append("*WA:* ${bill.bill.customerWhatsapp}\n")

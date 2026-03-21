@@ -43,7 +43,7 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF1A1A1A))
+            .background(DarkBackground)
     ) {
         Column(
             modifier = Modifier
@@ -195,10 +195,10 @@ fun SyncStatusHeader(
         modifier = Modifier
             .background(
                 when {
-                    !isOnline -> Color(0xFFC62828).copy(alpha = 0.1f)
-                    !isSessionValid -> Color(0xFFFFB300).copy(alpha = 0.1f)
+                    !isOnline -> DangerRed.copy(alpha = 0.1f)
+                    !isSessionValid -> WarningYellow.copy(alpha = 0.1f)
                     unsyncedCount > 0 -> PrimaryGold.copy(alpha = 0.1f)
-                    else -> Color(0xFF2E7D32).copy(alpha = 0.1f)
+                    else -> Green800.copy(alpha = 0.1f)
                 },
                 RoundedCornerShape(16.dp)
             )
@@ -214,7 +214,7 @@ fun SyncStatusHeader(
             contentDescription = null,
             tint = when {
                 !isOnline -> DangerRed
-                !isSessionValid -> Color(0xFFFFB300)
+                !isSessionValid -> WarningYellow
                 unsyncedCount > 0 -> PrimaryGold
                 else -> SuccessGreen
             },
@@ -232,7 +232,7 @@ fun SyncStatusHeader(
             },
             color = when {
                 !isOnline -> DangerRed
-                !isSessionValid -> Color(0xFFFFB300)
+                !isSessionValid -> WarningYellow
                 else -> TextLight
             },
             fontSize = 11.sp,

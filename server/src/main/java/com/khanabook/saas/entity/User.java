@@ -29,6 +29,13 @@ public class User extends BaseSyncEntity {
 	@Column(name = "whatsapp_number")
 	private String whatsappNumber;
 
+	@Column(name = "role", nullable = false)
+	private String role = "owner";
+
+	@com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
+	@Column(name = "pin_hash")
+	private String pinHash;
+
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive = true;
 }

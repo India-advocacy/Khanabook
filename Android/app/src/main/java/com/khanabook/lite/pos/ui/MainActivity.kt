@@ -43,9 +43,9 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(connectionStatus) {
                     if (lastStatus != null && connectionStatus != null && lastStatus != connectionStatus) {
                         val message = if (connectionStatus == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available) {
-                            "Back online"
+                            context.getString(com.khanabook.lite.pos.R.string.back_online)
                         } else {
-                            "Offline - Working Locally"
+                            context.getString(com.khanabook.lite.pos.R.string.offline_working_locally)
                         }
                         android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
                     }
@@ -114,8 +114,7 @@ class MainActivity : ComponentActivity() {
                     composable("signup") {
                         SignUpScreen(
                                 onSignUpSuccess = {
-                                    
-                                    navController.navigate("initial_sync") {
+                                    navController.navigate("login") {
                                         popUpTo("signup") { inclusive = true }
                                     }
                                 },
@@ -170,14 +169,14 @@ class MainActivity : ComponentActivity() {
                     }
                     composable("search_bill") {
                         SearchScreen(
-                                title = "Search & Bill",
+                                title = context.getString(com.khanabook.lite.pos.R.string.search_bill),
                                 onBack = { navController.popBackStack() },
                                 modifier = Modifier.fillMaxSize()
                         )
                     }
                     composable("order_status") {
                         SearchScreen(
-                                title = "Check Order Status",
+                                title = context.getString(com.khanabook.lite.pos.R.string.check_order_status),
                                 onBack = { navController.popBackStack() },
                                 modifier = Modifier.fillMaxSize()
                         )

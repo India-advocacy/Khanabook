@@ -22,6 +22,12 @@ data class UserEntity(
     @ColumnInfo(name = "whatsapp_number")
     val whatsappNumber: String? = null,
 
+    @ColumnInfo(name = "role", defaultValue = "'owner'")
+    val role: String = "owner",
+
+    @ColumnInfo(name = "pin_hash")
+    val pinHash: String? = null,
+
     @ColumnInfo(name = "is_active", defaultValue = "1")
     val isActive: Boolean = true,
 

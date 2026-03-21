@@ -673,7 +673,7 @@ fun ReviewScannedItemsSheet(
                                         Icon(
                                             Icons.Default.Circle,
                                             contentDescription = null,
-                                            tint = if (draft.foodType == "veg") Color(0xFF4CAF50) else Color(0xFFE53935),
+                                            tint = if (draft.foodType == "veg") VegGreen else NonVegRed,
                                             modifier = Modifier.size(12.dp).border(1.dp, Color.White, CircleShape)
                                         )
                                     }
@@ -877,7 +877,7 @@ fun ModeSelectionView(
             subtitle = "Type in each item individually",
             description = "Best for small menus or fine-grained control.",
             icon = Icons.Default.EditNote,
-            iconBg = Color(0xFF1565C0),
+            iconBg = Blue800,
             onClick = onManualClick
         )
 
@@ -889,7 +889,7 @@ fun ModeSelectionView(
             subtitle = "Scan or Upload your menu",
             description = "Import automatically from a photo (camera) or file (PDF/Image).",
             icon = Icons.Default.AutoFixHigh,
-            iconBg = Color(0xFF6A1B9A),
+            iconBg = Purple800,
             badge = "AI",
             onClick = onSmartImportClick
         )
@@ -902,7 +902,7 @@ fun ModeCard(
     subtitle: String = "",
     description: String,
     icon: ImageVector,
-    iconBg: Color = Color(0xFF5D4037),
+    iconBg: Color = Brown500,
     badge: String? = null,
     onClick: () -> Unit
 ) {
@@ -1023,14 +1023,14 @@ fun MenuConfigurationContent(
                 FilterBadge(
                     label = "MENU ADD ONS",
                     count = addOnsCount,
-                    backgroundColor = Color(0xFF1976D2),
+                    backgroundColor = Blue600,
                     modifier = Modifier.weight(1f)
                 )
 
                 FilterBadge(
                     label = "DISABLED",
                     count = disabledCount,
-                    backgroundColor = Color(0xFF757575),
+                    backgroundColor = Grey600,
                     icon = Icons.Default.VisibilityOff,
                     modifier = Modifier.weight(1f)
                 )
@@ -1048,7 +1048,7 @@ fun MenuConfigurationContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("CATEGORY (${categories.size})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                        Text("ADD NEW", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1976D2), modifier = Modifier.clickable { onAddCategory() })
+                        Text("ADD NEW", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Blue600, modifier = Modifier.clickable { onAddCategory() })
                     }
 
                     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -1114,14 +1114,14 @@ fun MenuConfigurationContent(
                                         .size(40.dp)
                                         .clickable(enabled = canAddItem) { onScanClick() },
                                     color = if (canAddItem) ParchmentBG else Color.LightGray.copy(alpha = 0.5f),
-                                    border = BorderStroke(1.dp, if (canAddItem) Color(0xFF5D4037) else Color.Gray),
+                                    border = BorderStroke(1.dp, if (canAddItem) Brown500 else Color.Gray),
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             Icons.Default.QrCodeScanner,
                                             contentDescription = "Scan Menu",
-                                            tint = if (canAddItem) Color(0xFF5D4037) else Color.Gray,
+                                            tint = if (canAddItem) Brown500 else Color.Gray,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -1132,14 +1132,14 @@ fun MenuConfigurationContent(
                                         .size(40.dp)
                                         .clickable(enabled = canAddItem) { onPdfClick() },
                                     color = if (canAddItem) ParchmentBG else Color.LightGray.copy(alpha = 0.5f),
-                                    border = BorderStroke(1.dp, if (canAddItem) Color(0xFF5D4037) else Color.Gray),
+                                    border = BorderStroke(1.dp, if (canAddItem) Brown500 else Color.Gray),
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             Icons.Default.PictureAsPdf,
                                             contentDescription = "Upload PDF",
-                                            tint = if (canAddItem) Color(0xFF5D4037) else Color.Gray,
+                                            tint = if (canAddItem) Brown500 else Color.Gray,
                                             modifier = Modifier.size(20.dp)
                                         )
                                     }
@@ -1153,7 +1153,7 @@ fun MenuConfigurationContent(
                                         .height(40.dp)
                                         .clickable(enabled = canAddItem) { onAddItem() },
                                     color = if (canAddItem) ParchmentBG else Color.LightGray.copy(alpha = 0.5f),
-                                    border = BorderStroke(1.dp, if (canAddItem) Color(0xFF5D4037) else Color.Gray),
+                                    border = BorderStroke(1.dp, if (canAddItem) Brown500 else Color.Gray),
                                     shape = RoundedCornerShape(4.dp)
                                 ) {
                                     Box(
@@ -1162,7 +1162,7 @@ fun MenuConfigurationContent(
                                     ) {
                                         Text(
                                             "ADD NEW", 
-                                            color = if (canAddItem) Color(0xFF5D4037) else Color.Gray, 
+                                            color = if (canAddItem) Brown500 else Color.Gray, 
                                             fontSize = 12.sp, 
                                             fontWeight = FontWeight.Bold
                                         )
@@ -1364,13 +1364,13 @@ fun CategoryItemRow(
             checked = category.isActive,
             onCheckedChange = onToggle,
             modifier = Modifier.scale(0.6f),
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4CAF50))
+            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = VegGreen)
         )
         Text(
             category.name,
             modifier = Modifier.weight(1f),
             fontSize = 12.sp,
-            color = if (isSelected) Color(0xFF1976D2) else Color.Black,
+            color = if (isSelected) Blue600 else Color.Black,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
         )
         IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
@@ -1397,7 +1397,7 @@ fun MenuItemRow(
             checked = itemWithVariants.menuItem.isAvailable,
             onCheckedChange = onToggle,
             modifier = Modifier.scale(0.6f),
-            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4CAF50))
+            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = VegGreen)
         )
         
         Column(modifier = Modifier.weight(1f).clickable { onClick() }) {
@@ -1414,7 +1414,7 @@ fun MenuItemRow(
         }
         
         IconButton(onClick = onManageVariants, modifier = Modifier.size(24.dp)) {
-            Icon(Icons.Default.Layers, contentDescription = "Variants", tint = Color(0xFF1976D2), modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.Layers, contentDescription = "Variants", tint = Blue600, modifier = Modifier.size(16.dp))
         }
         
         IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
@@ -1456,7 +1456,7 @@ fun FilterBadge(label: String, count: Int, backgroundColor: Color, icon: ImageVe
 
 @Composable
 fun FoodTypeIconSmall(isVeg: Boolean) {
-    val color = if (isVeg) Color(0xFF4CAF50) else Color(0xFFF44336)
+    val color = if (isVeg) VegGreen else Red500
     Box(
         modifier = Modifier
             .size(10.dp)

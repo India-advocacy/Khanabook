@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.ui.theme.DarkBrown1
 import com.khanabook.lite.pos.ui.theme.DarkBrown2
 import com.khanabook.lite.pos.ui.theme.PrimaryGold
@@ -38,13 +40,13 @@ fun SplashScreen(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "KhanaBook",
+                text = stringResource(id = R.string.khanabook),
                 color = PrimaryGold,
                 fontSize = 40.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "LITE",
+                text = stringResource(id = R.string.lite),
                 color = TextGold,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Light,
@@ -52,7 +54,7 @@ fun SplashScreen(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Smart Billing for Smart Restaurants",
+                text = stringResource(id = R.string.smart_billing_slogan),
                 color = MaterialTheme.colorScheme.onBackground,
                 fontSize = 14.sp
             )

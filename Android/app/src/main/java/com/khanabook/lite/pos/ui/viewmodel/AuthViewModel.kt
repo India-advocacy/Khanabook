@@ -212,6 +212,16 @@ constructor(
 
                 val formattedPhone = phoneNumber
 
+                if (BuildConfig.META_ACCESS_TOKEN.isEmpty() || BuildConfig.WHATSAPP_PHONE_NUMBER_ID.isEmpty()) {
+                    Log.d(TAG, "Meta API tokens not configured. Simulating OTP send. OTP is: $otp")
+                    when (purpose) {
+                        "reset" -> _resetPasswordStatus.value = ResetPasswordResult.OtpSent
+                        "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.OtpSent
+                        else -> _signUpStatus.value = SignUpResult.OtpSent
+                    }
+                    return@launch
+                }
+
                 val request =
                         WhatsAppRequest(
                                 to = formattedPhone,
@@ -506,6 +516,38 @@ constructor(
 
     fun clearOtpStatus() {
         _otpVerificationStatus.value = null
+    }
+
+    fun loginWithTestOfflineCredentials() {
+        viewModelScope.launch {
+            _loginStatus.value = LoginResult.Success(UserEntity(name="Loading...", email="test", restaurantId=0, deviceId="")) // Trigger loading state logic
+            
+            // 1. Create fake JWT
+            sessionManager.saveAuthToken("offline_test_token_" + System.currentTimeMillis())
+            sessionManager.saveRestaurantId(12345L)
+            sessionManager.setInitialSyncCompleted(true)
+
+            // 2. Create Owner with PIN 1234
+            val pinHash = authManager.hashPassword("1234")
+            val testOwner = UserEntity(
+                name = "Test Owner (1234)",
+                email = "owner_test@khanabook.com",
+                role = "owner",
+                pinHash = pinHash,
+                isActive = true,
+                isSynced = true,
+                restaurantId = 12345L,
+                deviceId = sessionManager.getDeviceId()
+            )
+            
+            userRepository.insertUser(testOwner)
+            
+            // 3. Clear active user to force Staff Selection screen
+            sessionManager.clearLocalUserSession()
+            userRepository.setCurrentUser(null)
+            
+            _loginStatus.value = LoginResult.Success(testOwner)
+        }
     }
 
     sealed class LoginResult {

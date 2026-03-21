@@ -156,21 +156,43 @@ class SessionManager @Inject constructor(@ApplicationContext private val context
         return prefs.getBoolean("initial_sync_completed", false)
     }
 
+    fun getActiveUserId(): Long? {
+        val id = prefs.getLong("active_user_id", -1L)
+        return if (id != -1L) id else null
+    }
+
+    fun saveActiveUserId(userId: Long) {
+        prefs.edit().putLong("active_user_id", userId).apply()
+    }
+
+    fun getActiveUserRole(): String? {
+        return prefs.getString("active_user_role", null)
+    }
+
+    fun saveActiveUserRole(role: String) {
+        prefs.edit().putString("active_user_role", role).apply()
+    }
+
+    fun clearLocalUserSession() {
+        prefs.edit().remove("active_user_id").remove("active_user_role").apply()
+    }
+
     fun clearSession() {
         val tokenBefore = securePrefs.getString("auth_token", null)
         Log.d(
             debugTag,
-            "clearSession tokenBeforePresent=${!tokenBefore.isNullOrBlank()} (NOTE: securePrefs not cleared in current code)"
+            "clearSession tokenBeforePresent=${!tokenBefore.isNullOrBlank()}"
         )
 
         sessionCheckJob?.cancel()
+        securePrefs.edit().remove("auth_token").apply()
         prefs.edit().clear().apply()
         _isSessionExpired.value = true
 
         val tokenAfter = securePrefs.getString("auth_token", null)
         Log.d(
             debugTag,
-            "clearSession tokenAfterPresent=${!tokenAfter.isNullOrBlank()} (NOTE: securePrefs unchanged in current code)"
+            "clearSession tokenAfterPresent=${!tokenAfter.isNullOrBlank()}"
         )
     }
 }

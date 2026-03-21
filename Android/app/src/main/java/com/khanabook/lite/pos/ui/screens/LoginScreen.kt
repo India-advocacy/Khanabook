@@ -68,7 +68,7 @@ fun LoginScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A1A))) {
+    Box(modifier = Modifier.fillMaxSize().background(DarkBackground)) {
         Column(
                 modifier =
                         Modifier.fillMaxSize()
@@ -183,7 +183,7 @@ fun LoginScreen(
             if (loginStatus is AuthViewModel.LoginResult.Error) {
                 Text(
                         text = (loginStatus as AuthViewModel.LoginResult.Error).message,
-                        color = Color(0xFFFF6B6B),
+                        color = ErrorPink,
                         fontSize = 12.sp,
                         modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth(),
                         textAlign = TextAlign.Center
@@ -248,7 +248,7 @@ fun LoginScreen(
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(
                                 text = "G",
-                                color = Color(0xFFDB4437),
+                                color = GoogleRed,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold
                         )
@@ -265,12 +265,10 @@ fun LoginScreen(
                     color = PrimaryGold.copy(alpha = 0.7f),
                     fontSize = 12.sp,
                     modifier = Modifier.clickable {
-                        phone = "9150677849"
-                        password = "Shop@111"
+                        viewModel.loginWithTestOfflineCredentials()
                     }
                 )
             }
-
             Spacer(modifier = Modifier.height(24.dp))
         }
 

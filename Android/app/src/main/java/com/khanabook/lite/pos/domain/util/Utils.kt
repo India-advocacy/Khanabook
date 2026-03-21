@@ -26,7 +26,7 @@ object DateUtils {
     fun formatDateOnly(timestamp: Long): String {
         return java.time.Instant.ofEpochMilli(timestamp)
             .atZone(java.time.ZoneId.systemDefault())
-            .format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+            .format(java.time.format.DateTimeFormatter.ofPattern("dd MMM yyyy"))
     }
 
     fun formatDisplayDate(timestamp: Long): String {
@@ -116,12 +116,25 @@ fun shareBillAsPdf(context: Context, billWithItems: BillWithItems, profile: Rest
             try {
                 context.startActivity(intent)
             } catch (e: Exception) {
-                val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+                // Try WhatsApp Business if normal WhatsApp fails
+                val bizIntent = Intent(Intent.ACTION_SEND).apply {
                     type = "application/pdf"
                     putExtra(Intent.EXTRA_STREAM, pdfUri)
+                    putExtra(Intent.EXTRA_TEXT, "Invoice from ${profile?.shopName ?: "KhanaBook"}")
+                    putExtra("jid", "$formattedPhone@s.whatsapp.net")
+                    `package` = "com.whatsapp.w4b"
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
-                context.startActivity(Intent.createChooser(fallbackIntent, "Share Invoice PDF"))
+                try {
+                    context.startActivity(bizIntent)
+                } catch (e2: Exception) {
+                    val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/pdf"
+                        putExtra(Intent.EXTRA_STREAM, pdfUri)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(Intent.createChooser(fallbackIntent, "Share Invoice PDF"))
+                }
             }
         } else {
             val intent = Intent(Intent.ACTION_SEND).apply {

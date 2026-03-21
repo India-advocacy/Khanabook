@@ -162,20 +162,25 @@ fun SettingsScreen(
                                     )
                                 }
 
-                                Row(
+                                Column(
                                     modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
                                 ) {
                                     Text("Account Session", color = TextLight, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                                    Button(
-                                        onClick = { logoutViewModel.initiateLogout() },
-                                        colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
-                                        shape = RoundedCornerShape(8.dp)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                                     ) {
-                                        Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Logout", fontSize = 12.sp)
+                                        Button(
+                                            onClick = { logoutViewModel.initiateLogout() },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("Sign Out", fontSize = 14.sp)
+                                        }
                                     }
                                 }
                             }
@@ -645,7 +650,7 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                             }
                         }
                     }, 
-                    colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF4CAF50))
+                    colors = SwitchDefaults.colors(checkedTrackColor = VegGreen)
                 )
             }
             if (enabled) {
@@ -687,7 +692,7 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                             viewModel.startBluetoothScan(context)
                             showBtSheet = true 
                         }
-                    }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF5D4037))) {
+                    }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = Brown500)) {
                         Text("Scan", color = Color.White)
                     }
                     Button(onClick = { viewModel.testPrint() }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold)) {
@@ -713,11 +718,11 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
             PrinterOptionRow("Print WhatsApp", printWhatsapp) { printWhatsapp = it }
         }
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = { profile?.copy(printerEnabled = enabled, paperSize = if (paper58) "58mm" else "80mm", autoPrintOnSuccess = autoPrint, includeLogoInPrint = includeLogo, printCustomerWhatsapp = printWhatsapp)?.let { onSave(it) } }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32))) { Text("SAVE SETTINGS", color = Color.White) }
+        Button(onClick = { profile?.copy(printerEnabled = enabled, paperSize = if (paper58) "58mm" else "80mm", autoPrintOnSuccess = autoPrint, includeLogoInPrint = includeLogo, printCustomerWhatsapp = printWhatsapp)?.let { onSave(it) } }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Green800)) { Text("SAVE SETTINGS", color = Color.White) }
     }
 
     if (showBtSheet) {
-        ModalBottomSheet(onDismissRequest = { viewModel.stopBluetoothScan(); showBtSheet = false }, sheetState = sheetState, containerColor = Color(0xFF1C1008)) {
+        ModalBottomSheet(onDismissRequest = { viewModel.stopBluetoothScan(); showBtSheet = false }, sheetState = sheetState, containerColor = DarkBrownSheet) {
             Column(modifier = Modifier.fillMaxWidth().padding(20.dp).padding(bottom = 32.dp)) {
                 Text("Select Printer", color = PrimaryGold, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 if (btIsScanning) CircularProgressIndicator(color = PrimaryGold, modifier = Modifier.padding(16.dp))
@@ -786,7 +791,7 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
             if (country.equals("India", true)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("GST Registered", color = TextGold)
-                    Switch(checked = gstEnabled, onCheckedChange = { gstEnabled = it }, colors = SwitchDefaults.colors(checkedTrackColor = Color(0xFF4CAF50)))
+                    Switch(checked = gstEnabled, onCheckedChange = { gstEnabled = it }, colors = SwitchDefaults.colors(checkedTrackColor = VegGreen))
                 }
                 if (gstEnabled) {
                     ParchmentTextField(
