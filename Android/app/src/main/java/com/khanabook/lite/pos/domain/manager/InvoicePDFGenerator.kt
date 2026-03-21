@@ -45,11 +45,11 @@ class InvoicePDFGenerator(private val context: Context) {
             val gstinHeight = if (profile?.gstEnabled == true && !profile.gstin.isNullOrBlank()) 12 else 0
             val shopWaHeight = if (!profile?.whatsappNumber.isNullOrBlank()) 12 else 0
             
-            val itemHeight = bill.items.size * 14
+            val itemHeight = bill.items.size * 18
             val headerHeight = 180 + logoHeight + whatsappHeight + fssaiHeight + gstinHeight + shopWaHeight
-            val summaryHeight = 130
+            val summaryHeight = 140
             val taxHeight = if (profile?.gstEnabled == true) 50 else 0
-            val footerHeight = 116
+            val footerHeight = 126
             val pageHeight = headerHeight + itemHeight + summaryHeight + taxHeight + footerHeight
 
             val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
@@ -166,22 +166,21 @@ class InvoicePDFGenerator(private val context: Context) {
             y += 9f 
         }
 
-        // 8. Title with Separators
-        val lineChar = "-"
-        val doubleLineChar = "="
-        val lineStr = lineChar.repeat(if (is80mm) 48 else 34)
-        val doubleLineStr = doubleLineChar.repeat(if (is80mm) 48 else 34)
-
+        // 8. Title with Header Bar
         y += 4f 
         paint.color = colorText
-        paint.textAlign = Paint.Align.CENTER
-        paint.textSize = bodySize
-        paint.typeface = monoTypeface
-        canvas.drawText(doubleLineStr, (pageWidth / 2).toFloat(), y, paint)
+        paint.strokeWidth = 0.5f
+        canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
         
         y += 12f 
+        if (isDigital) {
+            paint.color = Color.argb(25, Color.red(colorPrimary), Color.green(colorPrimary), Color.blue(colorPrimary))
+            canvas.drawRect(5f, y - 9f, (pageWidth - 5).toFloat(), y + 3f, paint)
+        }
+        paint.color = colorPrimary
         paint.typeface = boldTypeface
         paint.textSize = 9f
+        paint.textAlign = Paint.Align.CENTER
         canvas.drawText(
                 if (profile?.gstEnabled == true) "TAX INVOICE" else "INVOICE",
                 (pageWidth / 2).toFloat(),
@@ -189,9 +188,8 @@ class InvoicePDFGenerator(private val context: Context) {
                 paint
         )
         y += 6f 
-        paint.typeface = monoTypeface
-        paint.textSize = bodySize
-        canvas.drawText(doubleLineStr, (pageWidth / 2).toFloat(), y, paint)
+        paint.color = colorText
+        canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
 
         // 9. Bill Details
         y += 14f
@@ -214,10 +212,8 @@ class InvoicePDFGenerator(private val context: Context) {
 
         // 10. Table Header
         y += 12f
-        paint.textAlign = Paint.Align.CENTER
-        paint.typeface = monoTypeface
-        paint.textSize = bodySize
-        canvas.drawText(lineStr, (pageWidth / 2).toFloat(), y, paint)
+        paint.strokeWidth = 0.3f
+        canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
         
         y += 10f
         paint.typeface = boldTypeface
@@ -235,16 +231,15 @@ class InvoicePDFGenerator(private val context: Context) {
         canvas.drawText("AMT", (pageWidth - 5).toFloat(), y, paint)
         
         y += 4f
-        paint.textAlign = Paint.Align.CENTER
-        paint.typeface = monoTypeface
-        paint.textSize = bodySize
-        canvas.drawText(lineStr, (pageWidth / 2).toFloat(), y, paint)
+        paint.strokeWidth = 0.3f
+        canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
 
-        // 11. Items
+        // 11. Items with Dividers
         paint.typeface = normalTypeface
         paint.textSize = bodySize
         y += 12f
-        bill.items.forEachIndexed { _, item ->
+        bill.items.forEachIndexed { index, item ->
+            paint.color = colorText
             paint.textAlign = Paint.Align.LEFT
             val displayName = item.itemName.uppercase()
             val maxChars = if (is80mm) 22 else 15
@@ -269,15 +264,20 @@ class InvoicePDFGenerator(private val context: Context) {
                     .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
             } catch (e: Exception) { "0.00" }
             canvas.drawText(itemTotalStr, (pageWidth - 5).toFloat(), y, paint)
-            y += 14f 
+            
+            y += 4f
+            if (index < bill.items.size - 1) {
+                paint.color = Color.parseColor("#EEEEEE")
+                paint.strokeWidth = 0.1f
+                canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
+            }
+            y += 10f 
         }
 
         // 12. Summary
         y += 2f
-        paint.textAlign = Paint.Align.CENTER
-        paint.typeface = monoTypeface
-        paint.textSize = bodySize
-        canvas.drawText(lineStr, (pageWidth / 2).toFloat(), y, paint)
+        paint.strokeWidth = 0.3f
+        canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
         
         y += 12f
         paint.typeface = normalTypeface
@@ -339,16 +339,27 @@ class InvoicePDFGenerator(private val context: Context) {
         }
 
         y += 8f
-        paint.textAlign = Paint.Align.CENTER
-        paint.typeface = monoTypeface
-        canvas.drawText(lineStr, (pageWidth / 2).toFloat(), y, paint)
+        paint.strokeWidth = 0.3f
+        canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
 
-        // 13. Total
-        y += 18f
+        // 13. Highlighted Total Box
+        y += 12f
+        if (isDigital) {
+            paint.color = colorPrimary
+            canvas.drawRoundRect(5f, y, (pageWidth - 5).toFloat(), y + 24f, 4f, 4f, paint)
+            paint.color = Color.WHITE
+        } else {
+            paint.color = colorText
+            paint.strokeWidth = 0.5f
+            canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
+            y += 4f
+        }
+        
+        y += 16f
         paint.typeface = boldTypeface
         paint.textSize = bodySize + 1.5f
         paint.textAlign = Paint.Align.LEFT
-        canvas.drawText("NET AMOUNT", 5f, y, paint)
+        canvas.drawText("NET AMOUNT", 10f, y, paint)
         
         paint.textAlign = Paint.Align.RIGHT
         val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "₹" else profile?.currency ?: ""
@@ -358,13 +369,14 @@ class InvoicePDFGenerator(private val context: Context) {
         } catch (e: Exception) { "0.00" }
         canvas.drawText(
                 "${if (currency == "₹") "" else currency} $totalAmountStr",
-                (pageWidth - 5).toFloat(),
+                (pageWidth - 10).toFloat(),
                 y,
                 paint
         )
 
         // Rule 4: Payment Mode
-        y += 14f
+        y += 24f
+        paint.color = colorText
         paint.typeface = normalTypeface
         paint.textSize = bodySize
         paint.textAlign = Paint.Align.LEFT
@@ -396,9 +408,8 @@ class InvoicePDFGenerator(private val context: Context) {
         }
         
         y += 10f
-        paint.typeface = monoTypeface
-        paint.textSize = bodySize
-        canvas.drawText(doubleLineStr, (pageWidth / 2).toFloat(), y, paint)
+        paint.strokeWidth = 0.5f
+        canvas.drawLine(5f, y, (pageWidth - 5).toFloat(), y, paint)
 
         pdfDocument.finishPage(page)
 

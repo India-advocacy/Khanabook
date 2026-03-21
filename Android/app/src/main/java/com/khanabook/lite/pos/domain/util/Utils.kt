@@ -153,45 +153,20 @@ private fun tryDirectWhatsApp(
     textBody: String,
     pdfUri: android.net.Uri
 ): Boolean {
-    // WhatsApp ignores EXTRA_TEXT when type = application/pdf.
-    // So we send two intents in sequence:
-    //   1. Text message to the jid (opens chat)
-    //   2. PDF file to the same jid (attaches file)
-    // This is the most reliable approach without the Business API.
-
     val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
-
     for (pkg in packages) {
         try {
-            // Step A: send text first to open the correct chat
-            val textIntent = Intent(Intent.ACTION_SEND).apply {
-                type = "text/plain"
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, pdfUri)
                 putExtra(Intent.EXTRA_TEXT, textBody)
                 putExtra("jid", "$phone@s.whatsapp.net")
                 `package` = pkg
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(textIntent)
-
-            // Step B: after 800ms, send the PDF to the same chat
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                try {
-                    val pdfIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "application/pdf"
-                        putExtra(Intent.EXTRA_STREAM, pdfUri)
-                        putExtra("jid", "$phone@s.whatsapp.net")
-                        `package` = pkg
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    context.startActivity(pdfIntent)
-                } catch (_: Exception) {
-                    // PDF step failed silently — text already sent
-                }
-            }, 800)
-
-            return true // at least text intent succeeded
-        } catch (_: Exception) {
-            // try next package
-        }
+            context.startActivity(intent)
+            return true
+        } catch (_: Exception) { }
     }
     return false
 }

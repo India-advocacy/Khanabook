@@ -91,7 +91,7 @@ constructor(
         }
 
         viewModelScope.launch {
-            _loginStatus.value = null 
+            _loginStatus.value = LoginResult.Loading 
 
             val localHash = authManager.hashPassword(password)
             val result = userRepository.remoteLogin(email, password, localHash)
@@ -551,6 +551,7 @@ constructor(
     }
 
     sealed class LoginResult {
+        object Loading : LoginResult()
         data class Success(val user: UserEntity) : LoginResult()
         data class Error(val message: String, val code: LoginErrorCode) : LoginResult()
     }

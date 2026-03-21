@@ -162,31 +162,34 @@ object InvoiceFormatter {
 
     fun formatForWhatsApp(bill: BillWithItems, profile: RestaurantProfileEntity?): String {
         val sb = StringBuilder()
+        val width = if (profile?.paperSize == "80mm") 42 else 32
+        val line = "-".repeat(width)
         
         val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "₹" else profile?.currency ?: ""
         
+        sb.append("🏛️ *${profile?.shopName?.uppercase() ?: "RESTAURANT"}*\n")
+        if (!profile?.shopAddress.isNullOrBlank()) sb.append("📍 ${profile?.shopAddress}\n")
+        if (!profile?.whatsappNumber.isNullOrBlank()) sb.append("📞 Contact: ${profile?.whatsappNumber}\n")
         
-        sb.append("*${profile?.shopName?.uppercase() ?: "RESTAURANT"}*\n")
-        if (!profile?.shopAddress.isNullOrBlank()) sb.append("${profile?.shopAddress}\n")
-        if (!profile?.whatsappNumber.isNullOrBlank()) sb.append("Contact: ${profile?.whatsappNumber}\n")
-        if (!profile?.fssaiNumber.isNullOrBlank()) sb.append("FSSAI: ${profile?.fssaiNumber}\n")
+        val title = if (profile?.gstEnabled == true) "TAX INVOICE" else "INVOICE"
+        sb.append("\n🧾 *--- $title ---*\n")
         
-        sb.append("\n*--- INVOICE ---*\n")
-        sb.append("*Bill #:* ${bill.bill.lifetimeOrderId}\n")
-        val formattedDate = com.khanabook.lite.pos.domain.util.DateUtils.formatDateOnly(bill.bill.createdAt)
-        sb.append("*Date:* ${formattedDate}\n")
+        sb.append("🔢 *Bill #:* ${bill.bill.lifetimeOrderId}\n")
+        val formattedDate = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.bill.createdAt)
+        sb.append("📅 *Date:* ${formattedDate}\n")
         
-        sb.append("*Customer:* ${bill.bill.customerName?.takeIf { it.isNotBlank() } ?: "Walking Customer"}\n")
-        if (!bill.bill.customerWhatsapp.isNullOrBlank()) sb.append("*WA:* ${bill.bill.customerWhatsapp}\n")
+        sb.append("👤 *Customer:* ${bill.bill.customerName?.takeIf { it.isNotBlank() } ?: "Walking Customer"}\n")
         
-        sb.append("\n*ITEMS*\n")
+        sb.append("\n📦 *ORDER SUMMARY*\n")
+        sb.append("$line\n")
         for (item in bill.items) {
             val name = if (item.variantName != null) "${item.itemName} (${item.variantName})" else item.itemName
-            sb.append("• ${item.quantity} x $name = $currency${formatMoney(item.itemTotal)}\n")
+            sb.append("🔹 *${name.uppercase()}*\n")
+            sb.append("   ${item.quantity} x $currency${formatMoney(item.price)} = $currency${formatMoney(item.itemTotal)}\n")
         }
+        sb.append("$line\n")
         
-        sb.append("----------------------------\n")
-        sb.append("*Subtotal: $currency${formatMoney(bill.bill.subtotal)}*\n")
+        sb.append("💵 *Subtotal: $currency${formatMoney(bill.bill.subtotal)}*\n")
         
         if (profile?.gstEnabled == true) {
             val halfGst = try {
@@ -205,8 +208,8 @@ object InvoiceFormatter {
                     .setScale(2, RoundingMode.HALF_UP).toPlainString()
             } catch (e: Exception) { "0.00" }
 
-            sb.append("CGST ($halfGst%): $currency$cgst\n")
-            sb.append("SGST ($halfGst%): $currency$sgst\n")
+            sb.append("   CGST ($halfGst%): $currency$cgst\n")
+            sb.append("   SGST ($halfGst%): $currency$sgst\n")
         }
 
         if (profile?.gstEnabled == false) {
@@ -216,19 +219,19 @@ object InvoiceFormatter {
 
             if (customAmt.compareTo(BigDecimal.ZERO) > 0) {
                 val taxLabel = profile.customTaxName?.takeIf { it.isNotBlank() } ?: "Tax"
-                sb.append("$taxLabel: $currency${formatMoney(bill.bill.customTaxAmount)}\n")
+                sb.append("   $taxLabel: $currency${formatMoney(bill.bill.customTaxAmount)}\n")
             }
         }
         
-        sb.append("*TOTAL AMOUNT: $currency${formatMoney(bill.bill.totalAmount)}*\n")
-        sb.append("----------------------------\n")
-        sb.append("*Payment:* ${
+        sb.append("\n💰 *TOTAL AMOUNT: $currency${formatMoney(bill.bill.totalAmount)}*\n")
+        sb.append("$line\n")
+        sb.append("💳 *Payment:* ${
             com.khanabook.lite.pos.domain.model.PaymentMode
                 .fromDbValue(bill.bill.paymentMode).displayLabel
         }\n")
-        sb.append("Thank you! Visit Again 🙏\n")
+        sb.append("\nThank you! Visit Again 🙏\n")
         if (profile?.showBranding != false) {
-            sb.append("_Powered by KhanaBook_")
+            sb.append("_Software by KhanaBook_")
         }
         
         return sb.toString()

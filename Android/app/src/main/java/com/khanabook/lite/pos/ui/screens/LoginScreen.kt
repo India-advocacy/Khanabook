@@ -51,6 +51,7 @@ fun LoginScreen(
 
     LaunchedEffect(loginStatus) {
         when (val s = loginStatus) {
+            is AuthViewModel.LoginResult.Loading -> {}
             is AuthViewModel.LoginResult.Success -> {
                 android.widget.Toast.makeText(
                                 context,
@@ -191,7 +192,8 @@ fun LoginScreen(
             }
 
             
-            val isLoginEnabled = phone.isNotBlank() && password.isNotBlank()
+            val isLoading = loginStatus is AuthViewModel.LoginResult.Loading
+            val isLoginEnabled = phone.isNotBlank() && password.isNotBlank() && !isLoading
             Button(
                     onClick = { if (isLoginEnabled) viewModel.login(phone, password) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -203,7 +205,17 @@ fun LoginScreen(
                             ),
                     shape = RoundedCornerShape(12.dp),
                     enabled = isLoginEnabled
-            ) { Text("Log In", fontWeight = FontWeight.Bold, fontSize = 16.sp) }
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = DarkBrown1,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Log In", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
