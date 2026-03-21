@@ -5,7 +5,6 @@ import android.graphics.*
 import android.graphics.pdf.PdfDocument
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
-import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import java.io.File
 import java.io.FileOutputStream
 
@@ -23,56 +22,57 @@ class InvoicePDFGenerator(private val context: Context) {
         val pageWidth = if (is80mm) 226 else 164
 
         // 2. Load Logo if exists
-        val logoBitmap =
-                profile?.logoPath?.let { path ->
-                    try {
-                        BitmapFactory.decodeFile(path)
-                    } catch (e: Exception) {
-                        null
-                    }
+        var logoBitmap: Bitmap? = null
+        try {
+            logoBitmap = profile?.logoPath?.let { path ->
+                try {
+                    BitmapFactory.decodeFile(path)
+                } catch (e: Exception) {
+                    null
                 }
+            }
 
-        // 3. Configuration
-        val includeLogo = profile?.includeLogoInPrint == true
-        val includeCustomerWhatsapp = profile?.printCustomerWhatsapp == true
+            // 3. Configuration
+            val includeLogo = profile?.includeLogoInPrint == true
+            val includeCustomerWhatsapp = profile?.printCustomerWhatsapp == true
 
-        // 4. Calculate Heights
-        val logoHeight = if (logoBitmap != null && includeLogo) 50 else 0
-        val whatsappHeight =
+            // 4. Calculate Heights
+            val logoHeight = if (logoBitmap != null && includeLogo) 50 else 0
+            val whatsappHeight =
                 if (includeCustomerWhatsapp && !bill.bill.customerWhatsapp.isNullOrBlank()) 12
                 else 0
-        val fssaiHeight = if (!profile?.fssaiNumber.isNullOrBlank()) 12 else 0
-        val gstinHeight = if (profile?.gstEnabled == true && !profile.gstin.isNullOrBlank()) 12 else 0
-        val shopWaHeight = if (!profile?.whatsappNumber.isNullOrBlank()) 12 else 0
-        
-        val itemHeight = bill.items.size * 14
-        val headerHeight = 180 + logoHeight + whatsappHeight + fssaiHeight + gstinHeight + shopWaHeight
-        val summaryHeight = 130
-        val taxHeight = if (profile?.gstEnabled == true) 30 else 0
-        val footerHeight = 100
-        val pageHeight = headerHeight + itemHeight + summaryHeight + taxHeight + footerHeight
+            val fssaiHeight = if (!profile?.fssaiNumber.isNullOrBlank()) 12 else 0
+            val gstinHeight = if (profile?.gstEnabled == true && !profile.gstin.isNullOrBlank()) 12 else 0
+            val shopWaHeight = if (!profile?.whatsappNumber.isNullOrBlank()) 12 else 0
+            
+            val itemHeight = bill.items.size * 14
+            val headerHeight = 180 + logoHeight + whatsappHeight + fssaiHeight + gstinHeight + shopWaHeight
+            val summaryHeight = 130
+            val taxHeight = if (profile?.gstEnabled == true) 50 else 0
+            val footerHeight = 116
+            val pageHeight = headerHeight + itemHeight + summaryHeight + taxHeight + footerHeight
 
-        val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
-        val page = pdfDocument.startPage(pageInfo)
-        val canvas: Canvas = page.canvas
+            val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
+            val page = pdfDocument.startPage(pageInfo)
+            val canvas: Canvas = page.canvas
 
-        val paint = Paint()
-        val normalTypeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
-        val boldTypeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
-        val monoTypeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
+            val paint = Paint()
+            val normalTypeface = Typeface.create(Typeface.DEFAULT, Typeface.NORMAL)
+            val boldTypeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            val monoTypeface = Typeface.create(Typeface.MONOSPACE, Typeface.NORMAL)
 
-        var y = 15f
+            var y = 15f
 
-        // 5. Draw Logo
-        if (logoBitmap != null && includeLogo) {
-            val scaledWidth = 35f
-            val scaledHeight =
+            // 5. Draw Logo
+            if (logoBitmap != null && includeLogo) {
+                val scaledWidth = 35f
+                val scaledHeight =
                     (logoBitmap.height.toFloat() / logoBitmap.width.toFloat()) * scaledWidth
-            val left = (pageWidth - scaledWidth) / 2
-            val rect = RectF(left, y, left + scaledWidth, y + scaledHeight)
-            canvas.drawBitmap(logoBitmap, null, rect, paint)
-            y += scaledHeight + 12f
-        }
+                val left = (pageWidth - scaledWidth) / 2
+                val rect = RectF(left, y, left + scaledWidth, y + scaledHeight)
+                canvas.drawBitmap(logoBitmap, null, rect, paint)
+                y += scaledHeight + 12f
+            }
 
         // 6. Colors & Sizes
         val colorPrimary = if (isDigital) Color.parseColor("#2E150B") else Color.BLACK
@@ -122,7 +122,7 @@ class InvoicePDFGenerator(private val context: Context) {
         paint.textAlign = Paint.Align.LEFT
         
         if (!profile?.fssaiNumber.isNullOrBlank()) {
-            val label = "FSSAI LIC NO: "
+            val label = "FSSAI No: "
             val value = profile?.fssaiNumber ?: ""
             paint.typeface = boldTypeface
             val lw = paint.measureText(label)
@@ -152,7 +152,7 @@ class InvoicePDFGenerator(private val context: Context) {
         }
 
         if (!profile?.whatsappNumber.isNullOrBlank()) {
-            val label = "SHOP WA: "
+            val label = "Contact: "
             val value = profile?.whatsappNumber ?: ""
             paint.typeface = boldTypeface
             val lw = paint.measureText(label)
@@ -225,9 +225,11 @@ class InvoicePDFGenerator(private val context: Context) {
         paint.textAlign = Paint.Align.LEFT
         canvas.drawText("ITEM", 5f, y, paint)
 
-        val qtyX = if (is80mm) 160f else 115f
+        val rateX = if (is80mm) 130f else 90f
+        val qtyX  = if (is80mm) 160f else 115f
         paint.textAlign = Paint.Align.CENTER
-        canvas.drawText("QTY", qtyX, y, paint)
+        canvas.drawText("RATE", rateX, y, paint)
+        canvas.drawText("QTY",  qtyX,  y, paint)
         
         paint.textAlign = Paint.Align.RIGHT
         canvas.drawText("AMT", (pageWidth - 5).toFloat(), y, paint)
@@ -245,7 +247,7 @@ class InvoicePDFGenerator(private val context: Context) {
         bill.items.forEachIndexed { _, item ->
             paint.textAlign = Paint.Align.LEFT
             val displayName = item.itemName.uppercase()
-            val maxChars = if (is80mm) 35 else 25
+            val maxChars = if (is80mm) 22 else 15
             canvas.drawText(
                     if (displayName.length > maxChars) displayName.take(maxChars - 2) + ".." else displayName,
                     5f,
@@ -254,15 +256,19 @@ class InvoicePDFGenerator(private val context: Context) {
             )
 
             paint.textAlign = Paint.Align.CENTER
+            val priceStr = try {
+                java.math.BigDecimal(item.price)
+                    .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+            } catch (e: Exception) { "0.00" }
+            canvas.drawText(priceStr, rateX, y, paint)
             canvas.drawText("${item.quantity}", qtyX, y, paint)
 
             paint.textAlign = Paint.Align.RIGHT
-            canvas.drawText(
-                    CurrencyUtils.formatPrice(item.itemTotal).removePrefix("₹ ").removePrefix("₹"),
-                    (pageWidth - 5).toFloat(),
-                    y,
-                    paint
-            )
+            val itemTotalStr = try {
+                java.math.BigDecimal(item.itemTotal)
+                    .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+            } catch (e: Exception) { "0.00" }
+            canvas.drawText(itemTotalStr, (pageWidth - 5).toFloat(), y, paint)
             y += 14f 
         }
 
@@ -280,26 +286,56 @@ class InvoicePDFGenerator(private val context: Context) {
         paint.textAlign = Paint.Align.LEFT
         canvas.drawText("Sub-Total", summaryLabelX, y, paint)
         paint.textAlign = Paint.Align.RIGHT
-        canvas.drawText(
-                CurrencyUtils.formatPrice(bill.bill.subtotal).removePrefix("₹ ").removePrefix("₹"),
-                (pageWidth - 5).toFloat(),
-                y,
-                paint
-        )
+        val subtotalStr = try {
+            java.math.BigDecimal(bill.bill.subtotal)
+                .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+        } catch (e: Exception) { "0.00" }
+        canvas.drawText(subtotalStr, (pageWidth - 5).toFloat(), y, paint)
 
         if (profile?.gstEnabled == true) {
+            val halfGst = try {
+                java.math.BigDecimal(bill.bill.gstPercentage)
+                    .divide(java.math.BigDecimal("2"), 2, java.math.RoundingMode.HALF_UP)
+                    .stripTrailingZeros().toPlainString()
+            } catch (e: Exception) { "0" }
+
+            val cgstAmt = try {
+                java.math.BigDecimal(bill.bill.cgstAmount)
+                    .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+            } catch (e: Exception) { "0.00" }
+
+            val sgstAmt = try {
+                java.math.BigDecimal(bill.bill.sgstAmount)
+                    .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+            } catch (e: Exception) { "0.00" }
+
             y += 10f
             paint.textAlign = Paint.Align.LEFT
-            canvas.drawText("GST (${bill.bill.gstPercentage}%)", summaryLabelX, y, paint)
+            canvas.drawText("CGST ($halfGst%)", summaryLabelX, y, paint)
             paint.textAlign = Paint.Align.RIGHT
-            val cgst = bill.bill.cgstAmount.toDoubleOrNull() ?: 0.0
-            val sgst = bill.bill.sgstAmount.toDoubleOrNull() ?: 0.0
-            canvas.drawText(
-                    CurrencyUtils.formatPrice(cgst + sgst).removePrefix("₹ ").removePrefix("₹"),
-                    (pageWidth - 5).toFloat(),
-                    y,
-                    paint
-            )
+            canvas.drawText(cgstAmt, (pageWidth - 5).toFloat(), y, paint)
+
+            y += 10f
+            paint.textAlign = Paint.Align.LEFT
+            canvas.drawText("SGST ($halfGst%)", summaryLabelX, y, paint)
+            paint.textAlign = Paint.Align.RIGHT
+            canvas.drawText(sgstAmt, (pageWidth - 5).toFloat(), y, paint)
+        }
+
+        if (profile?.gstEnabled == false &&
+            try { java.math.BigDecimal(bill.bill.customTaxAmount) > java.math.BigDecimal.ZERO } catch (e: Exception) { false }
+        ) {
+            val taxLabel = profile.customTaxName?.takeIf { it.isNotBlank() } ?: "Tax"
+            val taxAmt = try {
+                java.math.BigDecimal(bill.bill.customTaxAmount)
+                    .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+            } catch (e: Exception) { "0.00" }
+
+            y += 10f
+            paint.textAlign = Paint.Align.LEFT
+            canvas.drawText("$taxLabel:", summaryLabelX, y, paint)
+            paint.textAlign = Paint.Align.RIGHT
+            canvas.drawText(taxAmt, (pageWidth - 5).toFloat(), y, paint)
         }
 
         y += 8f
@@ -316,15 +352,32 @@ class InvoicePDFGenerator(private val context: Context) {
         
         paint.textAlign = Paint.Align.RIGHT
         val currency = if (profile?.currency == "INR" || profile?.currency == "Rupee") "₹" else profile?.currency ?: ""
+        val totalAmountStr = try {
+            java.math.BigDecimal(bill.bill.totalAmount)
+                .setScale(2, java.math.RoundingMode.HALF_UP).toPlainString()
+        } catch (e: Exception) { "0.00" }
         canvas.drawText(
-                "${if (currency == "₹") "" else currency} ${CurrencyUtils.formatPrice(bill.bill.totalAmount).removePrefix("₹ ").removePrefix("₹")}",
+                "${if (currency == "₹") "" else currency} $totalAmountStr",
                 (pageWidth - 5).toFloat(),
                 y,
                 paint
         )
 
+        // Rule 4: Payment Mode
+        y += 14f
+        paint.typeface = normalTypeface
+        paint.textSize = bodySize
+        paint.textAlign = Paint.Align.LEFT
+        canvas.drawText(
+            "Payment: ${
+                com.khanabook.lite.pos.domain.model.PaymentMode
+                    .fromDbValue(bill.bill.paymentMode).displayLabel
+            }",
+            5f, y, paint
+        )
+
         // 14. Footer
-        y += 30f
+        y += 16f 
         paint.typeface = boldTypeface
         paint.textSize = 7f
         paint.textAlign = Paint.Align.CENTER
@@ -333,12 +386,14 @@ class InvoicePDFGenerator(private val context: Context) {
             canvas.drawRect(5f, y - 9f, (pageWidth - 5).toFloat(), y + 4f, paint)
             paint.color = Color.WHITE
         }
-        canvas.drawText("THANK YOU! VISIT AGAIN", (pageWidth / 2).toFloat(), y, paint)
+        canvas.drawText("Thank you! Visit again.", (pageWidth / 2).toFloat(), y, paint)
 
         paint.color = colorText
         paint.typeface = normalTypeface
         y += 14f
-        canvas.drawText("Software by KhanaBook", (pageWidth / 2).toFloat(), y, paint)
+        if (profile?.showBranding != false) {
+            canvas.drawText("Powered by KhanaBook", (pageWidth / 2).toFloat(), y, paint)
+        }
         
         y += 10f
         paint.typeface = monoTypeface
@@ -347,10 +402,17 @@ class InvoicePDFGenerator(private val context: Context) {
 
         pdfDocument.finishPage(page)
 
-        val file = File(context.cacheDir, "invoice_${bill.bill.lifetimeOrderId}.pdf")
-        pdfDocument.writeTo(FileOutputStream(file))
-        pdfDocument.close()
-
+        val invoiceDir = File(context.filesDir, "invoices")
+        invoiceDir.mkdirs()
+        val file = File(invoiceDir, "invoice_${bill.bill.lifetimeOrderId}.pdf")
+        try {
+            FileOutputStream(file).use { pdfDocument.writeTo(it) }
+        } finally {
+            pdfDocument.close()
+        }
         return file
+    } finally {
+        logoBitmap?.recycle()
     }
+}
 }

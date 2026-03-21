@@ -79,8 +79,27 @@ fun Context.findActivity(): ComponentActivity? = when (this) {
     else -> null
 }
 
-fun shareBillAsPdf(context: Context, billWithItems: BillWithItems, profile: RestaurantProfileEntity?) {
+private fun normalizeWhatsAppNumber(raw: String?): String? {
+    if (raw.isNullOrBlank()) return null
+    // strip everything except digits
+    val digits = raw.replace(Regex("[^0-9]"), "")
+    return when {
+        digits.length == 10 -> "91$digits"           // bare Indian number
+        digits.length == 11 && digits.startsWith("0") -> "91${digits.drop(1)}" // 0XXXXXXXXXX
+        digits.length == 12 && digits.startsWith("91") -> digits               // 91XXXXXXXXXX
+        digits.length == 13 && digits.startsWith("091") -> digits.drop(1)      // 091XXXXXXXXXX
+        digits.length >= 10 -> digits                 // international, trust as-is
+        else -> null                                  // too short, unusable
+    }
+}
+
+fun shareBillOnWhatsApp(
+    context: Context,
+    billWithItems: BillWithItems,
+    profile: RestaurantProfileEntity?
+) {
     try {
+        // 1. Generate PDF
         val pdfGenerator = InvoicePDFGenerator(context)
         val pdfFile = pdfGenerator.generatePDF(billWithItems, profile)
         val pdfUri = FileProvider.getUriForFile(
@@ -89,63 +108,137 @@ fun shareBillAsPdf(context: Context, billWithItems: BillWithItems, profile: Rest
             pdfFile
         )
 
-        val phone = billWithItems.bill.customerWhatsapp
-        var formattedPhone = phone?.replace(Regex("[^0-9]"), "")
-        if (formattedPhone != null && formattedPhone.length == 10) {
-            formattedPhone = "91$formattedPhone"
-        }
+        // 2. Build WhatsApp text body using the formatter
+        val textBody = com.khanabook.lite.pos.domain.util.InvoiceFormatter
+            .formatForWhatsApp(billWithItems, profile)
+
+        // 3. Normalize customer phone
+        val formattedPhone = normalizeWhatsAppNumber(
+            billWithItems.bill.customerWhatsapp
+        )
 
         if (formattedPhone != null) {
-            try {
-                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                val clip = android.content.ClipData.newPlainText("Customer WhatsApp", formattedPhone)
-                clipboard.setPrimaryClip(clip)
-                Toast.makeText(context, "Number copied! If chat doesn't open, paste it in WhatsApp search.", Toast.LENGTH_LONG).show()
-            } catch (e: Exception) {
-                // Ignore clipboard errors
-            }
-
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/pdf"
-                putExtra(Intent.EXTRA_STREAM, pdfUri)
-                putExtra(Intent.EXTRA_TEXT, "Invoice from ${profile?.shopName ?: "KhanaBook"}")
-                putExtra("jid", "$formattedPhone@s.whatsapp.net")
-                `package` = "com.whatsapp"
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            try {
-                context.startActivity(intent)
-            } catch (e: Exception) {
-                // Try WhatsApp Business if normal WhatsApp fails
-                val bizIntent = Intent(Intent.ACTION_SEND).apply {
-                    type = "application/pdf"
-                    putExtra(Intent.EXTRA_STREAM, pdfUri)
-                    putExtra(Intent.EXTRA_TEXT, "Invoice from ${profile?.shopName ?: "KhanaBook"}")
-                    putExtra("jid", "$formattedPhone@s.whatsapp.net")
-                    `package` = "com.whatsapp.w4b"
-                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                }
-                try {
-                    context.startActivity(bizIntent)
-                } catch (e2: Exception) {
-                    val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
-                        type = "application/pdf"
-                        putExtra(Intent.EXTRA_STREAM, pdfUri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    }
-                    context.startActivity(Intent.createChooser(fallbackIntent, "Share Invoice PDF"))
-                }
+            // --- SAVED OR KNOWN NUMBER PATH ---
+            // Try WhatsApp consumer first, then Business, then wa.me deep link
+            val sent = tryDirectWhatsApp(context, formattedPhone, textBody, pdfUri)
+            if (!sent) {
+                tryWaMeDeepLink(context, formattedPhone, textBody, pdfUri)
             }
         } else {
-            val intent = Intent(Intent.ACTION_SEND).apply {
+            // --- NO NUMBER PATH ---
+            // Open generic share chooser with text + PDF
+            val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
                 putExtra(Intent.EXTRA_STREAM, pdfUri)
+                putExtra(Intent.EXTRA_TEXT, textBody)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            context.startActivity(Intent.createChooser(intent, "Share Invoice PDF"))
+            context.startActivity(
+                Intent.createChooser(fallbackIntent, "Share Invoice")
+            )
         }
+
     } catch (e: Exception) {
-        Toast.makeText(context, "Error sharing PDF: ${e.message}", Toast.LENGTH_SHORT).show()
+        android.widget.Toast.makeText(
+            context,
+            "Error sharing invoice: ${e.message}",
+            android.widget.Toast.LENGTH_SHORT
+        ).show()
+    }
+}
+
+private fun tryDirectWhatsApp(
+    context: Context,
+    phone: String,
+    textBody: String,
+    pdfUri: android.net.Uri
+): Boolean {
+    // WhatsApp ignores EXTRA_TEXT when type = application/pdf.
+    // So we send two intents in sequence:
+    //   1. Text message to the jid (opens chat)
+    //   2. PDF file to the same jid (attaches file)
+    // This is the most reliable approach without the Business API.
+
+    val packages = listOf("com.whatsapp", "com.whatsapp.w4b")
+
+    for (pkg in packages) {
+        try {
+            // Step A: send text first to open the correct chat
+            val textIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, textBody)
+                putExtra("jid", "$phone@s.whatsapp.net")
+                `package` = pkg
+            }
+            context.startActivity(textIntent)
+
+            // Step B: after 800ms, send the PDF to the same chat
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                try {
+                    val pdfIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "application/pdf"
+                        putExtra(Intent.EXTRA_STREAM, pdfUri)
+                        putExtra("jid", "$phone@s.whatsapp.net")
+                        `package` = pkg
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(pdfIntent)
+                } catch (_: Exception) {
+                    // PDF step failed silently — text already sent
+                }
+            }, 800)
+
+            return true // at least text intent succeeded
+        } catch (_: Exception) {
+            // try next package
+        }
+    }
+    return false
+}
+
+private fun tryWaMeDeepLink(
+    context: Context,
+    phone: String,
+    textBody: String,
+    pdfUri: android.net.Uri
+) {
+    // wa.me is WhatsApp's officially documented unsaved contact deep link.
+    // It opens a new chat pre-filled with the text. PDF must be shared separately.
+    try {
+        val encodedText = java.net.URLEncoder.encode(textBody, "UTF-8")
+        val waUri = android.net.Uri.parse("https://wa.me/$phone?text=$encodedText")
+        val waIntent = Intent(Intent.ACTION_VIEW, waUri)
+        context.startActivity(waIntent)
+
+        // After WA opens, copy PDF path to clipboard so user can attach manually
+        // Only show this toast in the wa.me fallback path
+        val clipboard = context.getSystemService(
+            android.content.Context.CLIPBOARD_SERVICE
+        ) as android.content.ClipboardManager
+        val clip = android.content.ClipData.newUri(
+            context.contentResolver,
+            "Invoice PDF",
+            pdfUri
+        )
+        clipboard.setPrimaryClip(clip)
+
+        android.widget.Toast.makeText(
+            context,
+            "Text sent. To attach the PDF, tap the attachment icon in WhatsApp.",
+            android.widget.Toast.LENGTH_LONG
+        ).show()
+
+    } catch (_: Exception) {
+        // wa.me failed too — final fallback: generic chooser with both
+        val fallbackIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_STREAM, pdfUri)
+            putExtra(Intent.EXTRA_TEXT, textBody)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        context.startActivity(
+            Intent.createChooser(fallbackIntent, "Share Invoice")
+        )
     }
 }
 
@@ -197,6 +290,3 @@ fun directPrint(context: Context, billWithItems: BillWithItems, profile: Restaur
         }
     }
 }
-
-
-

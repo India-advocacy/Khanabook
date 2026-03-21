@@ -20,7 +20,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 23,
+        version = 24,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -86,6 +86,12 @@ abstract class AppDatabase : RoomDatabase() {
                 } catch (e: Exception) {
                     // Ignore if columns exist
                 }
+            }
+        }
+
+        val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `restaurant_profile` ADD COLUMN `show_branding` INTEGER NOT NULL DEFAULT 1")
             }
         }
     }

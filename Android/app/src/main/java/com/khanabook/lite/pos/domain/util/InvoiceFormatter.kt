@@ -67,8 +67,12 @@ object InvoiceFormatter {
             try {
                 val bitmap = BitmapFactory.decodeFile(profile.logoPath)
                 if (bitmap != null) {
-                    add(decodeBitmapToESC_POS(bitmap, 384))
-                    add("\n")
+                    try {
+                        add(decodeBitmapToESC_POS(bitmap, 384))
+                        add("\n")
+                    } finally {
+                        bitmap.recycle()
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error printing logo", e)
@@ -94,7 +98,7 @@ object InvoiceFormatter {
         add(centerText(if (isGst) "TAX INVOICE" else "INVOICE", width) + "\n")
         add("$line\n")
         
-        add("Bill : ${bill.bill.dailyOrderId.toString().padStart(3, '0')}\n")
+        add("Bill : ${bill.bill.lifetimeOrderId}\n")
         val dateStr = com.khanabook.lite.pos.domain.util.DateUtils.formatDateOnly(bill.bill.createdAt)
         add("Date: $dateStr\n")
         bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add("Cust : $it\n") }
@@ -129,7 +133,8 @@ object InvoiceFormatter {
         }
         
         if (!isGst && (BigDecimal(bill.bill.customTaxAmount).compareTo(BigDecimal.ZERO) > 0)) {
-            add(formatRow("Tax:", "$currency ${formatMoney(bill.bill.customTaxAmount)}", width))
+            val taxLabel = profile?.customTaxName?.takeIf { it.isNotBlank() } ?: "Tax"
+            add(formatRow("$taxLabel:", "$currency ${formatMoney(bill.bill.customTaxAmount)}", width))
         }
         
         add("$line\n")
@@ -142,10 +147,11 @@ object InvoiceFormatter {
         
         add("$doubleLine\n")
         add(ALIGN_CENTER)
-        add("Thank you for visiting us!\n")
-        add("Have a great day!\n")
+        add("Thank you! Visit again.\n")
         add("$doubleLine\n")
-        add("Powered by KhanaBook POS\n")
+        if (profile?.showBranding != false) {
+            add("Powered by KhanaBook\n")
+        }
         
         
         add("\n\n\n\n")
@@ -166,11 +172,11 @@ object InvoiceFormatter {
         if (!profile?.fssaiNumber.isNullOrBlank()) sb.append("FSSAI: ${profile?.fssaiNumber}\n")
         
         sb.append("\n*--- INVOICE ---*\n")
-        sb.append("*Bill #:* ${bill.bill.dailyOrderId.toString().padStart(3, '0')}\n")
+        sb.append("*Bill #:* ${bill.bill.lifetimeOrderId}\n")
         val formattedDate = com.khanabook.lite.pos.domain.util.DateUtils.formatDateOnly(bill.bill.createdAt)
         sb.append("*Date:* ${formattedDate}\n")
         
-        if (!bill.bill.customerName.isNullOrBlank()) sb.append("*Customer:* ${bill.bill.customerName}\n")
+        sb.append("*Customer:* ${bill.bill.customerName?.takeIf { it.isNotBlank() } ?: "Walking Customer"}\n")
         if (!bill.bill.customerWhatsapp.isNullOrBlank()) sb.append("*WA:* ${bill.bill.customerWhatsapp}\n")
         
         sb.append("\n*ITEMS*\n")
@@ -183,16 +189,47 @@ object InvoiceFormatter {
         sb.append("*Subtotal: $currency${formatMoney(bill.bill.subtotal)}*\n")
         
         if (profile?.gstEnabled == true) {
-            val halfGst = BigDecimal(bill.bill.gstPercentage).divide(BigDecimal("2"), 2, RoundingMode.HALF_UP)
-            sb.append("CGST (${halfGst.stripTrailingZeros().toPlainString()}%): $currency${formatMoney(bill.bill.cgstAmount)}\n")
-            sb.append("SGST (${halfGst.stripTrailingZeros().toPlainString()}%): $currency${formatMoney(bill.bill.sgstAmount)}\n")
+            val halfGst = try {
+                BigDecimal(bill.bill.gstPercentage)
+                    .divide(BigDecimal("2"), 2, RoundingMode.HALF_UP)
+                    .stripTrailingZeros().toPlainString()
+            } catch (e: Exception) { "0" }
+
+            val cgst = try {
+                BigDecimal(bill.bill.cgstAmount)
+                    .setScale(2, RoundingMode.HALF_UP).toPlainString()
+            } catch (e: Exception) { "0.00" }
+
+            val sgst = try {
+                BigDecimal(bill.bill.sgstAmount)
+                    .setScale(2, RoundingMode.HALF_UP).toPlainString()
+            } catch (e: Exception) { "0.00" }
+
+            sb.append("CGST ($halfGst%): $currency$cgst\n")
+            sb.append("SGST ($halfGst%): $currency$sgst\n")
+        }
+
+        if (profile?.gstEnabled == false) {
+            val customAmt = try {
+                BigDecimal(bill.bill.customTaxAmount)
+            } catch (e: Exception) { BigDecimal.ZERO }
+
+            if (customAmt.compareTo(BigDecimal.ZERO) > 0) {
+                val taxLabel = profile.customTaxName?.takeIf { it.isNotBlank() } ?: "Tax"
+                sb.append("$taxLabel: $currency${formatMoney(bill.bill.customTaxAmount)}\n")
+            }
         }
         
         sb.append("*TOTAL AMOUNT: $currency${formatMoney(bill.bill.totalAmount)}*\n")
         sb.append("----------------------------\n")
-        sb.append("Payment: ${bill.bill.paymentMode.uppercase()}\n\n")
+        sb.append("*Payment:* ${
+            com.khanabook.lite.pos.domain.model.PaymentMode
+                .fromDbValue(bill.bill.paymentMode).displayLabel
+        }\n")
         sb.append("Thank you! Visit Again 🙏\n")
-        sb.append("_Powered by KhanaBook POS_")
+        if (profile?.showBranding != false) {
+            sb.append("_Powered by KhanaBook_")
+        }
         
         return sb.toString()
     }

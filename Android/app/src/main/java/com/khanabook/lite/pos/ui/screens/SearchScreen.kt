@@ -388,7 +388,7 @@ fun SearchScreen(
                             ) {
                                 Button(
                                         onClick = {
-                                            result?.let { shareBillAsPdf(context, it, profile) }
+                                            result?.let { shareBillOnWhatsApp(context, it, profile) }
                                         },
                                         modifier = Modifier.weight(1f).height(40.dp),
                                         colors =
@@ -406,7 +406,7 @@ fun SearchScreen(
                                             modifier = Modifier.size(16.dp)
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Share", color = Color.White, fontSize = 11.sp)
+                                    Text("WhatsApp", color = Color.White, fontSize = 11.sp)
                                 }
                                 OutlinedButton(
                                         onClick = {

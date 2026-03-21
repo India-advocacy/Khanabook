@@ -925,7 +925,7 @@ fun SuccessStep(
         Spacer(modifier = Modifier.height(32.dp))
         Button(
                 onClick = {
-                    lastBill?.let { shareBillAsPdf(context, it, profile) }
+                    lastBill?.let { shareBillOnWhatsApp(context, it, profile) }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
@@ -934,7 +934,7 @@ fun SuccessStep(
         ) {
             Icon(Icons.Default.Share, null, tint = Color.White)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Share PDF on WhatsApp", color = Color.White)
+            Text("Share Invoice on WhatsApp", color = Color.White)
         }
         Spacer(modifier = Modifier.height(16.dp))
         Button(
