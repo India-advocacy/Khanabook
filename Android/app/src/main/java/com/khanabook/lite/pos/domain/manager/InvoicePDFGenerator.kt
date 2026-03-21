@@ -413,7 +413,7 @@ class InvoicePDFGenerator(private val context: Context) {
 
         pdfDocument.finishPage(page)
 
-        val invoiceDir = File(context.filesDir, "invoices")
+        val invoiceDir = File(context.cacheDir, "invoices")
         invoiceDir.mkdirs()
         val file = File(invoiceDir, "invoice_${bill.bill.lifetimeOrderId}.pdf")
         try {

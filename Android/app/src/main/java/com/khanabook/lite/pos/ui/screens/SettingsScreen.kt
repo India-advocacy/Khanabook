@@ -728,7 +728,15 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
                 if (btIsScanning) CircularProgressIndicator(color = PrimaryGold, modifier = Modifier.padding(16.dp))
                 LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
                     items(btDevices, key = { it.address }) { device ->
-                        DeviceRow(device, isConnecting = btIsConnecting) { viewModel.connectToPrinter(context, device) }
+                        val isSelected = device.address == profile?.printerMac
+                        DeviceRow(
+                            device = device, 
+                            isConnecting = btIsConnecting,
+                            isSelected = isSelected,
+                            isConnected = isSelected && btIsConnected
+                        ) { 
+                            viewModel.connectToPrinter(context, device) 
+                        }
                     }
                 }
             }
@@ -745,18 +753,33 @@ private fun PrinterOptionRow(label: String, checked: Boolean, onCheckedChange: (
 }
 
 @Composable
-fun DeviceRow(device: BluetoothDevice, isConnecting: Boolean, onClick: () -> Unit) {
+fun DeviceRow(device: BluetoothDevice, isConnecting: Boolean, isSelected: Boolean = false, isConnected: Boolean = false, onClick: () -> Unit) {
     @Suppress("MissingPermission")
     val name = device.name ?: "Unknown"
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(enabled = !isConnecting) { onClick() }, colors = CardDefaults.cardColors(containerColor = DarkBrown1.copy(alpha = 0.5f))) {
+    val border = if (isSelected) BorderStroke(2.dp, PrimaryGold) else null
+    val backgroundColor = if (isSelected) DarkBrown1 else DarkBrown1.copy(alpha = 0.5f)
+    
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable(enabled = !isConnecting) { onClick() }, 
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        border = border
+    ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Bluetooth, null, tint = PrimaryGold)
+            Icon(
+                if (isConnected) Icons.Default.BluetoothConnected else Icons.Default.Bluetooth, 
+                null, 
+                tint = if (isSelected) PrimaryGold else TextGold
+            )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(name, color = TextLight, fontWeight = FontWeight.Medium)
-                Text(device.address, color = TextGold, fontSize = 11.sp)
+                Text(name, color = TextLight, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium)
+                Text(device.address, color = if (isSelected) PrimaryGold.copy(alpha = 0.7f) else TextGold, fontSize = 11.sp)
             }
-            if (isConnecting) CircularProgressIndicator(modifier = Modifier.size(16.dp), color = PrimaryGold)
+            if (isConnecting) {
+                CircularProgressIndicator(modifier = Modifier.size(16.dp), color = PrimaryGold)
+            } else if (isConnected) {
+                Box(modifier = Modifier.size(8.dp).background(SuccessGreen, CircleShape))
+            }
         }
     }
 }

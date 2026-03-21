@@ -9,39 +9,47 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.model.OrderDetailRow
 import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
+import com.khanabook.lite.pos.domain.util.DateUtils
+import com.khanabook.lite.pos.domain.util.shareBillOnWhatsApp
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.ReportsViewModel
-import java.text.SimpleDateFormat
+import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
+import kotlinx.coroutines.launch
 import java.util.*
 
 @Composable
 fun OrdersScreen(
     onBack: () -> Unit,
     viewModel: ReportsViewModel = hiltViewModel(),
-    settingsViewModel: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel = hiltViewModel()
+    settingsViewModel: SettingsViewModel = hiltViewModel()
 ) {
     val allRows by viewModel.orderDetailsTable.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
-    val enabledModes = remember(profile) { profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH) }
+    val enabledModes = remember(profile) { 
+        profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH) 
+    }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var selectedPeriod by remember { mutableIntStateOf(0) }
-    
     
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
@@ -118,19 +126,11 @@ fun OrdersScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(DarkBrown1, DarkBrown2)
-                )
-            )
+            .background(Brush.verticalGradient(colors = listOf(DarkBrown1, DarkBrown2)))
     ) {
-        
         Column(modifier = Modifier.fillMaxSize()) {
-            
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onBack) {
@@ -145,11 +145,9 @@ fun OrdersScreen(
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
-                
                 Spacer(modifier = Modifier.size(48.dp))
             }
 
-            
             PeriodTabs(
                 selectedTabIndex = selectedPeriod,
                 onTabSelected = { 
@@ -160,21 +158,23 @@ fun OrdersScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            
             TableHeader()
 
-            
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .padding(horizontal = 4.dp),
+                modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 4.dp),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
                 items(allRows) { row ->
                     OrderTableRow(
                         row = row,
                         enabledModes = enabledModes,
+                        onShare = {
+                            scope.launch {
+                                viewModel.getOrderDetail(row.billId)?.let { detail ->
+                                    shareBillOnWhatsApp(context, detail, profile)
+                                }
+                            }
+                        },
                         onStatusChange = { newStatus ->
                             viewModel.updateOrderStatus(row.billId, newStatus)
                         },
@@ -192,9 +192,7 @@ fun OrdersScreen(
 fun PeriodTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
     val tabs = listOf("Daily", "Weekly", "Monthly", "Custom")
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         tabs.forEachIndexed { index, title ->
@@ -244,6 +242,7 @@ fun TableHeader() {
         HeaderCell("Mode", 1.2f)
         HeaderCell("Status", 1.5f)
         HeaderCell("Date", 1.5f)
+        HeaderCell("Share", 0.8f)
     }
 }
 
@@ -264,6 +263,7 @@ fun RowScope.HeaderCell(text: String, weight: Float) {
 fun OrderTableRow(
     row: OrderDetailRow, 
     enabledModes: List<PaymentMode>,
+    onShare: () -> Unit,
     onStatusChange: (String) -> Unit,
     onPayModeChange: (PaymentMode) -> Unit
 ) {
@@ -282,7 +282,6 @@ fun OrderTableRow(
         TableCell(row.lifetimeNo.toString(), 1.2f)
         TableCell(row.currentStatus, 1.5f, fontSize = 10.sp)
         TableCell(CurrencyUtils.formatPrice(row.salesAmount), 1.3f, fontWeight = FontWeight.Bold)
-        
         
         Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
             val color = getPayModeColor(row.payMode)
@@ -323,7 +322,6 @@ fun OrderTableRow(
             }
         }
 
-        
         Box(modifier = Modifier.weight(1.5f), contentAlignment = Alignment.Center) {
             val statusColor = if (row.orderStatus == OrderStatus.COMPLETED) SuccessGreen else DangerRed
             Surface(
@@ -339,7 +337,7 @@ fun OrderTableRow(
                     Text(
                         text = if (row.orderStatus == OrderStatus.COMPLETED) "Completion" else "Cancelled",
                         color = Color.White,
-                        fontSize =8.sp,
+                        fontSize = 8.sp,
                         textAlign = TextAlign.Center,
                         lineHeight = 10.sp
                     )
@@ -368,7 +366,21 @@ fun OrderTableRow(
             }
         }
 
-        TableCell(com.khanabook.lite.pos.domain.util.DateUtils.formatDisplayDate(row.salesDate), 1.5f, fontSize = 9.sp)
+        TableCell(DateUtils.formatDisplayDate(row.salesDate), 1.5f, fontSize = 9.sp)
+
+        Box(modifier = Modifier.weight(0.8f), contentAlignment = Alignment.Center) {
+            IconButton(
+                onClick = onShare,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(
+                    Icons.Default.Share,
+                    contentDescription = "Share",
+                    tint = SuccessGreen,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
     }
 }
 
@@ -401,12 +413,8 @@ private fun getPayModeColor(mode: PaymentMode): Color {
     }
 }
 
-
-
-
 private fun periodRange(tab: Int): Pair<Long, Long> {
     val cal = Calendar.getInstance()
-    
     val start: Calendar = when (tab) {
         0 -> { 
             (cal.clone() as Calendar).apply { 
@@ -443,8 +451,5 @@ private fun periodRange(tab: Int): Pair<Long, Long> {
         set(Calendar.SECOND, 59) 
         set(Calendar.MILLISECOND, 999)
     }
-    
     return start.timeInMillis to end.timeInMillis
 }
-
-

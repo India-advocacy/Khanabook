@@ -129,6 +129,10 @@ class ReportsViewModel @Inject constructor(
             }
         }
     }
+
+    suspend fun getOrderDetail(billId: Long): com.khanabook.lite.pos.data.local.relation.BillWithItems? {
+        return reportGenerator.getOrderDetail(billId)
+    }
 }
 
 

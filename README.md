@@ -64,28 +64,25 @@ The engine that receives synced offline data, handles conflict resolution, and e
 - **Rate Limiting:** Bucket4j (Protects Auth & Sync endpoints from brute force)
 - **API Documentation:** SpringDoc OpenAPI (Swagger UI)
 
-### 🧱 Architecture Highlights
-- **Multi-Tenant System:** Every request is authenticated via JWT. A custom `TenantContext` ensures data isolation so one restaurant cannot access another's data.
-- **Robust Sync Engine:** The `GenericSyncService` powers our bidirectional syncing. It uses update timestamps and handles conflicts to ensure the local Master node (the Android App) and Server stay perfectly aligned without data loss.
-
-### 🚀 Getting Started
-1. **Requirements:** **JDK 17** & **PostgreSQL**.
-2. **Setup Database:** Create a local PostgreSQL database named `khanabook_db`.
-3. **Configure Settings:** Update `server/src/main/resources/application.properties` with your database credentials and a solid `jwt.secret.key`.
-4. **Run:** Build with Maven `mvn clean install` or simply run the `KhanabookSaaSApplication.java` from your favorite IDE.
-
-### Repository Hygiene
-- **Local-only artifacts:** A root-level `.gitignore` now keeps `server/target/`, the Eclipse workspace metadata (`.classpath`, `.factorypath`, `.project`, `.settings/`), and stray `.class` files out of commits so the backend build artifacts stay local.
-- **Clean staging:** Run `mvn -pl server clean` before packaging and delete `server/target/` if you're preparing a PR to avoid noisy diffs caused by generated files.
-
-
 ---
 
-## 🍱 Recent Fixes & Stability Updates
-- **Security Hardening:** Removed plaintext OTP logging, corrected OTP verification bypass logic, and implemented stricter JWT validation.
-- **Data Integrity:** Standardized all primary and foreign key IDs to `Long` across the Android application and server. Migrated monetary fields to `BigDecimal` (stored as `String`) for absolute financial precision.
-- **Concurrency:** Implemented `Mutex` serialization for critical order completion flows to prevent race conditions.
-- **Sync Refinement:** Improved backend conflict resolution for shared local IDs (e.g., `localId=1` for Admins) and enforced device consistency in sync batches.
+## 🍱 Recent Improvements & Stability Updates
+
+### 🧾 Billing & Reports
+- **Clean Order Numbering:** Optimized Daily Order IDs to show only the 3-digit counter (e.g., `001`, `002`) in tables and reports for better readability.
+- **Integrated Sharing:** Added a dedicated WhatsApp share button to every row in the **Order Details** screen, allowing instant invoice delivery for any past order.
+
+### 🔌 Hardware & Connectivity
+- **Robust Printer Discovery:** Enhanced Bluetooth scanning to reliably detect new/unpaired thermal printers. Added automatic Location/GPS status checks required for Android hardware discovery.
+- **Unified Printer State:** Implemented a Singleton manager for Bluetooth connectivity, ensuring your printer stays connected across all screens (Settings, Billing, etc.).
+
+### 📲 WhatsApp Smart Sharing
+- **Smart Two-Step Flow:** Overhauled the sharing logic to support **unsaved numbers**. The app now automatically opens the correct customer chat and then prompts to attach the PDF invoice, bypassing WhatsApp's security restrictions for new contacts.
+- **Android 14 Compatibility:** Fixed PDF attachment issues by implementing explicit URI permission granting (`ClipData`) required by newer Android versions.
+
+### 🛡️ Core Stability
+- **Security Hardening:** Standardized encryption and removed sensitive plaintext logging.
+- **Data Integrity:** Standardized all primary keys to `Long` and migrated monetary fields to `BigDecimal` for absolute financial precision.
 - **Crash Recovery:** Hardened `GlobalCrashHandler` with recursive crash detection and loop protection.
 
 ---

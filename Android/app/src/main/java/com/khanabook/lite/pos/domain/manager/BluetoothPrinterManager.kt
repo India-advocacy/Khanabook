@@ -17,11 +17,14 @@ import kotlinx.coroutines.flow.StateFlow
 import java.io.OutputStream
 import java.util.UUID
 
-
+/**
+ * Manages Bluetooth printer discovery, connection, and communication.
+ * Implements a Singleton-like behavior when used via Hilt.
+ */
 class BluetoothPrinterManager(private val context: Context) {
 
     companion object {
-        
+        // Standard SPP UUID for Bluetooth Serial Port Profile
         private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
     }
 
@@ -31,8 +34,6 @@ class BluetoothPrinterManager(private val context: Context) {
 
     private var activeSocket: BluetoothSocket? = null
     private var outputStream: OutputStream? = null
-
-    
 
     private val _scannedDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
     val scannedDevices: StateFlow<List<BluetoothDevice>> = _scannedDevices
@@ -46,12 +47,40 @@ class BluetoothPrinterManager(private val context: Context) {
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected
 
-    
+    init {
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+        }
+        val connectionReceiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val device = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                } else {
+                    @Suppress("DEPRECATION")
+                    intent?.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                }
+                
+                if (device?.address == activeSocket?.remoteDevice?.address) {
+                    when (intent?.action) {
+                        BluetoothDevice.ACTION_ACL_CONNECTED -> _isConnected.value = true
+                        BluetoothDevice.ACTION_ACL_DISCONNECTED -> disconnect()
+                    }
+                }
+            }
+        }
+        
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0
+        ContextCompat.registerReceiver(context, connectionReceiver, filter, flags)
+    }
 
     fun isBluetoothSupported(): Boolean = bluetoothAdapter != null
 
     fun isBluetoothEnabled(): Boolean = bluetoothAdapter?.isEnabled == true
 
+    /**
+     * Checks if all required Bluetooth and Location permissions are granted.
+     */
     fun hasRequiredPermissions(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED &&
@@ -62,16 +91,18 @@ class BluetoothPrinterManager(private val context: Context) {
         }
     }
 
-    
-
-    
+    /**
+     * Retrieves the list of currently paired (bonded) devices.
+     */
     @Suppress("MissingPermission")
     fun getPairedDevices(): List<BluetoothDevice> {
         if (!hasRequiredPermissions()) return emptyList()
         return bluetoothAdapter?.bondedDevices?.toList() ?: emptyList()
     }
 
-    
+    /**
+     * Receiver for Bluetooth device discovery.
+     */
     private val discoveryReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctx: Context, intent: Intent) {
             when (intent.action) {
@@ -88,50 +119,67 @@ class BluetoothPrinterManager(private val context: Context) {
                         }
                     device?.let { found ->
                         val current = _scannedDevices.value.toMutableList()
-                        if (current.none { it.address == found.address }) {
+                        val existingIndex = current.indexOfFirst { it.address == found.address }
+                        if (existingIndex == -1) {
                             current.add(found)
+                            _scannedDevices.value = current
+                        } else {
+                            // Update existing device (might have received a name)
+                            current[existingIndex] = found
                             _scannedDevices.value = current
                         }
                     }
                 }
-
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
                     _isScanning.value = false
-                    try { context.unregisterReceiver(this) } catch (_: Exception) {}
                 }
             }
         }
     }
 
-    
+    /**
+     * Checks if Location services are enabled (required for BT discovery on older Android).
+     */
+    fun isLocationEnabled(): Boolean {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? android.location.LocationManager
+        return locationManager?.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) == true ||
+               locationManager?.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER) == true
+    }
+
+    /**
+     * Starts scanning for new Bluetooth devices.
+     */
     @Suppress("MissingPermission")
     fun startScan() {
         if (!hasRequiredPermissions() || !isBluetoothEnabled()) return
-
         
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && !isLocationEnabled()) {
+             android.widget.Toast.makeText(context, "Please turn on Location/GPS to find new devices", android.widget.Toast.LENGTH_LONG).show()
+        }
+
+        // Initialize scan list with paired devices
         val paired = getPairedDevices()
         _scannedDevices.value = paired.toMutableList()
         _isScanning.value = true
 
         val filter = IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_FOUND)
+            addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
             addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         }
         
-        
         try { context.unregisterReceiver(discoveryReceiver) } catch (_: Exception) {}
         
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(discoveryReceiver, filter, Context.RECEIVER_EXPORTED)
-        } else {
-            context.registerReceiver(discoveryReceiver, filter)
-        }
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Context.RECEIVER_EXPORTED else 0
+        ContextCompat.registerReceiver(context, discoveryReceiver, filter, flags)
 
         bluetoothAdapter?.cancelDiscovery()
         bluetoothAdapter?.startDiscovery()
     }
 
-    
+    /**
+     * Stops the ongoing Bluetooth discovery.
+     */
     @Suppress("MissingPermission")
     fun stopScan() {
         bluetoothAdapter?.cancelDiscovery()
@@ -139,9 +187,9 @@ class BluetoothPrinterManager(private val context: Context) {
         try { context.unregisterReceiver(discoveryReceiver) } catch (_: Exception) {}
     }
 
-    
-
-    
+    /**
+     * Connects to a Bluetooth device using standard and insecure fallbacks.
+     */
     @Suppress("MissingPermission")
     fun connect(device: BluetoothDevice): Boolean {
         disconnect()
@@ -149,14 +197,14 @@ class BluetoothPrinterManager(private val context: Context) {
         return try {
             bluetoothAdapter?.cancelDiscovery()
             
-            
             var socket: BluetoothSocket? = null
             try {
+                // Try standard secure connection first
                 socket = device.createRfcommSocketToServiceRecord(SPP_UUID)
                 socket.connect()
             } catch (e: Exception) {
                 socket?.close()
-                
+                // Fallback to insecure connection (common for thermal printers)
                 socket = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
                 socket.connect()
             }
@@ -174,13 +222,14 @@ class BluetoothPrinterManager(private val context: Context) {
         }
     }
 
-    
     fun connect(address: String): Boolean {
         val device = bluetoothAdapter?.getRemoteDevice(address) ?: return false
         return connect(device)
     }
 
-    
+    /**
+     * Sends raw bytes to the connected printer.
+     */
     fun printBytes(data: ByteArray): Boolean {
         return try {
             outputStream?.write(data)
@@ -192,7 +241,9 @@ class BluetoothPrinterManager(private val context: Context) {
         }
     }
 
-    
+    /**
+     * Disconnects the active Bluetooth socket.
+     */
     fun disconnect() {
         try {
             outputStream?.close()
@@ -203,10 +254,7 @@ class BluetoothPrinterManager(private val context: Context) {
         _isConnected.value = false
     }
 
-    
     fun isConnected(): Boolean = activeSocket?.isConnected == true
-
-    
 
     @Suppress("MissingPermission")
     fun deviceName(device: BluetoothDevice): String =

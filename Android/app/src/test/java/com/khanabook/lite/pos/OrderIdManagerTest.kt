@@ -64,9 +64,9 @@ class OrderIdManagerTest {
 
     @Test
     fun `getDailyOrderDisplay should format counter with leading zeros`() {
-        assertEquals("2026-03-01-001", OrderIdManager.getDailyOrderDisplay("2026-03-01", 1))
-        assertEquals("2026-03-01-010", OrderIdManager.getDailyOrderDisplay("2026-03-01", 10))
-        assertEquals("2026-03-01-100", OrderIdManager.getDailyOrderDisplay("2026-03-01", 100))
+        assertEquals("001", OrderIdManager.getDailyOrderDisplay("2026-03-01", 1))
+        assertEquals("010", OrderIdManager.getDailyOrderDisplay("2026-03-01", 10))
+        assertEquals("100", OrderIdManager.getDailyOrderDisplay("2026-03-01", 100))
     }
 }
 

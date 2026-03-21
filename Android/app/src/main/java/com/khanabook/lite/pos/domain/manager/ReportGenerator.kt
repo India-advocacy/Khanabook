@@ -1,49 +1,49 @@
 package com.khanabook.lite.pos.domain.manager
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-
 import com.khanabook.lite.pos.data.local.entity.BillEntity
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
 import com.khanabook.lite.pos.data.repository.BillRepository
 import com.khanabook.lite.pos.domain.model.*
-import kotlinx.coroutines.flow.first
+import com.khanabook.lite.pos.domain.util.DateUtils
 import kotlinx.coroutines.flow.firstOrNull
-import java.text.SimpleDateFormat
-import java.util.*
+import java.math.BigDecimal
+import java.math.RoundingMode
 
+/**
+ * Handles the generation of various reports and data mappings for display.
+ */
 class ReportGenerator(private val billRepository: BillRepository) {
 
     suspend fun getPaymentBreakdown(from: Long, to: Long): Map<String, String> {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
-        val breakdown = mutableMapOf<String, java.math.BigDecimal>()
+        val breakdown = mutableMapOf<String, BigDecimal>()
         
         for (bill in bills) {
             if (OrderStatus.fromDbValue(bill.orderStatus) != OrderStatus.COMPLETED) continue
             
             val mode = PaymentMode.fromDbValue(bill.paymentMode)
-            val amount = java.math.BigDecimal(bill.totalAmount)
+            val amount = BigDecimal(bill.totalAmount)
             val label = mode.displayLabel
             
             if (PaymentModeManager.isPartPayment(mode)) {
                 val labels = PaymentModeManager.getPartLabels(mode)
-                val p1 = java.math.BigDecimal(bill.partAmount1)
-                val p2 = java.math.BigDecimal(bill.partAmount2)
+                val p1 = BigDecimal(bill.partAmount1)
+                val p2 = BigDecimal(bill.partAmount2)
 
-                breakdown[labels.first] = (breakdown[labels.first] ?: java.math.BigDecimal.ZERO).add(p1)
-                breakdown[labels.second] = (breakdown[labels.second] ?: java.math.BigDecimal.ZERO).add(p2)
+                breakdown[labels.first] = (breakdown[labels.first] ?: BigDecimal.ZERO).add(p1)
+                breakdown[labels.second] = (breakdown[labels.second] ?: BigDecimal.ZERO).add(p2)
                 
-                breakdown[label] = (breakdown[label] ?: java.math.BigDecimal.ZERO).add(amount)
+                breakdown[label] = (breakdown[label] ?: BigDecimal.ZERO).add(amount)
                 
                 val part1Key = "${label}_part1"
                 val part2Key = "${label}_part2"
-                breakdown[part1Key] = (breakdown[part1Key] ?: java.math.BigDecimal.ZERO).add(p1)
-                breakdown[part2Key] = (breakdown[part2Key] ?: java.math.BigDecimal.ZERO).add(p2)
+                breakdown[part1Key] = (breakdown[part1Key] ?: BigDecimal.ZERO).add(p1)
+                breakdown[part2Key] = (breakdown[part2Key] ?: BigDecimal.ZERO).add(p2)
             } else {
-                breakdown[label] = (breakdown[label] ?: java.math.BigDecimal.ZERO).add(amount)
+                breakdown[label] = (breakdown[label] ?: BigDecimal.ZERO).add(amount)
             }
         }
-        return breakdown.mapValues { it.value.setScale(2, java.math.RoundingMode.HALF_UP).toString() }
+        return breakdown.mapValues { it.value.setScale(2, RoundingMode.HALF_UP).toString() }
     }
 
     suspend fun getOrderLevelRows(from: Long, to: Long): List<OrderLevelRow> {
@@ -51,11 +51,11 @@ class ReportGenerator(private val billRepository: BillRepository) {
         return bills.filter { OrderStatus.fromDbValue(it.orderStatus) == OrderStatus.COMPLETED }
             .map { bill ->
                 OrderLevelRow(
-                    dailyId = bill.dailyOrderDisplay,
+                    dailyId = bill.dailyOrderDisplay.split("-").last(),
                     lifetimeId = bill.lifetimeOrderId,
                     billId = bill.id,
                     paymentMode = PaymentMode.fromDbValue(bill.paymentMode),
-                    date = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.createdAt)
+                    date = DateUtils.formatDisplay(bill.createdAt)
                 )
             }
     }
@@ -68,7 +68,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
         return bills.map { bill ->
             OrderDetailRow(
-                dailyNo = bill.dailyOrderDisplay,
+                dailyNo = bill.dailyOrderDisplay.split("-").last(),
                 lifetimeNo = bill.lifetimeOrderId,
                 billId = bill.id,
                 currentStatus = formatCurrentStatus(bill),
@@ -91,14 +91,14 @@ class ReportGenerator(private val billRepository: BillRepository) {
         val endOfDay = "$date 23:59:59"
         val bills = billRepository.getBillsByDateRange(startOfDay, endOfDay).firstOrNull() ?: emptyList()
         
-        var totalSales = java.math.BigDecimal.ZERO
-        var cash = java.math.BigDecimal.ZERO
-        var upi = java.math.BigDecimal.ZERO
-        var other = java.math.BigDecimal.ZERO
+        var totalSales = BigDecimal.ZERO
+        var cash = BigDecimal.ZERO
+        var upi = BigDecimal.ZERO
+        var other = BigDecimal.ZERO
         
         for (bill in bills) {
             if (OrderStatus.fromDbValue(bill.orderStatus) == OrderStatus.COMPLETED) {
-                val amount = java.math.BigDecimal(bill.totalAmount)
+                val amount = BigDecimal(bill.totalAmount)
                 totalSales = totalSales.add(amount)
                 
                 val mode = PaymentMode.fromDbValue(bill.paymentMode)
@@ -106,8 +106,8 @@ class ReportGenerator(private val billRepository: BillRepository) {
                     PaymentMode.CASH -> cash = cash.add(amount)
                     PaymentMode.UPI -> upi = upi.add(amount)
                     PaymentMode.PART_CASH_UPI -> {
-                        cash = cash.add(java.math.BigDecimal(bill.partAmount1))
-                        upi = upi.add(java.math.BigDecimal(bill.partAmount2))
+                        cash = cash.add(BigDecimal(bill.partAmount1))
+                        upi = upi.add(BigDecimal(bill.partAmount2))
                     }
                     else -> other = other.add(amount)
                 }
@@ -115,11 +115,11 @@ class ReportGenerator(private val billRepository: BillRepository) {
         }
         
         return DailySalesReport(
-            totalSales = totalSales.setScale(2, java.math.RoundingMode.HALF_UP).toString(),
+            totalSales = totalSales.setScale(2, RoundingMode.HALF_UP).toString(),
             totalOrders = bills.size,
-            cashCollected = cash.setScale(2, java.math.RoundingMode.HALF_UP).toString(),
-            upiCollected = upi.setScale(2, java.math.RoundingMode.HALF_UP).toString(),
-            otherCollected = other.setScale(2, java.math.RoundingMode.HALF_UP).toString()
+            cashCollected = cash.setScale(2, RoundingMode.HALF_UP).toString(),
+            upiCollected = upi.setScale(2, RoundingMode.HALF_UP).toString(),
+            otherCollected = other.setScale(2, RoundingMode.HALF_UP).toString()
         )
     }
 
@@ -130,12 +130,12 @@ class ReportGenerator(private val billRepository: BillRepository) {
         
         val bills = billRepository.getBillsByDateRange(startOfMonth, endOfMonth).firstOrNull() ?: emptyList()
         
-        var totalSales = java.math.BigDecimal.ZERO
+        var totalSales = BigDecimal.ZERO
         var completedOrders = 0
         
         for (bill in bills) {
             if (OrderStatus.fromDbValue(bill.orderStatus) == OrderStatus.COMPLETED) {
-                totalSales = totalSales.add(java.math.BigDecimal(bill.totalAmount))
+                totalSales = totalSales.add(BigDecimal(bill.totalAmount))
                 completedOrders++
             }
         }
@@ -143,7 +143,7 @@ class ReportGenerator(private val billRepository: BillRepository) {
         return MonthlySalesReport(
             month = month,
             year = year,
-            totalSales = totalSales.setScale(2, java.math.RoundingMode.HALF_UP).toString(),
+            totalSales = totalSales.setScale(2, RoundingMode.HALF_UP).toString(),
             totalOrders = completedOrders
         )
     }
@@ -152,5 +152,3 @@ class ReportGenerator(private val billRepository: BillRepository) {
         return billRepository.getTopSellingItemsInRange(from, to, limit)
     }
 }
-
-

@@ -26,19 +26,16 @@ class SettingsViewModel @Inject constructor(
     private val restaurantRepository: RestaurantRepository,
     private val categoryRepository: CategoryRepository,
     private val menuRepository: MenuRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val btManager: BluetoothPrinterManager
 ) : ViewModel() {
 
     val profile: StateFlow<RestaurantProfileEntity?> = restaurantRepository.getProfileFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
-    private var btManager: BluetoothPrinterManager? = null
+    val btDevices: StateFlow<List<BluetoothDevice>> = btManager.scannedDevices
 
-    private val _btDevices = MutableStateFlow<List<BluetoothDevice>>(emptyList())
-    val btDevices: StateFlow<List<BluetoothDevice>> = _btDevices.asStateFlow()
-
-    private val _btIsScanning = MutableStateFlow(false)
-    val btIsScanning: StateFlow<Boolean> = _btIsScanning.asStateFlow()
+    val btIsScanning: StateFlow<Boolean> = btManager.isScanning
 
     private val _btIsConnecting = MutableStateFlow(false)
     val btIsConnecting: StateFlow<Boolean> = _btIsConnecting.asStateFlow()
@@ -46,28 +43,20 @@ class SettingsViewModel @Inject constructor(
     private val _btConnectResult = MutableStateFlow<Boolean?>(null)
     val btConnectResult: StateFlow<Boolean?> = _btConnectResult.asStateFlow()
 
-    private val _btIsConnected = MutableStateFlow(false)
-    val btIsConnected: StateFlow<Boolean> = _btIsConnected.asStateFlow()
+    val btIsConnected: StateFlow<Boolean> = btManager.isConnected
 
-    fun initBluetooth(context: Context) {
-        if (btManager == null) {
-            btManager = BluetoothPrinterManager(context)
-            viewModelScope.launch {
-                btManager?.isConnected?.collect { _btIsConnected.value = it }
-            }
-            
-            viewModelScope.launch(Dispatchers.IO) {
-                val mac = restaurantRepository.getProfile()?.printerMac
-                if (!mac.isNullOrBlank() && btManager?.isConnected() == false) {
-                    btManager?.connect(mac)
-                }
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val currentProfile = restaurantRepository.getProfile()
+            val mac = currentProfile?.printerMac
+            if (currentProfile?.printerEnabled == true && !mac.isNullOrBlank() && !btManager.isConnected()) {
+                btManager.connect(mac)
             }
         }
     }
 
     fun testPrint() {
-        val mgr = btManager ?: return
-        if (!mgr.isConnected()) {
+        if (!btManager.isConnected()) {
             _btConnectResult.value = false
             return
         }
@@ -81,52 +70,39 @@ class SettingsViewModel @Inject constructor(
                 "\n\n\n\n" +
                 "\u001d\u0056\u0042\u0000" 
             ).toByteArray(Charsets.US_ASCII)
-            mgr.printBytes(testData)
+            btManager.printBytes(testData)
         }
     }
 
     fun isBluetoothEnabled(context: Context): Boolean {
-        initBluetooth(context)
-        return btManager?.isBluetoothEnabled() == true
+        return btManager.isBluetoothEnabled()
     }
 
     fun hasBluetoothPermissions(context: Context): Boolean {
-        initBluetooth(context)
-        return btManager?.hasRequiredPermissions() == true
+        return btManager.hasRequiredPermissions()
     }
 
     fun startBluetoothScan(context: Context) {
-        initBluetooth(context)
-        val mgr = btManager ?: return
-        viewModelScope.launch {
-            mgr.scannedDevices.collect { _btDevices.value = it }
-        }
-        viewModelScope.launch {
-            mgr.isScanning.collect { _btIsScanning.value = it }
-        }
-        mgr.startScan()
+        btManager.startScan()
     }
 
     fun stopBluetoothScan() {
-        btManager?.stopScan()
-        _btIsScanning.value = false
+        btManager.stopScan()
     }
 
     @Suppress("MissingPermission")
     fun connectToPrinter(context: Context, device: BluetoothDevice) {
-        initBluetooth(context)
-        val mgr = btManager ?: return
         _btConnectResult.value = null
         _btIsConnecting.value = true
         viewModelScope.launch(Dispatchers.IO) {
-            val ok = mgr.connect(device)
+            val ok = btManager.connect(device)
             _btIsConnecting.value = false
             _btConnectResult.value = ok
             if (ok) {
                 val name = try { device.name ?: "BT Printer" } catch (_: Exception) { "BT Printer" }
                 val mac  = device.address
                 val current = restaurantRepository.getProfile()
-                current?.copy(printerName = name, printerMac = mac)?.let {
+                current?.copy(printerName = name, printerMac = mac, printerEnabled = true)?.let {
                     restaurantRepository.saveProfile(it)
                 }
             }
