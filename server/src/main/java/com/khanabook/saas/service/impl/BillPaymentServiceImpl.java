@@ -23,7 +23,7 @@ public class BillPaymentServiceImpl implements BillPaymentService {
 	@Override
 	public PushSyncResponse pushData(Long tenantId, List<BillPayment> payload) {
 		List<BillPayment> toSync = new ArrayList<>();
-		List<Integer> failedLocalIds = new ArrayList<>();
+		List<Long> failedLocalIds = new ArrayList<>();
 
 		for (BillPayment payment : payload) {
 			boolean resolved = true;
@@ -33,7 +33,7 @@ public class BillPaymentServiceImpl implements BillPaymentService {
 				if (bill.isPresent()) {
 					payment.setServerBillId(bill.get().getId());
 				} else {
-					billRepository.findById(payment.getBillId().longValue())
+					billRepository.findById(payment.getBillId())
 							.filter(b -> b.getRestaurantId().equals(tenantId))
 							.ifPresent(b -> payment.setServerBillId(b.getId()));
 				}

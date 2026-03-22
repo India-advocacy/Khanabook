@@ -50,9 +50,9 @@ class ItemVariantServiceImplTest {
         mi.setId(300L);
         mi.setRestaurantId(TENANT_ID);
 
-        ItemVariant variant = itemVariant(1, 20);
+        ItemVariant variant = itemVariant(1L, 20L);
 
-        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20))
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20L))
             .thenReturn(Optional.of(mi));
         when(itemVariantRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
             .thenReturn(List.of());
@@ -65,19 +65,19 @@ class ItemVariantServiceImplTest {
 
     @Test
     void pushData_missingMenuItem_addedToFailedIds() {
-        ItemVariant variant = itemVariant(1, 20);
+        ItemVariant variant = itemVariant(1L, 20L);
 
-        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt()))
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyLong()))
             .thenReturn(Optional.empty());
         when(menuItemRepo.findById(anyLong())).thenReturn(Optional.empty());
 
         PushSyncResponse resp = service.pushData(TENANT_ID, List.of(variant));
 
-        assertThat(resp.getFailedLocalIds()).contains(1);
-        assertThat(resp.getSuccessfulLocalIds()).doesNotContain(1);
+        assertThat(resp.getFailedLocalIds()).contains(1L);
+        assertThat(resp.getSuccessfulLocalIds()).doesNotContain(1L);
     }
 
-    private ItemVariant itemVariant(int localId, int menuItemId) {
+    private ItemVariant itemVariant(long localId, long menuItemId) {
         ItemVariant iv = new ItemVariant();
         iv.setLocalId(localId);
         iv.setDeviceId(DEVICE);

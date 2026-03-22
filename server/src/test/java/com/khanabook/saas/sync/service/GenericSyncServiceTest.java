@@ -44,7 +44,7 @@ class GenericSyncServiceTest {
 
     @Test
     void nullTenantId_throwsIllegalArgument() {
-        assertThatThrownBy(() -> service.handlePushSync(null, List.of(bill(1, 1000L)), billRepo))
+        assertThatThrownBy(() -> service.handlePushSync(null, List.of(bill(1L, 1000L)), billRepo))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Tenant ID");
     }
@@ -61,13 +61,13 @@ class GenericSyncServiceTest {
 
     @Test
     void newRecord_insertsAndAcknowledges() {
-        Bill incoming = bill(1, 1000L);
+        Bill incoming = bill(1L, 1000L);
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
 
         PushSyncResponse resp = service.handlePushSync(TENANT_ID, List.of(incoming), billRepo);
 
-        assertThat(resp.getSuccessfulLocalIds()).containsExactly(1);
+        assertThat(resp.getSuccessfulLocalIds()).containsExactly(1L);
         assertThat(resp.getFailedLocalIds()).isEmpty();
         verify(billRepo).saveAll(billSaveCaptor.capture());
         Bill saved = billSaveCaptor.getValue().iterator().next();
@@ -79,14 +79,14 @@ class GenericSyncServiceTest {
 
     @Test
     void lww_mobileNewer_updatesRecord() {
-        Bill existing = existingBill(5L, 1, 1000L);
-        Bill incoming = bill(1, 2000L);
+        Bill existing = existingBill(5L, 1L, 1000L);
+        Bill incoming = bill(1L, 2000L);
         stubExisting(List.of(existing));
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
 
         PushSyncResponse resp = service.handlePushSync(TENANT_ID, List.of(incoming), billRepo);
 
-        assertThat(resp.getSuccessfulLocalIds()).containsExactly(1);
+        assertThat(resp.getSuccessfulLocalIds()).containsExactly(1L);
         verify(billRepo).saveAll(billSaveCaptor.capture());
         Bill saved = billSaveCaptor.getValue().iterator().next();
         assertThat(saved.getId()).isEqualTo(5L);       
@@ -97,14 +97,14 @@ class GenericSyncServiceTest {
 
     @Test
     void lww_serverNewer_clientAcknowledgedWithoutSave() {
-        Bill existing = existingBill(5L, 1, 9000L);
-        Bill incoming = bill(1, 1000L);  
+        Bill existing = existingBill(5L, 1L, 9000L);
+        Bill incoming = bill(1L, 1000L);  
         stubExisting(List.of(existing));
 
         PushSyncResponse resp = service.handlePushSync(TENANT_ID, List.of(incoming), billRepo);
 
         
-        assertThat(resp.getSuccessfulLocalIds()).containsExactly(1);
+        assertThat(resp.getSuccessfulLocalIds()).containsExactly(1L);
         verify(billRepo, never()).saveAll(any());
     }
 
@@ -112,7 +112,7 @@ class GenericSyncServiceTest {
 
     @Test
     void tenantIsolation_payloadRestaurantIdOverriddenByServer() {
-        Bill incoming = bill(1, 1000L);
+        Bill incoming = bill(1L, 1000L);
         incoming.setRestaurantId(666L); 
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
@@ -129,7 +129,7 @@ class GenericSyncServiceTest {
 
     @Test
     void createdAtNull_defaultsToUpdatedAt() {
-        Bill incoming = bill(1, 5000L);
+        Bill incoming = bill(1L, 5000L);
         incoming.setCreatedAt(null);
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
@@ -143,7 +143,7 @@ class GenericSyncServiceTest {
 
     @Test
     void createdAtPresent_notOverridden() {
-        Bill incoming = bill(1, 5000L);
+        Bill incoming = bill(1L, 5000L);
         incoming.setCreatedAt(1000L); 
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
@@ -159,7 +159,7 @@ class GenericSyncServiceTest {
 
     @Test
     void serverUpdatedAt_alwaysSetByServer_notClient() {
-        Bill incoming = bill(1, 5000L);
+        Bill incoming = bill(1L, 5000L);
         incoming.setServerUpdatedAt(9_999_999_999L); 
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
@@ -177,8 +177,8 @@ class GenericSyncServiceTest {
 
     @Test
     void batchWithDuplicateLocalIds_onlyLatestSaved() {
-        Bill older = bill(1, 1000L);
-        Bill newer = bill(1, 3000L);
+        Bill older = bill(1L, 1000L);
+        Bill newer = bill(1L, 3000L);
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
 
@@ -189,15 +189,15 @@ class GenericSyncServiceTest {
         assertThat(saved).hasSize(1);
         assertThat(saved.get(0).getUpdatedAt()).isEqualTo(3000L);
         
-        assertThat(resp.getSuccessfulLocalIds()).containsExactlyInAnyOrder(1, 1);
+        assertThat(resp.getSuccessfulLocalIds()).containsExactlyInAnyOrder(1L, 1L);
     }
 
     
 
     @Test
     void singletonProfile_reinstall_matchesExistingTenantRecord() {
-        RestaurantProfile existing = existingProfile(99L, 1, "DEVICE_OLD", 5000L);
-        RestaurantProfile incoming = profileWithDevice(1, "DEVICE_NEW", 6000L);
+        RestaurantProfile existing = existingProfile(99L, 1L, "DEVICE_OLD", 5000L);
+        RestaurantProfile incoming = profileWithDevice(1L, "DEVICE_NEW", 6000L);
 
         when(profileRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(eq(TENANT_ID), eq("DEVICE_NEW"), anyList()))
             .thenReturn(List.of()); 
@@ -207,7 +207,7 @@ class GenericSyncServiceTest {
 
         PushSyncResponse resp = service.handlePushSync(TENANT_ID, List.of(incoming), profileRepo);
 
-        assertThat(resp.getSuccessfulLocalIds()).containsExactly(1);
+        assertThat(resp.getSuccessfulLocalIds()).containsExactly(1L);
         verify(profileRepo).saveAll(profileSaveCaptor.capture());
         RestaurantProfile saved = profileSaveCaptor.getValue().iterator().next();
         
@@ -218,7 +218,7 @@ class GenericSyncServiceTest {
 
     @Test
     void billWithLocalId1_doesNotTriggerCrossDeviceFallback() {
-        Bill incoming = bill(1, 5000L); 
+        Bill incoming = bill(1L, 5000L); 
 
         when(billRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(eq(TENANT_ID), eq(DEVICE_A), anyList()))
             .thenReturn(List.of());
@@ -246,10 +246,10 @@ class GenericSyncServiceTest {
         PushSyncResponse resp = service.handlePushSync(TENANT_ID, List.of(incoming), billRepo);
 
         
-        assertThat(resp.getSuccessfulLocalIds()).containsExactly(77);
+        assertThat(resp.getSuccessfulLocalIds()).containsExactly(77L);
         verify(billRepo).saveAll(billSaveCaptor.capture());
         Bill saved = billSaveCaptor.getValue().iterator().next();
-        assertThat(saved.getLocalId()).isEqualTo(77);
+        assertThat(saved.getLocalId()).isEqualTo(77L);
         assertThat(saved.getId()).isNull(); 
     }
 
@@ -257,9 +257,9 @@ class GenericSyncServiceTest {
 
     @Test
     void multipleDifferentRecords_savedInSingleBatch() {
-        Bill b1 = bill(1, 1000L);
-        Bill b2 = bill(2, 2000L);
-        Bill b3 = bill(3, 3000L);
+        Bill b1 = bill(1L, 1000L);
+        Bill b2 = bill(2L, 2000L);
+        Bill b3 = bill(3L, 3000L);
         stubNoExisting();
         doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
 
@@ -271,7 +271,7 @@ class GenericSyncServiceTest {
 
     
 
-    private Bill bill(int localId, long updatedAt) {
+    private Bill bill(long localId, long updatedAt) {
         Bill b = new Bill();
         b.setLocalId(localId);
         b.setUpdatedAt(updatedAt);
@@ -280,13 +280,13 @@ class GenericSyncServiceTest {
         return b;
     }
 
-    private Bill existingBill(Long serverId, int localId, long updatedAt) {
+    private Bill existingBill(Long serverId, long localId, long updatedAt) {
         Bill b = bill(localId, updatedAt);
         b.setId(serverId);
         return b;
     }
 
-    private RestaurantProfile existingProfile(Long serverId, int localId, String deviceId, long updatedAt) {
+    private RestaurantProfile existingProfile(Long serverId, long localId, String deviceId, long updatedAt) {
         RestaurantProfile p = new RestaurantProfile();
         p.setId(serverId);
         p.setLocalId(localId);
@@ -296,7 +296,7 @@ class GenericSyncServiceTest {
         return p;
     }
 
-    private RestaurantProfile profileWithDevice(int localId, String deviceId, long updatedAt) {
+    private RestaurantProfile profileWithDevice(long localId, String deviceId, long updatedAt) {
         RestaurantProfile p = new RestaurantProfile();
         p.setLocalId(localId);
         p.setDeviceId(deviceId);

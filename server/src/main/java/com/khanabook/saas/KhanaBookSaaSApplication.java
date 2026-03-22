@@ -3,8 +3,9 @@ package com.khanabook.saas;
 import com.khanabook.saas.debug.DebugNDJSONLogger;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.UserDetailsServiceAutoConfiguration;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {UserDetailsServiceAutoConfiguration.class})
 public class KhanaBookSaaSApplication {
 	public static void main(String[] args) {
 		// Marker to verify debug logger + log path works at runtime.

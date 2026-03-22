@@ -49,7 +49,7 @@ class BillServiceImplTest {
     @Test
     void pushData_derivesLastResetDateFromCreatedAt() {
         Bill bill = new Bill();
-        bill.setLocalId(1);
+        bill.setLocalId(1L);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
         bill.setCreatedAt(1704106800000L); 
@@ -65,7 +65,7 @@ class BillServiceImplTest {
 
         PushSyncResponse resp = billService.pushData(TENANT_ID, List.of(bill));
 
-        assertThat(resp.getSuccessfulLocalIds()).contains(1);
+        assertThat(resp.getSuccessfulLocalIds()).contains(1L);
         verify(billRepository).saveAll(billSaveCaptor.capture());
         Bill saved = billSaveCaptor.getValue().iterator().next();
         
@@ -75,7 +75,7 @@ class BillServiceImplTest {
     @Test
     void pushData_missingCreatedAt_fallsBackToUpdatedAt() {
         Bill bill = new Bill();
-        bill.setLocalId(1);
+        bill.setLocalId(1L);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
         long now = System.currentTimeMillis();
@@ -105,7 +105,7 @@ class BillServiceImplTest {
     @Test
     void pushData_withNewYorkTimezone_derivesCorrectDate() {
         Bill bill = new Bill();
-        bill.setLocalId(1);
+        bill.setLocalId(1L);
         bill.setDeviceId(DEVICE);
         bill.setRestaurantId(TENANT_ID);
         

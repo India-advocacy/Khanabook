@@ -17,13 +17,13 @@ import lombok.Setter;
 public class BillItem extends BaseSyncEntity {
 
 	@Column(name = "bill_id", nullable = false)
-	private Integer billId;
+	private Long billId;
 
 	@Column(name = "server_bill_id")
 	private Long serverBillId;
 
 	@Column(name = "menu_item_id", nullable = false)
-	private Integer menuItemId;
+	private Long menuItemId;
 
 	@Column(name = "server_menu_item_id")
 	private Long serverMenuItemId;
@@ -32,7 +32,7 @@ public class BillItem extends BaseSyncEntity {
 	private String itemName;
 
 	@Column(name = "variant_id")
-	private Integer variantId;
+	private Long variantId;
 
 	@Column(name = "server_variant_id")
 	private Long serverVariantId;

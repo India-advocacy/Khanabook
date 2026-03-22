@@ -50,9 +50,9 @@ class MenuItemServiceImplTest {
         cat.setId(200L);
         cat.setRestaurantId(TENANT_ID);
 
-        MenuItem item = menuItem(1, 10);
+        MenuItem item = menuItem(1L, 10L);
 
-        when(categoryRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10))
+        when(categoryRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10L))
             .thenReturn(Optional.of(cat));
         when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(any(), any(), anyList()))
             .thenReturn(List.of());
@@ -65,19 +65,19 @@ class MenuItemServiceImplTest {
 
     @Test
     void pushData_missingCategory_addedToFailedIds() {
-        MenuItem item = menuItem(1, 10);
+        MenuItem item = menuItem(1L, 10L);
 
-        when(categoryRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt()))
+        when(categoryRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyLong()))
             .thenReturn(Optional.empty());
         when(categoryRepo.findById(anyLong())).thenReturn(Optional.empty());
 
         PushSyncResponse resp = service.pushData(TENANT_ID, List.of(item));
 
-        assertThat(resp.getFailedLocalIds()).contains(1);
-        assertThat(resp.getSuccessfulLocalIds()).doesNotContain(1);
+        assertThat(resp.getFailedLocalIds()).contains(1L);
+        assertThat(resp.getSuccessfulLocalIds()).doesNotContain(1L);
     }
 
-    private MenuItem menuItem(int localId, int categoryId) {
+    private MenuItem menuItem(long localId, long categoryId) {
         MenuItem mi = new MenuItem();
         mi.setLocalId(localId);
         mi.setDeviceId(DEVICE);

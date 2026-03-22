@@ -242,7 +242,7 @@ fun TableHeader() {
         HeaderCell("Mode", 1.2f)
         HeaderCell("Status", 1.5f)
         HeaderCell("Date", 1.5f)
-        HeaderCell("Share", 0.8f)
+        // HeaderCell("Share", 0.8f)
     }
 }
 
@@ -368,6 +368,7 @@ fun OrderTableRow(
 
         TableCell(DateUtils.formatDisplayDate(row.salesDate), 1.5f, fontSize = 9.sp)
 
+        /*
         Box(modifier = Modifier.weight(0.8f), contentAlignment = Alignment.Center) {
             IconButton(
                 onClick = onShare,
@@ -381,6 +382,7 @@ fun OrderTableRow(
                 )
             }
         }
+        */
     }
 }
 

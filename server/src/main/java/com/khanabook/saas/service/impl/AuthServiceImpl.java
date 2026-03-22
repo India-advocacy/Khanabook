@@ -70,7 +70,7 @@ public class AuthServiceImpl implements AuthService {
 		RestaurantProfile profile = new RestaurantProfile();
 		profile.setRestaurantId(newRestaurantId);
 		profile.setDeviceId(request.getDeviceId());
-		profile.setLocalId(1);
+		profile.setLocalId(1L);
 		profile.setShopName(request.getName() + "'s Restaurant");
 		profile.setUpdatedAt(System.currentTimeMillis());
 		profile.setServerUpdatedAt(System.currentTimeMillis());
@@ -86,7 +86,7 @@ public class AuthServiceImpl implements AuthService {
 		user.setPasswordHash(hashedPassword);
 		user.setRestaurantId(newRestaurantId);
 		user.setDeviceId(request.getDeviceId());
-		user.setLocalId(1);
+		user.setLocalId(1L);
 		user.setIsActive(true);
 		user.setUpdatedAt(System.currentTimeMillis());
 		user.setServerUpdatedAt(System.currentTimeMillis());
@@ -127,7 +127,7 @@ public class AuthServiceImpl implements AuthService {
 					RestaurantProfile profile = new RestaurantProfile();
 					profile.setRestaurantId(newRestaurantId);
 					profile.setDeviceId(request.getDeviceId());
-					profile.setLocalId(1);
+					profile.setLocalId(1L);
 					profile.setShopName((name != null ? name : "User") + "'s Restaurant");
 					profile.setUpdatedAt(System.currentTimeMillis());
 					profile.setServerUpdatedAt(System.currentTimeMillis());
@@ -141,7 +141,7 @@ public class AuthServiceImpl implements AuthService {
 					user.setPasswordHash("GOOGLE_AUTH");
 					user.setRestaurantId(newRestaurantId);
 					user.setDeviceId(request.getDeviceId());
-					user.setLocalId(1);
+					user.setLocalId(1L);
 					user.setIsActive(true);
 					user.setUpdatedAt(System.currentTimeMillis());
 					user.setServerUpdatedAt(System.currentTimeMillis());

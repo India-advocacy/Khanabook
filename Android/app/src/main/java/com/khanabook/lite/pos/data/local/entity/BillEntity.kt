@@ -49,6 +49,7 @@ data class BillEntity(
         @ColumnInfo(name = "created_by") val createdBy: Long? = null,
         @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
         @ColumnInfo(name = "paid_at") val paidAt: Long? = null,
+        @ColumnInfo(name = "last_reset_date", defaultValue = "''") val lastResetDate: String = "",
 
         
         @ColumnInfo(name = "is_synced", defaultValue = "0") val isSynced: Boolean = false,

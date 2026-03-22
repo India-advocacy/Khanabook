@@ -34,7 +34,7 @@ public class StockLogServiceImpl implements StockLogService {
 	@Transactional
 	public PushSyncResponse pushData(Long tenantId, List<StockLog> payload) {
 		List<StockLog> toSync = new ArrayList<>(payload);
-		List<Integer> failedLocalIds = new ArrayList<>();
+		List<Long> failedLocalIds = new ArrayList<>();
 		Iterator<StockLog> iterator = toSync.iterator();
 
 		while (iterator.hasNext()) {
@@ -48,7 +48,7 @@ public class StockLogServiceImpl implements StockLogService {
 					stockLog.setServerMenuItemId(menuItem.get().getId());
 				} else {
 					Optional<MenuItem> serverMenuItem = menuItemRepository
-							.findById(stockLog.getMenuItemId().longValue());
+							.findById(stockLog.getMenuItemId());
 					if (serverMenuItem.isPresent() && serverMenuItem.get().getRestaurantId().equals(tenantId)) {
 						stockLog.setServerMenuItemId(serverMenuItem.get().getId());
 					} else {
@@ -71,7 +71,7 @@ public class StockLogServiceImpl implements StockLogService {
 					stockLog.setServerVariantId(variant.get().getId());
 				} else {
 					Optional<ItemVariant> serverVariant = itemVariantRepository
-							.findById(stockLog.getVariantId().longValue());
+							.findById(stockLog.getVariantId());
 					if (serverVariant.isPresent() && serverVariant.get().getRestaurantId().equals(tenantId)) {
 						stockLog.setServerVariantId(serverVariant.get().getId());
 					}

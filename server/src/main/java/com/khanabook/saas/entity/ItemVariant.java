@@ -17,7 +17,7 @@ import lombok.Setter;
 public class ItemVariant extends BaseSyncEntity {
 
 	@Column(name = "menu_item_id", nullable = false)
-	private Integer menuItemId;
+	private Long menuItemId;
 
 	@Column(name = "server_menu_item_id")
 	private Long serverMenuItemId;

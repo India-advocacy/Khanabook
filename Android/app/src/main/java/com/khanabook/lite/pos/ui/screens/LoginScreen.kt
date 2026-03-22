@@ -268,19 +268,6 @@ fun LoginScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            
-            if (com.khanabook.lite.pos.BuildConfig.DEBUG) {
-                Text(
-                    text = "Use Test Credentials (DEBUG ONLY)",
-                    color = PrimaryGold.copy(alpha = 0.7f),
-                    fontSize = 12.sp,
-                    modifier = Modifier.clickable {
-                        viewModel.loginWithTestOfflineCredentials()
-                    }
-                )
-            }
             Spacer(modifier = Modifier.height(24.dp))
         }
 

@@ -17,7 +17,7 @@ import lombok.Setter;
 public class BillPayment extends BaseSyncEntity {
 
 	@Column(name = "bill_id", nullable = false)
-	private Integer billId;
+	private Long billId;
 
 	@Column(name = "server_bill_id")
 	private Long serverBillId;

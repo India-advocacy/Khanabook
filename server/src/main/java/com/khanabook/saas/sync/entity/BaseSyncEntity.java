@@ -18,7 +18,7 @@ public abstract class BaseSyncEntity {
 	@Column(name = "local_id", nullable = false)
 	@JsonProperty("localId")
 	@JsonAlias({ "id", "localId" })
-	private Integer localId;
+	private Long localId;
 
 	@Column(name = "device_id", nullable = false)
 	@JsonProperty("deviceId")

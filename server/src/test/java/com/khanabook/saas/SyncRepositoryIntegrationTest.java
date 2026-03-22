@@ -43,21 +43,21 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void pullByServerUpdatedAt_returnsOnlyNewerRecords() {
-        Bill old = bill(TENANT_A, "DEV_A", 1, 1000L, 1000L);
-        Bill recent = bill(TENANT_A, "DEV_A", 2, 5000L, 5000L);
+        Bill old = bill(TENANT_A, "DEV_A", 1L, 1000L, 1000L);
+        Bill recent = bill(TENANT_A, "DEV_A", 2L, 5000L, 5000L);
         billRepo.saveAll(List.of(old, recent));
 
         List<Bill> pulled = billRepo
             .findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(TENANT_A, 2000L, "OTHER");
 
         assertThat(pulled).hasSize(1);
-        assertThat(pulled.get(0).getLocalId()).isEqualTo(2);
+        assertThat(pulled.get(0).getLocalId()).isEqualTo(2L);
     }
 
     @Test
     void pull_excludesRequestingDevice() {
         
-        Bill b = bill(TENANT_A, "TABLET_1", 1, 1000L, 1000L);
+        Bill b = bill(TENANT_A, "TABLET_1", 1L, 1000L, 1000L);
         billRepo.save(b);
 
         List<Bill> pulled = billRepo
@@ -68,7 +68,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void pull_includesOtherDevicesRecords() {
-        Bill fromDeviceB = bill(TENANT_A, "TABLET_2", 1, 1000L, 1000L);
+        Bill fromDeviceB = bill(TENANT_A, "TABLET_2", 1L, 1000L, 1000L);
         billRepo.save(fromDeviceB);
 
         List<Bill> pulled = billRepo
@@ -81,8 +81,8 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void pull_strictlyIsolatedByTenant() {
-        Bill tenantABill = bill(TENANT_A, "DEV_A", 1, 1000L, 1000L);
-        Bill tenantBBill = bill(TENANT_B, "DEV_B", 1, 1000L, 1000L);
+        Bill tenantABill = bill(TENANT_A, "DEV_A", 1L, 1000L, 1000L);
+        Bill tenantBBill = bill(TENANT_B, "DEV_B", 1L, 1000L, 1000L);
         billRepo.saveAll(List.of(tenantABill, tenantBBill));
 
         List<Bill> tenantAPull = billRepo
@@ -98,18 +98,18 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void upsertLookup_findByRestaurantAndDeviceAndLocalId_exactMatch() {
-        Bill b = bill(TENANT_A, "TABLET_1", 42, 1000L, 1000L);
+        Bill b = bill(TENANT_A, "TABLET_1", 42L, 1000L, 1000L);
         billRepo.save(b);
 
-        var found = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_A, "TABLET_1", 42);
+        var found = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_A, "TABLET_1", 42L);
         assertThat(found).isPresent();
 
         
-        var wrongTenant = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_B, "TABLET_1", 42);
+        var wrongTenant = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_B, "TABLET_1", 42L);
         assertThat(wrongTenant).isEmpty();
 
         
-        var wrongDevice = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_A, "TABLET_X", 42);
+        var wrongDevice = billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_A, "TABLET_X", 42L);
         assertThat(wrongDevice).isEmpty();
     }
 
@@ -118,23 +118,23 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
     @Test
     void billItem_withNullServerBillId_savesSuccessfully() {
         
-        BillItem item = billItem(TENANT_A, "DEV_A", 1, null);
+        BillItem item = billItem(TENANT_A, "DEV_A", 1L, null);
         assertThatNoException().isThrownBy(() -> billItemRepo.save(item));
     }
 
     @Test
     void billItem_withValidServerBillId_savesSuccessfully() {
-        Bill parent = bill(TENANT_A, "DEV_A", 1, 1000L, 1000L);
+        Bill parent = bill(TENANT_A, "DEV_A", 1L, 1000L, 1000L);
         Bill saved = billRepo.save(parent);
 
-        BillItem item = billItem(TENANT_A, "DEV_A", 1, saved.getId());
+        BillItem item = billItem(TENANT_A, "DEV_A", 1L, saved.getId());
         assertThatNoException().isThrownBy(() -> billItemRepo.save(item));
     }
 
     @Test
     void billItem_withInvalidServerBillId_violatesFkConstraint() {
         Long nonExistentBillId = 999999L;
-        BillItem item = billItem(TENANT_A, "DEV_A", 1, nonExistentBillId);
+        BillItem item = billItem(TENANT_A, "DEV_A", 1L, nonExistentBillId);
 
         
         assertThatThrownBy(() -> {
@@ -147,16 +147,16 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void menuItem_withValidServerCategoryId_savesSuccessfully() {
-        Category cat = category(TENANT_A, "DEV_A", 1);
+        Category cat = category(TENANT_A, "DEV_A", 1L);
         Category savedCat = categoryRepo.save(cat);
 
-        MenuItem item = menuItem(TENANT_A, "DEV_A", 1, savedCat.getId());
+        MenuItem item = menuItem(TENANT_A, "DEV_A", 1L, savedCat.getId());
         assertThatNoException().isThrownBy(() -> menuItemRepo.save(item));
     }
 
     @Test
     void menuItem_withInvalidServerCategoryId_violatesFkConstraint() {
-        MenuItem item = menuItem(TENANT_A, "DEV_A", 1, 999999L);
+        MenuItem item = menuItem(TENANT_A, "DEV_A", 1L, 999999L);
 
         assertThatThrownBy(() -> {
             menuItemRepo.save(item);
@@ -168,17 +168,17 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void findByLocalIdIn_returnsAllMatchingRecords() {
-        Bill b1 = bill(TENANT_A, "DEV_A", 1, 1000L, 1000L);
-        Bill b2 = bill(TENANT_A, "DEV_A", 2, 2000L, 2000L);
-        Bill b3 = bill(TENANT_A, "DEV_A", 3, 3000L, 3000L);
+        Bill b1 = bill(TENANT_A, "DEV_A", 1L, 1000L, 1000L);
+        Bill b2 = bill(TENANT_A, "DEV_A", 2L, 2000L, 2000L);
+        Bill b3 = bill(TENANT_A, "DEV_A", 3L, 3000L, 3000L);
         billRepo.saveAll(List.of(b1, b2, b3));
 
         List<Bill> found = billRepo.findByRestaurantIdAndDeviceIdAndLocalIdIn(
-            TENANT_A, "DEV_A", List.of(1, 3));
+            TENANT_A, "DEV_A", List.of(1L, 3L));
 
         assertThat(found).hasSize(2);
         assertThat(found.stream().map(Bill::getLocalId))
-            .containsExactlyInAnyOrder(1, 3);
+            .containsExactlyInAnyOrder(1L, 3L);
     }
 
     @Test
@@ -190,7 +190,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
 
     
 
-    private Bill bill(Long tenantId, String deviceId, int localId, long updatedAt, long serverUpdatedAt) {
+    private Bill bill(Long tenantId, String deviceId, long localId, long updatedAt, long serverUpdatedAt) {
         Bill b = new Bill();
         b.setRestaurantId(tenantId);
         b.setDeviceId(deviceId);
@@ -211,7 +211,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         return b;
     }
 
-    private BillItem billItem(Long tenantId, String deviceId, int localId, Long serverBillId) {
+    private BillItem billItem(Long tenantId, String deviceId, long localId, Long serverBillId) {
         BillItem bi = new BillItem();
         bi.setRestaurantId(tenantId);
         bi.setDeviceId(deviceId);
@@ -220,9 +220,9 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         bi.setServerUpdatedAt(1000L);
         bi.setCreatedAt(1000L);
         bi.setIsDeleted(false);
-        bi.setBillId(1);
+        bi.setBillId(1L);
         bi.setServerBillId(serverBillId);
-        bi.setMenuItemId(1);
+        bi.setMenuItemId(1L);
         bi.setItemName("Chai");
         bi.setQuantity(1);
         bi.setPrice(BigDecimal.TEN);
@@ -230,7 +230,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         return bi;
     }
 
-    private Category category(Long tenantId, String deviceId, int localId) {
+    private Category category(Long tenantId, String deviceId, long localId) {
         Category c = new Category();
         c.setRestaurantId(tenantId);
         c.setDeviceId(deviceId);
@@ -245,7 +245,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         return c;
     }
 
-    private MenuItem menuItem(Long tenantId, String deviceId, int localId, Long serverCategoryId) {
+    private MenuItem menuItem(Long tenantId, String deviceId, long localId, Long serverCategoryId) {
         MenuItem m = new MenuItem();
         m.setRestaurantId(tenantId);
         m.setDeviceId(deviceId);
@@ -254,7 +254,7 @@ class SyncRepositoryIntegrationTest extends BaseIntegrationTest {
         m.setServerUpdatedAt(1000L);
         m.setCreatedAt(1000L);
         m.setIsDeleted(false);
-        m.setCategoryId(1);
+        m.setCategoryId(1L);
         m.setServerCategoryId(serverCategoryId);
         m.setName("Chai");
         m.setBasePrice(BigDecimal.TEN);

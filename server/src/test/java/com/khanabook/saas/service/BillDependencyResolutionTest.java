@@ -50,11 +50,11 @@ class BillDependencyResolutionTest {
     void billItem_resolvesBillByDeviceAndLocalId() {
         Bill bill = serverBill(200L);
         MenuItem mi = serverMenuItem(300L);
-        BillItem item = billItem(1, 10, 20, null);
+        BillItem item = billItem(1L, 10L, 20L, null);
 
-        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10))
+        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10L))
             .thenReturn(Optional.of(bill));
-        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20))
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20L))
             .thenReturn(Optional.of(mi));
         stubBillItemSync();
 
@@ -66,35 +66,35 @@ class BillDependencyResolutionTest {
 
     @Test
     void billItem_missingBill_addedToFailedIds() {
-        BillItem item = billItem(1, 10, 20, null);
-        item.setLocalId(77);
+        BillItem item = billItem(1L, 10L, 20L, null);
+        item.setLocalId(77L);
 
-        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt()))
+        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyLong()))
             .thenReturn(Optional.empty());
         when(billRepo.findById(anyLong())).thenReturn(Optional.empty());
         
 
         PushSyncResponse resp = billItemService.pushData(TENANT_ID, List.of(item));
 
-        assertThat(resp.getFailedLocalIds()).contains(77);
-        assertThat(resp.getSuccessfulLocalIds()).doesNotContain(77);
+        assertThat(resp.getFailedLocalIds()).contains(77L);
+        assertThat(resp.getSuccessfulLocalIds()).doesNotContain(77L);
     }
 
     @Test
     void billItem_missingMenuItem_addedToFailedIds() {
         Bill bill = serverBill(200L);
-        BillItem item = billItem(1, 10, 20, null);
-        item.setLocalId(88);
+        BillItem item = billItem(1L, 10L, 20L, null);
+        item.setLocalId(88L);
 
-        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10))
+        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10L))
             .thenReturn(Optional.of(bill));
-        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt()))
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyLong()))
             .thenReturn(Optional.empty());
         when(menuItemRepo.findById(anyLong())).thenReturn(Optional.empty());
 
         PushSyncResponse resp = billItemService.pushData(TENANT_ID, List.of(item));
 
-        assertThat(resp.getFailedLocalIds()).contains(88);
+        assertThat(resp.getFailedLocalIds()).contains(88L);
     }
 
     @Test
@@ -102,13 +102,13 @@ class BillDependencyResolutionTest {
         Bill bill = serverBill(200L);
         MenuItem mi = serverMenuItem(300L);
         ItemVariant iv = serverVariant(400L);
-        BillItem item = billItem(1, 10, 20, 30);
+        BillItem item = billItem(1L, 10L, 20L, 30L);
 
-        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10))
+        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10L))
             .thenReturn(Optional.of(bill));
-        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20))
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20L))
             .thenReturn(Optional.of(mi));
-        when(itemVariantRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 30))
+        when(itemVariantRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 30L))
             .thenReturn(Optional.of(iv));
         stubBillItemSync();
 
@@ -121,11 +121,11 @@ class BillDependencyResolutionTest {
     void billItem_zeroVariantId_variantResolutionSkipped() {
         Bill bill = serverBill(200L);
         MenuItem mi = serverMenuItem(300L);
-        BillItem item = billItem(1, 10, 20, 0); 
+        BillItem item = billItem(1L, 10L, 20L, 0L); 
 
-        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10))
+        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10L))
             .thenReturn(Optional.of(bill));
-        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20))
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20L))
             .thenReturn(Optional.of(mi));
         stubBillItemSync();
 
@@ -137,16 +137,16 @@ class BillDependencyResolutionTest {
     @Test
     void billItem_serverBillIdAlreadySet_skipsBillLookup() {
         MenuItem mi = serverMenuItem(300L);
-        BillItem item = billItem(1, 10, 20, null);
+        BillItem item = billItem(1L, 10L, 20L, null);
         item.setServerBillId(200L); 
 
-        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20))
+        when(menuItemRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 20L))
             .thenReturn(Optional.of(mi));
         stubBillItemSync();
 
         billItemService.pushData(TENANT_ID, List.of(item));
 
-        verify(billRepo, never()).findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt());
+        verify(billRepo, never()).findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyLong());
     }
 
     
@@ -154,9 +154,9 @@ class BillDependencyResolutionTest {
     @Test
     void billPayment_resolvesBillByDeviceAndLocalId() {
         Bill bill = serverBill(200L);
-        BillPayment payment = billPayment(1, 10);
+        BillPayment payment = billPayment(1L, 10L);
 
-        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10))
+        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(TENANT_ID, DEVICE, 10L))
             .thenReturn(Optional.of(bill));
         stubBillPaymentSync();
 
@@ -167,49 +167,49 @@ class BillDependencyResolutionTest {
 
     @Test
     void billPayment_billNotFound_addedToFailedIds() {
-        BillPayment payment = billPayment(1, 10);
-        payment.setLocalId(55);
+        BillPayment payment = billPayment(1L, 10L);
+        payment.setLocalId(55L);
 
-        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt()))
+        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyLong()))
             .thenReturn(Optional.empty());
         when(billRepo.findById(anyLong())).thenReturn(Optional.empty());
 
         PushSyncResponse resp = billPaymentService.pushData(TENANT_ID, List.of(payment));
 
-        assertThat(resp.getFailedLocalIds()).contains(55);
-        assertThat(resp.getSuccessfulLocalIds()).doesNotContain(55);
+        assertThat(resp.getFailedLocalIds()).contains(55L);
+        assertThat(resp.getSuccessfulLocalIds()).doesNotContain(55L);
     }
 
     @Test
     void billPayment_wrongTenantBill_addedToFailedIds() {
         Bill wrongTenantBill = serverBill(200L);
         wrongTenantBill.setRestaurantId(999L); 
-        BillPayment payment = billPayment(1, 10);
-        payment.setLocalId(66);
+        BillPayment payment = billPayment(1L, 10L);
+        payment.setLocalId(66L);
 
-        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt()))
+        when(billRepo.findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyLong()))
             .thenReturn(Optional.empty());
         when(billRepo.findById(10L)).thenReturn(Optional.of(wrongTenantBill));
 
         PushSyncResponse resp = billPaymentService.pushData(TENANT_ID, List.of(payment));
 
-        assertThat(resp.getFailedLocalIds()).contains(66);
+        assertThat(resp.getFailedLocalIds()).contains(66L);
     }
 
     @Test
     void billPayment_serverBillIdAlreadySet_skipsBillLookup() {
-        BillPayment payment = billPayment(1, 10);
+        BillPayment payment = billPayment(1L, 10L);
         payment.setServerBillId(200L); 
         stubBillPaymentSync();
 
         billPaymentService.pushData(TENANT_ID, List.of(payment));
 
-        verify(billRepo, never()).findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyInt());
+        verify(billRepo, never()).findByRestaurantIdAndDeviceIdAndLocalId(any(), any(), anyLong());
     }
 
     
 
-    private BillItem billItem(int localId, int billId, int menuItemId, Integer variantId) {
+    private BillItem billItem(long localId, long billId, long menuItemId, Long variantId) {
         BillItem bi = new BillItem();
         bi.setLocalId(localId);
         bi.setDeviceId(DEVICE);
@@ -225,7 +225,7 @@ class BillDependencyResolutionTest {
         return bi;
     }
 
-    private BillPayment billPayment(int localId, int billId) {
+    private BillPayment billPayment(long localId, long billId) {
         BillPayment bp = new BillPayment();
         bp.setLocalId(localId);
         bp.setDeviceId(DEVICE);

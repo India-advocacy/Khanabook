@@ -16,13 +16,13 @@ import lombok.Setter;
 public class Bill extends BaseSyncEntity {
 
 	@Column(name = "daily_order_id", nullable = false)
-	private Integer dailyOrderId;
+	private Long dailyOrderId;
 
 	@Column(name = "daily_order_display")
 	private String dailyOrderDisplay;
 
 	@Column(name = "lifetime_order_id", nullable = false)
-	private Integer lifetimeOrderId;
+	private Long lifetimeOrderId;
 
 	@Column(name = "order_type", nullable = false)
 	private String orderType;
@@ -67,7 +67,7 @@ public class Bill extends BaseSyncEntity {
 	private String orderStatus;
 
 	@Column(name = "created_by")
-	private Integer createdBy;
+	private Long createdBy;
 
 	@Column(name = "paid_at")
 	private Long paidAt;

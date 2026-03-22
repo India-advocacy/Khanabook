@@ -23,7 +23,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 	@Override
 	public PushSyncResponse pushData(Long tenantId, List<MenuItem> payload) {
 		List<MenuItem> toSync = new ArrayList<>();
-		List<Integer> failedLocalIds = new ArrayList<>();
+		List<Long> failedLocalIds = new ArrayList<>();
 
 		for (MenuItem item : payload) {
 			if (item.getServerCategoryId() == null && item.getCategoryId() != null) {
@@ -34,7 +34,7 @@ public class MenuItemServiceImpl implements MenuItemService {
 					item.setServerCategoryId(category.get().getId());
 				} else {
 
-					Optional<Category> serverCategory = categoryRepository.findById(item.getCategoryId().longValue());
+					Optional<Category> serverCategory = categoryRepository.findById(item.getCategoryId());
 					if (serverCategory.isPresent() && serverCategory.get().getRestaurantId().equals(tenantId)) {
 						item.setServerCategoryId(serverCategory.get().getId());
 					} else {

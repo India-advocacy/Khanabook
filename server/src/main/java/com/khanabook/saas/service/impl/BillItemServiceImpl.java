@@ -29,7 +29,7 @@ public class BillItemServiceImpl implements BillItemService {
 	@Override
 	public PushSyncResponse pushData(Long tenantId, List<BillItem> payload) {
 		List<BillItem> toSync = new ArrayList<>();
-		List<Integer> failedLocalIds = new ArrayList<>();
+		List<Long> failedLocalIds = new ArrayList<>();
 
 		for (BillItem item : payload) {
 			boolean resolved = true;
@@ -41,7 +41,7 @@ public class BillItemServiceImpl implements BillItemService {
 					item.setServerBillId(bill.get().getId());
 				} else {
 
-					billRepository.findById(item.getBillId().longValue())
+					billRepository.findById(item.getBillId())
 							.filter(b -> b.getRestaurantId().equals(tenantId))
 							.ifPresent(b -> item.setServerBillId(b.getId()));
 				}
@@ -53,7 +53,7 @@ public class BillItemServiceImpl implements BillItemService {
 				if (mi.isPresent()) {
 					item.setServerMenuItemId(mi.get().getId());
 				} else {
-					menuItemRepository.findById(item.getMenuItemId().longValue())
+					menuItemRepository.findById(item.getMenuItemId())
 							.filter(m -> m.getRestaurantId().equals(tenantId))
 							.ifPresent(m -> item.setServerMenuItemId(m.getId()));
 				}
@@ -65,7 +65,7 @@ public class BillItemServiceImpl implements BillItemService {
 				if (iv.isPresent()) {
 					item.setServerVariantId(iv.get().getId());
 				} else {
-					itemVariantRepository.findById(item.getVariantId().longValue())
+					itemVariantRepository.findById(item.getVariantId())
 							.filter(v -> v.getRestaurantId().equals(tenantId))
 							.ifPresent(v -> item.setServerVariantId(v.getId()));
 				}

@@ -17,13 +17,13 @@ import lombok.Setter;
 public class StockLog extends BaseSyncEntity {
 
 	@Column(name = "menu_item_id", nullable = false)
-	private Integer menuItemId;
+	private Long menuItemId;
 
 	@Column(name = "server_menu_item_id")
 	private Long serverMenuItemId;
 
 	@Column(name = "variant_id")
-	private Integer variantId;
+	private Long variantId;
 
 	@Column(name = "server_variant_id")
 	private Long serverVariantId;

@@ -47,7 +47,7 @@ class BillServiceTest {
         billService = new BillServiceImpl(billRepository, genericSyncService, profileRepository);
     }
 
-    private Bill createMobileBill(Integer localId, Long updatedAt) {
+    private Bill createMobileBill(Long localId, Long updatedAt) {
         Bill bill = new Bill();
         bill.setLocalId(localId);
         bill.setUpdatedAt(updatedAt);
@@ -64,9 +64,9 @@ class BillServiceTest {
         existingDbBill.setId(5L);
         existingDbBill.setUpdatedAt(oldServerTime);
         existingDbBill.setDeviceId(DEVICE_ID);
-        existingDbBill.setLocalId(101);
+        existingDbBill.setLocalId(101L);
 
-        Bill mobileBill = createMobileBill(101, newMobileTime);
+        Bill mobileBill = createMobileBill(101L, newMobileTime);
 
         RestaurantProfile profile = new RestaurantProfile();
         profile.setTimezone("Asia/Kolkata");
@@ -88,13 +88,13 @@ class BillServiceTest {
 
         assertThat(savedBill.getId()).isEqualTo(5L);
         assertThat(savedBill.getUpdatedAt()).isEqualTo(newMobileTime);
-        assertThat(response.getSuccessfulLocalIds()).containsExactly(101);
+        assertThat(response.getSuccessfulLocalIds()).containsExactly(101L);
     }
 
     @Test
     void givenHackedPayload_whenInsertNewBill_thenForceTenantIsolation() {
         Long maliciousRestaurantId = 666L;
-        Bill hackedMobileBill = createMobileBill(202, 1000L);
+        Bill hackedMobileBill = createMobileBill(202L, 1000L);
         hackedMobileBill.setRestaurantId(maliciousRestaurantId);
 
         RestaurantProfile profile = new RestaurantProfile();

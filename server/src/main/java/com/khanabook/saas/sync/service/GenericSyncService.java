@@ -52,12 +52,12 @@ public class GenericSyncService {
 				)
 		);
 
-		List<Integer> successfulLocalIds = new ArrayList<>();
-		List<Integer> failedLocalIds = new ArrayList<>();
+		List<Long> successfulLocalIds = new ArrayList<>();
+		List<Long> failedLocalIds = new ArrayList<>();
 
 		for (T record : payload) {
 			if (record.getLocalId() == null && record.getId() != null) {
-				record.setLocalId(record.getId().intValue());
+				record.setLocalId(record.getId());
 				record.setId(null);
 			}
 		}
@@ -72,19 +72,19 @@ public class GenericSyncService {
 			String deviceId = entry.getKey();
 			List<T> devicePayload = entry.getValue();
 
-			List<Integer> incomingLocalIds = devicePayload.stream().map(BaseSyncEntity::getLocalId)
+			List<Long> incomingLocalIds = devicePayload.stream().map(BaseSyncEntity::getLocalId)
 					.filter(java.util.Objects::nonNull).distinct().collect(Collectors.toList());
 
 			BaseSyncEntity firstRecord = devicePayload.get(0);
 			boolean isSingletonType = firstRecord instanceof RestaurantProfile || firstRecord instanceof User;
 			boolean singletonStylePayload = isSingletonType && devicePayload.size() == 1
-					&& (incomingLocalIds.isEmpty() || incomingLocalIds.contains(1));
+					&& (incomingLocalIds.isEmpty() || incomingLocalIds.contains(1L));
 
 			List<T> existingRecords = new ArrayList<>(
 					repository.findByRestaurantIdAndDeviceIdAndLocalIdIn(tenantId, deviceId, incomingLocalIds));
 
 			if (singletonStylePayload) {
-				List<T> crossDeviceRecords = repository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1));
+				List<T> crossDeviceRecords = repository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1L));
 
 				for (T record : crossDeviceRecords) {
 					boolean matchFound = false;
@@ -107,17 +107,17 @@ public class GenericSyncService {
 				}
 			}
 
-			Map<Integer, T> existingRecordMap = existingRecords.stream()
+			Map<Long, T> existingRecordMap = existingRecords.stream()
 					.collect(Collectors.toMap(BaseSyncEntity::getLocalId, Function.identity(), (existing,
 							replacement) -> existing.getUpdatedAt() > replacement.getUpdatedAt() ? existing : replacement));
 
-			Map<Integer, T> recordsToSaveMap = new HashMap<>();
+			Map<Long, T> recordsToSaveMap = new HashMap<>();
 
 			for (T incomingRecord : devicePayload) {
 				try {
 					if (incomingRecord.getLocalId() == null) {
 						if (singletonStylePayload) {
-							incomingRecord.setLocalId(1);
+							incomingRecord.setLocalId(1L);
 						} else {
 							log.warn("Skipping record with NULL localId for device: {}", deviceId);
 							continue;

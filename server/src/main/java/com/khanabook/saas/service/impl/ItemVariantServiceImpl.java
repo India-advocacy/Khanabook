@@ -23,7 +23,7 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 	@Override
 	public PushSyncResponse pushData(Long tenantId, List<ItemVariant> payload) {
 		List<ItemVariant> toSync = new ArrayList<>();
-		List<Integer> failedLocalIds = new ArrayList<>();
+		List<Long> failedLocalIds = new ArrayList<>();
 
 		for (ItemVariant variant : payload) {
 			if (variant.getServerMenuItemId() == null && variant.getMenuItemId() != null) {
@@ -33,7 +33,7 @@ public class ItemVariantServiceImpl implements ItemVariantService {
 				if (item.isPresent()) {
 					variant.setServerMenuItemId(item.get().getId());
 				} else {
-					Optional<MenuItem> serverItem = menuItemRepository.findById(variant.getMenuItemId().longValue());
+					Optional<MenuItem> serverItem = menuItemRepository.findById(variant.getMenuItemId());
 					if (serverItem.isPresent() && serverItem.get().getRestaurantId().equals(tenantId)) {
 						variant.setServerMenuItemId(serverItem.get().getId());
 					} else {

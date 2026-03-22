@@ -37,31 +37,31 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
         menuItemRepo.deleteAll();
         categoryRepo.deleteAll();
 
-        Category cat = category(TENANT, DEVICE_A, 1);
+        Category cat = category(TENANT, DEVICE_A, 1L);
         Category savedCat = categoryRepo.save(cat);
 
-        MenuItem item = menuItem(TENANT, DEVICE_A, 1, savedCat.getId());
+        MenuItem item = menuItem(TENANT, DEVICE_A, 1L, savedCat.getId());
         item.setCurrentStock(BigDecimal.ZERO);
         savedMenuItemId = menuItemRepo.save(item).getId();
     }
 
     @Test
     void initialStock_setViaStockLog_recalculatedCorrectly() {
-        StockLog initial = stockLog(1, DEVICE_A, 1, null, new BigDecimal("50.00"), "initial");
+        StockLog initial = stockLog(1L, DEVICE_A, 1L, 0L, new BigDecimal("50.00"), "initial");
         initial.setServerMenuItemId(savedMenuItemId);
 
         PushSyncResponse resp = stockLogService.pushData(TENANT, List.of(initial));
 
-        assertThat(resp.getSuccessfulLocalIds()).contains(1);
+        assertThat(resp.getSuccessfulLocalIds()).contains(1L);
         MenuItem updated = menuItemRepo.findById(savedMenuItemId).orElseThrow();
         assertThat(updated.getCurrentStock()).isEqualByComparingTo("50.00");
     }
 
     @Test
     void saleThenAdjustment_stockCalculatesCorrectly() {
-        StockLog init = stockLog(1, DEVICE_A, 1, null, new BigDecimal("100.00"), "initial");
+        StockLog init = stockLog(1L, DEVICE_A, 1L, 0L, new BigDecimal("100.00"), "initial");
         init.setServerMenuItemId(savedMenuItemId);
-        StockLog sale = stockLog(2, DEVICE_A, 1, null, new BigDecimal("-3.00"), "sale");
+        StockLog sale = stockLog(2L, DEVICE_A, 1L, 0L, new BigDecimal("-3.00"), "sale");
         sale.setServerMenuItemId(savedMenuItemId);
 
         stockLogService.pushData(TENANT, List.of(init));
@@ -74,11 +74,11 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
     @Test
     void multiDeviceStockLogs_bothContributedToTotal() {
         
-        StockLog fromA = stockLog(1, DEVICE_A, 1, null, new BigDecimal("50.00"), "initial");
+        StockLog fromA = stockLog(1L, DEVICE_A, 1L, 0L, new BigDecimal("50.00"), "initial");
         fromA.setServerMenuItemId(savedMenuItemId);
 
         
-        StockLog fromB = stockLog(1, DEVICE_B, 1, null, new BigDecimal("-5.00"), "sale");
+        StockLog fromB = stockLog(1L, DEVICE_B, 1L, 0L, new BigDecimal("-5.00"), "sale");
         fromB.setServerMenuItemId(savedMenuItemId);
 
         stockLogService.pushData(TENANT, List.of(fromA));
@@ -92,12 +92,12 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
     @Test
     void stockLog_isDeletedSoftly_doesNotAffectCurrentStock() {
         
-        StockLog init = stockLog(1, DEVICE_A, 1, null, new BigDecimal("20.00"), "initial");
+        StockLog init = stockLog(1L, DEVICE_A, 1L, 0L, new BigDecimal("20.00"), "initial");
         init.setServerMenuItemId(savedMenuItemId);
         stockLogService.pushData(TENANT, List.of(init));
 
         
-        StockLog deletedSale = stockLog(2, DEVICE_A, 1, null, new BigDecimal("-5.00"), "sale");
+        StockLog deletedSale = stockLog(2L, DEVICE_A, 1L, 0L, new BigDecimal("-5.00"), "sale");
         deletedSale.setServerMenuItemId(savedMenuItemId);
         deletedSale.setIsDeleted(true);
         stockLogService.pushData(TENANT, List.of(deletedSale));
@@ -114,9 +114,9 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void weightBasedItem_fractionalDelta_preservedWithFourDecimals() {
-        StockLog init = stockLog(1, DEVICE_A, 1, null, new BigDecimal("10.2500"), "initial");
+        StockLog init = stockLog(1L, DEVICE_A, 1L, 0L, new BigDecimal("10.2500"), "initial");
         init.setServerMenuItemId(savedMenuItemId);
-        StockLog sale = stockLog(2, DEVICE_A, 1, null, new BigDecimal("-0.1250"), "sale");
+        StockLog sale = stockLog(2L, DEVICE_A, 1L, 0L, new BigDecimal("-0.1250"), "sale");
         sale.setServerMenuItemId(savedMenuItemId);
 
         stockLogService.pushData(TENANT, List.of(init));
@@ -128,11 +128,11 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
 
     @Test
     void variantStock_recalculatedIndependentlyFromMenuItemStock() {
-        ItemVariant variant = variant(TENANT, DEVICE_A, 1, savedMenuItemId);
+        ItemVariant variant = variant(TENANT, DEVICE_A, 1L, savedMenuItemId);
         variant.setCurrentStock(BigDecimal.ZERO);
         Long variantId = itemVariantRepo.save(variant).getId();
 
-        StockLog variantLog = stockLog(1, DEVICE_A, 1, 1, new BigDecimal("30.00"), "initial");
+        StockLog variantLog = stockLog(1L, DEVICE_A, 1L, 1L, new BigDecimal("30.00"), "initial");
         variantLog.setServerMenuItemId(savedMenuItemId);
         variantLog.setServerVariantId(variantId);
 
@@ -148,8 +148,8 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
 
     
 
-    private StockLog stockLog(int localId, String device, int menuItemLocalId,
-                               Integer variantLocalId, BigDecimal delta, String reason) {
+    private StockLog stockLog(long localId, String device, long menuItemLocalId,
+                               long variantLocalId, BigDecimal delta, String reason) {
         StockLog sl = new StockLog();
         sl.setLocalId(localId);
         sl.setDeviceId(device);
@@ -165,7 +165,7 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
         return sl;
     }
 
-    private Category category(Long tenantId, String deviceId, int localId) {
+    private Category category(Long tenantId, String deviceId, long localId) {
         Category c = new Category();
         c.setRestaurantId(tenantId);
         c.setDeviceId(deviceId);
@@ -180,7 +180,7 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
         return c;
     }
 
-    private MenuItem menuItem(Long tenantId, String deviceId, int localId, Long serverCategoryId) {
+    private MenuItem menuItem(Long tenantId, String deviceId, long localId, Long serverCategoryId) {
         MenuItem m = new MenuItem();
         m.setRestaurantId(tenantId);
         m.setDeviceId(deviceId);
@@ -189,7 +189,7 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
         m.setServerUpdatedAt(1000L);
         m.setCreatedAt(1000L);
         m.setIsDeleted(false);
-        m.setCategoryId(1);
+        m.setCategoryId(1L);
         m.setServerCategoryId(serverCategoryId);
         m.setName("Samosa");
         m.setBasePrice(new BigDecimal("15.00"));
@@ -197,7 +197,7 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
         return m;
     }
 
-    private ItemVariant variant(Long tenantId, String deviceId, int localId, Long serverMenuItemId) {
+    private ItemVariant variant(Long tenantId, String deviceId, long localId, Long serverMenuItemId) {
         ItemVariant v = new ItemVariant();
         v.setRestaurantId(tenantId);
         v.setDeviceId(deviceId);
@@ -206,7 +206,7 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
         v.setServerUpdatedAt(1000L);
         v.setCreatedAt(1000L);
         v.setIsDeleted(false);
-        v.setMenuItemId(1);
+        v.setMenuItemId(1L);
         v.setServerMenuItemId(serverMenuItemId);
         v.setVariantName("Small");
         v.setPrice(new BigDecimal("10.00"));

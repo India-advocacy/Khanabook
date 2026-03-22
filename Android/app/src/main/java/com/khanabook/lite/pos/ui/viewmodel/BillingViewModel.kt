@@ -238,7 +238,8 @@ class BillingViewModel @Inject constructor(
                 paymentStatus = status.dbValue,
                 orderStatus = if (status == PaymentStatus.SUCCESS) OrderStatus.COMPLETED.dbValue else OrderStatus.CANCELLED.dbValue,
                 createdAt = System.currentTimeMillis(),
-                paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null
+                paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,
+                lastResetDate = profile.lastResetDate
             )
             
             val items = _cartItems.value.map { cartItem ->
