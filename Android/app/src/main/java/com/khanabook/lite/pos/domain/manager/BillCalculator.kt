@@ -1,7 +1,5 @@
 package com.khanabook.lite.pos.domain.manager
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 import java.math.BigDecimal
 import java.math.RoundingMode

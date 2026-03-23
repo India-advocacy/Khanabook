@@ -29,25 +29,30 @@ interface RestaurantDao {
     suspend fun incrementAndGetCounters(): Pair<Long, Long> {
         val profile = getProfile() ?: throw Exception("Profile not found")
         
-        
         val zoneId = java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
         val today = java.time.LocalDate.now(zoneId).toString()
         val isNewDay = profile.lastResetDate != today
         val now = System.currentTimeMillis()
         
-        val nextDaily = if (isNewDay) 1 else profile.dailyOrderCounter + 1
-        val nextLifetime = profile.lifetimeOrderCounter + 1
-        
         if (isNewDay) {
-            resetDailyCounter(nextDaily, today, now)
+            // Atomic reset for new day
+            resetDailyCounter(1, today, now)
+            // We still need to fetch the lifetime counter to return it, 
+            // but the increment itself is now safer if we were to use a raw query.
+            // For now, making the increment atomic:
+            incrementLifetimeCounterOnly(now)
             
-            updateLifetimeCounter(nextLifetime, now)
+            val updated = getProfile() ?: throw Exception("Profile lost during update")
+            return Pair(1L, updated.lifetimeOrderCounter)
         } else {
             incrementOrderCounters(now)
+            val updated = getProfile() ?: throw Exception("Profile lost during update")
+            return Pair(updated.dailyOrderCounter, updated.lifetimeOrderCounter)
         }
-        
-        return Pair(nextDaily, nextLifetime)
     }
+
+    @Query("UPDATE restaurant_profile SET lifetime_order_counter = lifetime_order_counter + 1, is_synced = 0, updated_at = :updatedAt WHERE id = 1")
+    suspend fun incrementLifetimeCounterOnly(updatedAt: Long)
 
     @Transaction
     suspend fun updateCounters(daily: Long, lifetime: Long) {

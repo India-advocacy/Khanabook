@@ -1,7 +1,5 @@
 package com.khanabook.lite.pos.data.local.dao
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 import androidx.room.*
 import com.khanabook.lite.pos.data.local.entity.CategoryEntity

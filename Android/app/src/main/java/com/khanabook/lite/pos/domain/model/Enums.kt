@@ -1,7 +1,5 @@
-﻿package com.khanabook.lite.pos.domain.model
+package com.khanabook.lite.pos.domain.model
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 enum class PaymentMode(val dbValue: String, val displayLabel: String) {
     CASH("cash", "Cash"),

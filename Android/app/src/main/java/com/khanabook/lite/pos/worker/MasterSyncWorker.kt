@@ -67,7 +67,7 @@ constructor(
           withContext(Dispatchers.IO) {
             val token = sessionManager.getAuthToken()
 
-            if (token.isNullOrBlank() || token == "null" || !token.contains(".")) {
+            if (token.isNullOrBlank() || token == "null" || token.split(".").size != 3) {
               Log.w("MasterSyncWorker", "Aborting sync: No valid session token found.")
               return@withContext Result.success()
             }

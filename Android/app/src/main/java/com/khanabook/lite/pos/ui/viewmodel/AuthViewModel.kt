@@ -525,6 +525,8 @@ constructor(
     }
 
     fun loginWithTestOfflineCredentials() {
+        if (!BuildConfig.DEBUG) return
+        
         viewModelScope.launch {
             _loginStatus.value = LoginResult.Success(UserEntity(name="Loading...", email="test", restaurantId=0, deviceId="")) // Trigger loading state logic
             

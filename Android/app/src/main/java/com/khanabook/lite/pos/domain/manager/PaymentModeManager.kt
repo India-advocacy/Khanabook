@@ -1,7 +1,5 @@
-﻿package com.khanabook.lite.pos.domain.manager
+package com.khanabook.lite.pos.domain.manager
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.domain.model.PaymentMode

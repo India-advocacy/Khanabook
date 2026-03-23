@@ -1,7 +1,5 @@
 package com.khanabook.lite.pos.domain.model
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 data class OrderLevelRow(
     val dailyId: String,

@@ -1,7 +1,5 @@
-﻿package com.khanabook.lite.pos.data.remote
+package com.khanabook.lite.pos.data.remote
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 import retrofit2.Response
 import retrofit2.http.Body

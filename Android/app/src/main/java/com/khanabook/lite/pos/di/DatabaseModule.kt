@@ -52,11 +52,8 @@ object DatabaseModule {
 
                     return Base64.decode(dbKey, Base64.NO_WRAP)
                 } catch (e: Exception) {
-                    
-                    
-                    Log.e(TAG, "Failed to initialize EncryptedSharedPreferences. Falling back to static key.", e)
-                    val alias = KEYSTORE_ALIAS.toByteArray(Charsets.UTF_8)
-                    return Base64.encode(alias, Base64.NO_WRAP)
+                    Log.e(TAG, "Failed to initialize EncryptedSharedPreferences. Database cannot be opened safely.", e)
+                    throw e
                 }
         }
 

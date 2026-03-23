@@ -1,14 +1,12 @@
 package com.khanabook.lite.pos.data.local.entity
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 import androidx.room.*
 import com.google.gson.annotations.SerializedName
 
 @Entity(
     tableName = "categories",
-    indices = [Index(value = ["name"], unique = true)]
+    indices = [Index(value = ["restaurant_id", "name"], unique = true)]
 )
 data class CategoryEntity(
     @SerializedName("localId") @PrimaryKey(autoGenerate = true)
