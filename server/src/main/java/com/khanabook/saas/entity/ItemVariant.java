@@ -22,6 +22,10 @@ public class ItemVariant extends BaseSyncEntity {
 	@Column(name = "server_menu_item_id")
 	private Long serverMenuItemId;
 
+	@jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+	@jakarta.persistence.JoinColumn(name = "server_menu_item_id", insertable = false, updatable = false)
+	private MenuItem menuItem;
+
 	@Column(name = "variant_name", nullable = false)
 	private String variantName;
 
@@ -34,10 +38,10 @@ public class ItemVariant extends BaseSyncEntity {
 	@Column(name = "sort_order")
 	private Integer sortOrder;
 
-	@Column(name = "current_stock", columnDefinition = "NUMERIC(12,2)")
+	@Column(name = "current_stock", columnDefinition = "NUMERIC(12,4)")
 	private java.math.BigDecimal currentStock;
 
-	@Column(name = "low_stock_threshold", columnDefinition = "NUMERIC(12,2)")
+	@Column(name = "low_stock_threshold", columnDefinition = "NUMERIC(12,4)")
 	private java.math.BigDecimal lowStockThreshold;
 
 	public MenuItem.StockStatus getStockStatus() {

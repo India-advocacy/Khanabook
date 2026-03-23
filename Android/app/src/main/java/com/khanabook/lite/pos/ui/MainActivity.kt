@@ -116,8 +116,14 @@ class MainActivity : ComponentActivity() {
                     composable("signup") {
                         SignUpScreen(
                             onSignUpSuccess = {
-                                navController.navigate("login") {
-                                    popUpTo("signup") { inclusive = true }
+                                if (sessionManager.isInitialSyncCompleted()) {
+                                    navController.navigate("main/0") {
+                                        popUpTo("signup") { inclusive = true }
+                                    }
+                                } else {
+                                    navController.navigate("initial_sync") {
+                                        popUpTo("signup") { inclusive = true }
+                                    }
                                 }
                             },
                             onLoginClick = { navController.popBackStack() }

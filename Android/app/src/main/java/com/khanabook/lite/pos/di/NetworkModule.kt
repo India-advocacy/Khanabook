@@ -81,9 +81,9 @@ object NetworkModule {
     @Named("BackendRetrofit")
     fun provideBackendRetrofit(@Named("AuthOkHttpClient") okHttpClient: OkHttpClient): Retrofit {
         val baseUrlWithPrefix = if (BACKEND_BASE_URL.endsWith("/")) {
-            BACKEND_BASE_URL + "api/v1/"
+            BACKEND_BASE_URL
         } else {
-            BACKEND_BASE_URL + "/api/v1/"
+            BACKEND_BASE_URL + "/"
         }
         return Retrofit.Builder()
             .baseUrl(baseUrlWithPrefix)

@@ -205,10 +205,10 @@ fun MenuConfigurationScreen(
         if (showAddItemDialog) {
             ItemDialog(
                 onDismiss = { showAddItemDialog = false },
-                onConfirm = { name, price, foodType ->
+                onConfirm = { name, price, foodType, description ->
                     val catId = selectedCategoryId
                     if (catId != null) {
-                        viewModel.addItem(catId, name, price, foodType)
+                        viewModel.addItem(catId, name, price, foodType, description)
                         android.widget.Toast.makeText(context, "\"$name\" added to menu", android.widget.Toast.LENGTH_SHORT).show()
                     } else {
                         android.widget.Toast.makeText(context, "Please select a category first", android.widget.Toast.LENGTH_SHORT).show()
@@ -241,12 +241,13 @@ fun MenuConfigurationScreen(
             ItemDialog(
                 initialItem = item,
                 onDismiss = { editingItem = null },
-                onConfirm = { name, price, foodType ->
+                onConfirm = { name, price, foodType, description ->
                     viewModel.updateItem(
                         item.copy(
                             name = name,
                             basePrice = price.toString(),
-                            foodType = foodType
+                            foodType = foodType,
+                            description = description
                         )
                     )
                     android.widget.Toast.makeText(context, "\"$name\" updated", android.widget.Toast.LENGTH_SHORT).show()
@@ -1218,11 +1219,12 @@ fun AddCategoryDialog(onDismiss: () -> Unit, onConfirm: (String, Boolean) -> Uni
 fun ItemDialog(
     initialItem: MenuItemEntity? = null,
     onDismiss: () -> Unit,
-    onConfirm: (String, Double, String) -> Unit
+    onConfirm: (String, Double, String, String?) -> Unit
 ) {
     var name by remember { mutableStateOf(initialItem?.name ?: "") }
     var price by remember { mutableStateOf(initialItem?.basePrice?.toString() ?: "") }
     var foodType by remember { mutableStateOf(initialItem?.foodType ?: "veg") }
+    var description by remember { mutableStateOf(initialItem?.description ?: "") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1245,6 +1247,14 @@ fun ItemDialog(
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
                     colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight, focusedBorderColor = PrimaryGold, unfocusedBorderColor = BorderGold.copy(alpha = 0.5f), focusedLabelColor = PrimaryGold, unfocusedLabelColor = TextGold)
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description (Optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight, focusedBorderColor = PrimaryGold, unfocusedBorderColor = BorderGold.copy(alpha = 0.5f), focusedLabelColor = PrimaryGold, unfocusedLabelColor = TextGold)
+                )
                 Spacer(modifier = Modifier.height(16.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     RadioButton(selected = foodType == "veg", onClick = { foodType = "veg" }, colors = RadioButtonDefaults.colors(selectedColor = PrimaryGold))
@@ -1258,7 +1268,7 @@ fun ItemDialog(
         confirmButton = {
             Button(onClick = {
                 if (name.isNotBlank()) {
-                    onConfirm(name, price.toDoubleOrNull() ?: 0.0, foodType)
+                    onConfirm(name, price.toDoubleOrNull() ?: 0.0, foodType, description.takeIf { it.isNotBlank() })
                 }
             }, colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1)) { Text("Confirm") }
         },

@@ -92,74 +92,33 @@ constructor(
 
         viewModelScope.launch {
             _loginStatus.value = LoginResult.Loading 
+            performLogin(email, password)
+        }
+    }
 
-            val localHash = authManager.hashPassword(password)
-            val result = userRepository.remoteLogin(email, password, localHash)
+    private suspend fun performLogin(email: String, password: String) {
+        val localHash = authManager.hashPassword(password)
+        val result = userRepository.remoteLogin(email, password, localHash)
 
-            result.onSuccess { user ->
-                Log.d(TAG, "Remote login success for: $email")
-                failedLoginAttempts = 0
-                lockoutUntilMs = 0L
-
-                
-                sessionManager.saveLastSyncTimestamp(0L)
-                sessionManager.setInitialSyncCompleted(false)
-
-                
-                syncManager.performMasterPull()
-
-                
-                user.whatsappNumber?.let { number ->
-                    viewModelScope.launch {
-                        val currentProfile = restaurantRepository.getProfile()
-                        if (currentProfile != null) {
-                            if (currentProfile.whatsappNumber != number) {
-                                restaurantRepository.saveProfile(currentProfile.copy(whatsappNumber = number))
-                            }
-                        } else {
-                            restaurantRepository.saveProfile(
-                                RestaurantProfileEntity(
-                                    id = 1,
-                                    shopName = user.name,
-                                    shopAddress = "",
-                                    whatsappNumber = number,
-                                    upiMobile = number,
-                                    lastResetDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                                )
-                            )
-                        }
-                    }
-                }
-
-                _loginStatus.value = LoginResult.Success(user)
-            }.onFailure { e ->
-                Log.e(TAG, "Remote login failed: ${e.message}. Falling back to local.", e)
-                
-                val user = userRepository.getUserByEmail(email)
-                if (user != null) {
-                    val verified = authManager.verifyPassword(password, user.passwordHash.orEmpty())
-                    if (verified) {
-                        if (user.isActive) {
-                            failedLoginAttempts = 0
-                            lockoutUntilMs = 0L
-                            userRepository.setCurrentUser(user)
-                            _loginStatus.value = LoginResult.Success(user)
-                        } else {
-                            _loginStatus.value =
-                                    loginError("Account is inactive", LoginErrorCode.ACCOUNT_INACTIVE)
-                        }
+        result.onSuccess { user ->
+            Log.d(TAG, "Remote login success for: $email")
+            handleLoginSuccess(user)
+            _loginStatus.value = LoginResult.Success(user)
+        }.onFailure { e ->
+            Log.e(TAG, "Remote login failed: ${e.message}. Falling back to local.", e)
+            
+            val user = userRepository.getUserByEmail(email)
+            if (user != null) {
+                val verified = authManager.verifyPassword(password, user.passwordHash.orEmpty())
+                if (verified) {
+                    if (user.isActive) {
+                        failedLoginAttempts = 0
+                        lockoutUntilMs = 0L
+                        userRepository.setCurrentUser(user)
+                        _loginStatus.value = LoginResult.Success(user)
                     } else {
-                        failedLoginAttempts++
-                        if (failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-                            lockoutUntilMs = System.currentTimeMillis() + 5 * 60 * 1000L
-                            _loginStatus.value = loginError("Too many failed attempts. Locked for 5 minutes.", LoginErrorCode.LOCKED_OUT)
-                        } else {
-                            val remaining = MAX_FAILED_ATTEMPTS - failedLoginAttempts
-                            _loginStatus.value = loginError(
-                                "Incorrect password. $remaining attempt(s) remaining.",
-                                LoginErrorCode.INCORRECT_PASSWORD
-                            )
-                        }
+                        _loginStatus.value =
+                                loginError("Account is inactive", LoginErrorCode.ACCOUNT_INACTIVE)
                     }
                 } else {
                     failedLoginAttempts++
@@ -167,14 +126,58 @@ constructor(
                         lockoutUntilMs = System.currentTimeMillis() + 5 * 60 * 1000L
                         _loginStatus.value = loginError("Too many failed attempts. Locked for 5 minutes.", LoginErrorCode.LOCKED_OUT)
                     } else {
+                        val remaining = MAX_FAILED_ATTEMPTS - failedLoginAttempts
                         _loginStatus.value = loginError(
-                            "No account found with this number or server is offline.",
-                            LoginErrorCode.ACCOUNT_NOT_FOUND
+                            "Incorrect password. $remaining attempt(s) remaining.",
+                            LoginErrorCode.INCORRECT_PASSWORD
                         )
                     }
                 }
+            } else {
+                failedLoginAttempts++
+                if (failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
+                    lockoutUntilMs = System.currentTimeMillis() + 5 * 60 * 1000L
+                    _loginStatus.value = loginError("Too many failed attempts. Locked for 5 minutes.", LoginErrorCode.LOCKED_OUT)
+                } else {
+                    _loginStatus.value = loginError(
+                        "No account found with this number or server is offline.",
+                        LoginErrorCode.ACCOUNT_NOT_FOUND
+                    )
+                }
             }
+        }
+    }
 
+    private suspend fun handleLoginSuccess(user: UserEntity) {
+        failedLoginAttempts = 0
+        lockoutUntilMs = 0L
+
+        
+        sessionManager.saveLastSyncTimestamp(0L)
+        sessionManager.setInitialSyncCompleted(false)
+
+        
+        syncManager.performMasterPull()
+
+        
+        user.whatsappNumber?.let { number ->
+            val currentProfile = restaurantRepository.getProfile()
+            if (currentProfile != null) {
+                if (currentProfile.whatsappNumber != number) {
+                    restaurantRepository.saveProfile(currentProfile.copy(whatsappNumber = number))
+                }
+            } else {
+                restaurantRepository.saveProfile(
+                    RestaurantProfileEntity(
+                        id = 1,
+                        shopName = user.name,
+                        shopAddress = "",
+                        whatsappNumber = number,
+                        upiMobile = number,
+                        lastResetDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                    )
+                )
+            }
         }
     }
 
@@ -310,16 +313,13 @@ constructor(
 
     fun signUp(name: String, phoneNumber: String, password: String) {
         viewModelScope.launch {
+            _signUpStatus.value = SignUpResult.Loading
             try {
                 
                 val localHash = authManager.hashPassword(password)
                 val result = userRepository.remoteSignup(name, phoneNumber, password, localHash)
                 
                 result.onSuccess {
-                    
-                    sessionManager.saveLastSyncTimestamp(0L)
-                    sessionManager.setInitialSyncCompleted(false)
-
                     
                     val currentProfile = restaurantRepository.getProfile()
                     val updatedProfile =
@@ -347,9 +347,15 @@ constructor(
                     restaurantRepository.saveProfile(updatedProfile)
                     
                     
-                    syncManager.performMasterPull()
-
-                    _signUpStatus.value = SignUpResult.Success
+                    performLogin(phoneNumber, password)
+                    
+                    
+                    if (_loginStatus.value is LoginResult.Success) {
+                        _signUpStatus.value = SignUpResult.Success
+                    } else if (_loginStatus.value is LoginResult.Error) {
+                        val error = _loginStatus.value as LoginResult.Error
+                        _signUpStatus.value = SignUpResult.Error("Signup successful but Login failed: ${error.message}")
+                    }
                 }.onFailure { e ->
                     _signUpStatus.value = SignUpResult.Error(e.message ?: "Registration failed")
                 }
@@ -569,6 +575,7 @@ constructor(
     }
 
     sealed class SignUpResult {
+        object Loading : SignUpResult()
         object Success : SignUpResult()
         
         object OtpSent : SignUpResult()

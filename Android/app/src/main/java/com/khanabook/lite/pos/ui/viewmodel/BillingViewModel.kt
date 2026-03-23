@@ -237,6 +237,7 @@ class BillingViewModel @Inject constructor(
                 partAmount2 = _partAmount2.value,
                 paymentStatus = status.dbValue,
                 orderStatus = if (status == PaymentStatus.SUCCESS) OrderStatus.COMPLETED.dbValue else OrderStatus.CANCELLED.dbValue,
+                createdBy = sessionManager.getActiveUserId(),
                 createdAt = System.currentTimeMillis(),
                 paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,
                 lastResetDate = profile.lastResetDate ?: ""

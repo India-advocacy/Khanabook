@@ -44,7 +44,7 @@ android {
         val metaToken = localProperties.getProperty("META_ACCESS_TOKEN") ?: ""
         val phoneId = localProperties.getProperty("WHATSAPP_PHONE_NUMBER_ID") ?: ""
         val templateName = localProperties.getProperty("WHATSAPP_OTP_TEMPLATE_NAME") ?: ""
-        val backendUrl = localProperties.getProperty("BACKEND_URL") ?: "http://192.168.211.80:8080/"
+        val backendUrl = localProperties.getProperty("BACKEND_URL") ?: "https://kbook.iadv.cloud/"
 
         buildConfigField("String", "META_ACCESS_TOKEN", "\"$metaToken\"")
         buildConfigField("String", "WHATSAPP_PHONE_NUMBER_ID", "\"$phoneId\"")

@@ -4,6 +4,7 @@ import com.khanabook.lite.pos.data.local.entity.*
 import com.google.gson.annotations.SerializedName
 
 data class MasterSyncResponse(
+    @SerializedName("serverTimestamp") val serverTimestamp: Long = 0L,
     @SerializedName("profiles") val profiles: List<RestaurantProfileEntity> = emptyList(),
     @SerializedName("users") val users: List<UserEntity> = emptyList(),
     @SerializedName("categories") val categories: List<CategoryEntity> = emptyList(),

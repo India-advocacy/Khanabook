@@ -109,7 +109,7 @@ class StockRecalculationIntegrationTest extends BaseIntegrationTest {
         
         
         assertThat(updated.getCurrentStock())
-            .isEqualByComparingTo("15.00"); 
+            .isEqualByComparingTo("20.00"); 
     }
 
     @Test

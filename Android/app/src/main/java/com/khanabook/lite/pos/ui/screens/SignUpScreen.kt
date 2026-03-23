@@ -67,9 +67,11 @@ fun SignUpScreen(
 
     val signUpStatus by viewModel.signUpStatus.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val isLoading = signUpStatus is AuthViewModel.SignUpResult.Loading
 
     LaunchedEffect(signUpStatus) {
         when (val status = signUpStatus) {
+            is AuthViewModel.SignUpResult.Loading -> {}
             is AuthViewModel.SignUpResult.Success -> {
                 onSignUpSuccess()
                 viewModel.resetSignUpStatus()
@@ -163,6 +165,7 @@ fun SignUpScreen(
                             shape = RoundedCornerShape(24.dp),
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
+                            enabled = !isLoading,
                             isError = shopName.isNotEmpty() && !isNameValid,
                             supportingText = {
                                 if (shopName.isNotEmpty() && !isNameValid)
@@ -189,6 +192,7 @@ fun SignUpScreen(
                             shape = RoundedCornerShape(24.dp),
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
+                            enabled = !isLoading,
                             isError = phoneNumber.isNotEmpty() && !isPhoneValid,
                             supportingText = {
                                 if (phoneNumber.isNotEmpty() && !isPhoneValid)
@@ -207,7 +211,7 @@ fun SignUpScreen(
                                                     ),
                                             shape = RoundedCornerShape(20.dp),
                                             contentPadding = PaddingValues(horizontal = 12.dp),
-                                            enabled = isPhoneValid
+                                            enabled = isPhoneValid && !isLoading
                                     ) {
                                         Text(
                                                 "Send OTP",
@@ -247,6 +251,7 @@ fun SignUpScreen(
                                 shape = RoundedCornerShape(24.dp),
                                 colors = outlinedTextFieldColors(),
                                 singleLine = true,
+                                enabled = !isLoading,
                                 isError = otp.length == 6 && !isOtpVerified,
                                 supportingText = {
                                     if (otp.length == 6 && !isOtpVerified)
@@ -294,7 +299,7 @@ fun SignUpScreen(
                                         contentDescription = null,
                                         tint = PrimaryGold,
                                         modifier =
-                                                Modifier.clickable {
+                                                Modifier.clickable(enabled = !isLoading) {
                                                             showNewPassword = !showNewPassword
                                                         }
                                                         .padding(end = 8.dp)
@@ -307,6 +312,7 @@ fun SignUpScreen(
                             shape = RoundedCornerShape(24.dp),
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
+                            enabled = !isLoading,
                             isError = newPassword.isNotEmpty() && !isPasswordValid,
                             supportingText = {
                                 if (newPassword.isNotEmpty() && !isPasswordValid)
@@ -339,7 +345,7 @@ fun SignUpScreen(
                                         contentDescription = null,
                                         tint = PrimaryGold,
                                         modifier =
-                                                Modifier.clickable {
+                                                Modifier.clickable(enabled = !isLoading) {
                                                             showConfirmPassword =
                                                                     !showConfirmPassword
                                                         }
@@ -353,6 +359,7 @@ fun SignUpScreen(
                             shape = RoundedCornerShape(24.dp),
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
+                            enabled = !isLoading,
                             isError = confirmPassword.isNotEmpty() && !passwordsMatch,
                             supportingText = {
                                 if (confirmPassword.isNotEmpty() && !passwordsMatch)
@@ -369,7 +376,7 @@ fun SignUpScreen(
                                 isPhoneValid &&
                                 isPasswordValid &&
                                 passwordsMatch &&
-                                isOtpVerified
+                                isOtpVerified && !isLoading
                 Button(
                         onClick = {
                             if (isFormValid) {
@@ -395,12 +402,20 @@ fun SignUpScreen(
                         shape = RoundedCornerShape(28.dp),
                         enabled = isFormValid
                 ) {
-                    Text(
-                            "Sign Up",
-                            color = if (isFormValid) DarkBrown1 else Color.LightGray,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 18.sp
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = DarkBrown1,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                                "Sign Up",
+                                color = if (isFormValid) DarkBrown1 else Color.LightGray,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 18.sp
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -416,7 +431,7 @@ fun SignUpScreen(
                             color = PrimaryGold,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.clickable { onLoginClick() }
+                            modifier = Modifier.clickable(enabled = !isLoading) { onLoginClick() }
                     )
                 }
             }

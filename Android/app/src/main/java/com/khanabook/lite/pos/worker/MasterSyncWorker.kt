@@ -88,7 +88,11 @@ constructor(
               
               masterSyncProcessor.insertMasterData(masterData)
 
-              sessionManager.saveLastSyncTimestamp(System.currentTimeMillis())
+              if (masterData.serverTimestamp > 0) {
+                  sessionManager.saveLastSyncTimestamp(masterData.serverTimestamp)
+              } else {
+                  sessionManager.saveLastSyncTimestamp(System.currentTimeMillis())
+              }
               Log.d("MasterSyncWorker", "Sync completed successfully")
 
               Result.success()

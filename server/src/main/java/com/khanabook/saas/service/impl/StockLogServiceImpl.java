@@ -81,6 +81,9 @@ public class StockLogServiceImpl implements StockLogService {
 
 		PushSyncResponse response = genericSyncService.handlePushSync(tenantId, toSync, repository);
 
+		// Flush the persistence context so that the recalculateStock queries see the newly inserted/updated StockLogs
+		repository.flush();
+
 		Set<Long> affectedMenuItems = new HashSet<>();
 		Set<Long> affectedVariants = new HashSet<>();
 

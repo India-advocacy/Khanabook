@@ -22,6 +22,10 @@ public class MenuItem extends BaseSyncEntity {
 	@Column(name = "server_category_id")
 	private Long serverCategoryId;
 
+	@jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+	@jakarta.persistence.JoinColumn(name = "server_category_id", insertable = false, updatable = false)
+	private Category category;
+
 	@Column(name = "name", nullable = false)
 	private String name;
 
@@ -37,10 +41,10 @@ public class MenuItem extends BaseSyncEntity {
 	@Column(name = "is_available", nullable = false)
 	private Boolean isAvailable = true;
 
-	@Column(name = "current_stock", columnDefinition = "NUMERIC(12,2)")
+	@Column(name = "current_stock", columnDefinition = "NUMERIC(12,4)")
 	private java.math.BigDecimal currentStock;
 
-	@Column(name = "low_stock_threshold", columnDefinition = "NUMERIC(12,2)")
+	@Column(name = "low_stock_threshold", columnDefinition = "NUMERIC(12,4)")
 	private java.math.BigDecimal lowStockThreshold;
 
 	public enum StockStatus {

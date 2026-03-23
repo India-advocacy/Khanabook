@@ -22,6 +22,10 @@ public class BillPayment extends BaseSyncEntity {
 	@Column(name = "server_bill_id")
 	private Long serverBillId;
 
+	@jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+	@jakarta.persistence.JoinColumn(name = "server_bill_id", insertable = false, updatable = false)
+	private Bill bill;
+
 	@Column(name = "payment_mode", nullable = false)
 	private String paymentMode;
 

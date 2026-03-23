@@ -77,7 +77,7 @@ class MenuViewModel @Inject constructor(
         }
     }
 
-    fun addItem(categoryId: Long, name: String, price: Double, foodType: String) {
+    fun addItem(categoryId: Long, name: String, price: Double, foodType: String, description: String? = null) {
         viewModelScope.launch {
             menuRepository.insertItem(
                 MenuItemEntity(
@@ -85,6 +85,7 @@ class MenuViewModel @Inject constructor(
                     name = name,
                     basePrice = price.toString(),
                     foodType = foodType,
+                    description = description,
                     createdAt = System.currentTimeMillis()
                 )
             )

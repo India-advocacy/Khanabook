@@ -36,8 +36,10 @@ public class MasterSyncController {
 			@RequestParam String deviceId) {
 
 		Long tenantId = TenantContext.getCurrentTenant();
+		long currentServerTime = System.currentTimeMillis();
 
 		MasterSyncResponse response = new MasterSyncResponse();
+		response.setServerTimestamp(currentServerTime);
 		response.setProfiles(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId));
 		response.setUsers(userService.pullData(tenantId, lastSyncTimestamp, deviceId));
 		response.setCategories(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId));
@@ -63,6 +65,7 @@ public class MasterSyncController {
 		debugData.put("tenantId", tenantId == null ? -1L : tenantId);
 		debugData.put("lastSyncTimestamp", lastSyncTimestamp == null ? -1L : lastSyncTimestamp);
 		debugData.put("deviceId", deviceId);
+		debugData.put("serverTimestamp", currentServerTime);
 		debugData.put("profilesCount", profilesCount);
 		debugData.put("usersCount", usersCount);
 		debugData.put("categoriesCount", categoriesCount);
@@ -86,6 +89,7 @@ public class MasterSyncController {
 
 	@Data
 	public static class MasterSyncResponse {
+		private Long serverTimestamp;
 		private List<RestaurantProfile> profiles;
 		private List<User> users;
 		private List<Category> categories;

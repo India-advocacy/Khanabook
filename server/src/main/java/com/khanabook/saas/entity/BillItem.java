@@ -22,11 +22,19 @@ public class BillItem extends BaseSyncEntity {
 	@Column(name = "server_bill_id")
 	private Long serverBillId;
 
+	@jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+	@jakarta.persistence.JoinColumn(name = "server_bill_id", insertable = false, updatable = false)
+	private Bill bill;
+
 	@Column(name = "menu_item_id", nullable = false)
 	private Long menuItemId;
 
 	@Column(name = "server_menu_item_id")
 	private Long serverMenuItemId;
+
+	@jakarta.persistence.ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+	@jakarta.persistence.JoinColumn(name = "server_menu_item_id", insertable = false, updatable = false)
+	private MenuItem menuItem;
 
 	@Column(name = "item_name", nullable = false)
 	private String itemName;

@@ -22,7 +22,11 @@ class SyncManager @Inject constructor(
         return try {
             val masterData = api.pullMasterSync(lastSyncTimestamp, deviceId)
             masterSyncProcessor.insertMasterData(masterData)
-            sessionManager.saveLastSyncTimestamp(System.currentTimeMillis())
+            if (masterData.serverTimestamp > 0) {
+                sessionManager.saveLastSyncTimestamp(masterData.serverTimestamp)
+            } else {
+                sessionManager.saveLastSyncTimestamp(System.currentTimeMillis())
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Log.e("SyncManager", "Master pull failed", e)
