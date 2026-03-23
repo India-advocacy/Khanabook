@@ -130,10 +130,10 @@ class SystemTest extends BaseIntegrationTest {
 
     @Test
     void resetPassword_missingBody_returns400() {
-        
+        String token = signupAndGetToken();
         ResponseEntity<String> resp = rest.exchange(
             "/auth/reset-password?phoneNumber=%2B911234567890&newPassword=x",
-            HttpMethod.POST, HttpEntity.EMPTY, String.class);
+            HttpMethod.POST, bearerRequest(token), String.class);
         
         assertThat(resp.getStatusCode()).isIn(HttpStatus.BAD_REQUEST, HttpStatus.UNSUPPORTED_MEDIA_TYPE, HttpStatus.INTERNAL_SERVER_ERROR);
     }

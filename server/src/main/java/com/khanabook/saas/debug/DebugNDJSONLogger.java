@@ -16,8 +16,8 @@ import java.util.UUID;
  * NOTE: Do not log secrets/tokens/PII here.
  */
 public final class DebugNDJSONLogger {
-	private static final Path LOG_PATH = Paths.get(
-			"c:\\Users\\nandh\\AndroidStudioProjects\\KhanaBook\\.cursor\\debug.log");
+	private static final boolean ENABLED = Boolean.parseBoolean(System.getProperty("debug.ndjson.enabled", "false"));
+	private static final Path LOG_PATH = Paths.get(System.getProperty("debug.ndjson.path", "logs/debug.log"));
 
 	private DebugNDJSONLogger() {}
 
@@ -28,6 +28,7 @@ public final class DebugNDJSONLogger {
 			String message,
 			Map<String, ?> data
 	) {
+		if (!ENABLED) return;
 		try {
 			long ts = System.currentTimeMillis();
 			String id = "log_" + ts + "_" + UUID.randomUUID();

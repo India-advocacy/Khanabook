@@ -20,7 +20,14 @@ public class BillServiceImpl implements BillService {
 	private final BillRepository repository;
 	private final GenericSyncService genericSyncService;
 	private final RestaurantProfileRepository profileRepository;
-	private final java.util.Map<Long, String> timezoneCache = new java.util.concurrent.ConcurrentHashMap<>();
+	private final java.util.Map<Long, String> timezoneCache = java.util.Collections.synchronizedMap(
+			new java.util.LinkedHashMap<Long, String>(101, 0.75f, true) {
+				@Override
+				protected boolean removeEldestEntry(java.util.Map.Entry<Long, String> eldest) {
+					return size() > 100;
+				}
+			}
+	);
 
 	@Override
 	public PushSyncResponse pushData(Long tenantId, List<Bill> payload) {

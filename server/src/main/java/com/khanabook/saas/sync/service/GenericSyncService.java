@@ -26,6 +26,10 @@ public class GenericSyncService {
 	public <T extends BaseSyncEntity> PushSyncResponse handlePushSync(Long tenantId, List<T> payload,
 			SyncRepository<T, Long> repository) {
 
+		if (payload != null && payload.size() > 500) {
+			throw new IllegalArgumentException("Push payload exceeds maximum size of 500 items");
+		}
+
 		if (tenantId == null) {
 			throw new IllegalArgumentException(
 					"Tenant ID (Restaurant ID) cannot be null. Ensure valid JWT is provided.");
