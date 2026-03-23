@@ -1413,8 +1413,10 @@ fun MenuItemRow(
             }
         }
         
-        IconButton(onClick = onManageVariants, modifier = Modifier.size(24.dp)) {
-            Icon(Icons.Default.Layers, contentDescription = "Variants", tint = Blue600, modifier = Modifier.size(16.dp))
+        if (itemWithVariants.variants.isNotEmpty()) {
+            IconButton(onClick = onManageVariants, modifier = Modifier.size(24.dp)) {
+                Icon(Icons.Default.Layers, contentDescription = "Variants", tint = Blue600, modifier = Modifier.size(16.dp))
+            }
         }
         
         IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {

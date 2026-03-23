@@ -9,7 +9,7 @@ import java.util.regex.Pattern
 data class OcrConfig(
     val priceRegex: Pattern = Pattern.compile("""(?:[\u20B9\u20A8]|rs\.?|inr)?\s*((?:\d{1,3}(?:,\d{3})*|\d+)(?:\.\d{1,2})?)(?:\s*/-)?""", Pattern.CASE_INSENSITIVE),
     val weightRegex: Regex = Regex("""(?i)\d+\s*(g|kg|ml|ltr|pcs|lb|oz)\b"""),
-    val noiseKeywords: List<String> = listOf("authentic", "experience", "since", "halal", "fine dining", "multi cuisine", "restaurant", "order online", "phone", "website", "www.", "special item", "menu", "thiruv", "address", "contact"),
+    val noiseKeywords: List<String> = listOf("authentic", "experience", "since", "halal", "fine dining", "multi cuisine", "restaurant", "order online", "phone", "website", "www.", "special item", "menu", "thiruv", "address", "contact", "zomato", "swiggy", "foodpanda", "find us on", "fssai", "gst", "taxes", "scan qr"),
     val variantHeaderKeywords: List<String> = listOf("full", "half", "qty", "price", "size", "large", "medium", "small", "regular", "portion", "plate"),
     val itemKeywords: List<String> = listOf("biriyani", "chicken", "murg", "mutton", "egg", "anda", "fish", "prawn", "meat", "seekh", "kebab", "tikka", "paneer", "mashroom", "veg", "aloo", "gobi", "dal", "roti", "naan", "paratha"),
     val yThresholdRatio: Double = 0.35,
@@ -144,9 +144,9 @@ object OcrSpatialParser {
             row.forEach { line ->
                 val txt = line.text.trim().lowercase()
                 if (config.variantHeaderKeywords.any { txt.contains(it) } && txt.length >= 2) {
-                    val cleanLabel = line.text.replace(Regex("""\s*\(.*?\)\s*"""), " ").trim()
-                    val finalLabel = config.weightRegex.replace(cleanLabel, "").trim()
-                    if (finalLabel.length >= 2) {
+                    // Strip weight/qty info like "(500g)" from header label for cleaner variant names
+                    val finalLabel = line.text.replace(Regex("""\([^)]*\)"""), "").trim()
+                    if (finalLabel.length >= 2 && finalLabel.lowercase() !in listOf("item", "price", "description")) {
                         newHeaders.add(VariantHeader(toTitleCase(finalLabel), line.boundingBox?.centerX() ?: 0))
                     }
                 }
@@ -169,6 +169,13 @@ object OcrSpatialParser {
 
     private fun detectCategory(rowText: String, lower: String, config: OcrConfig): String? {
         val words = rowText.split(Regex("\\s+"))
+        
+        // Universally safe heuristic: Categories rarely contain these descriptive words
+        val descriptionStopWords = listOf("with", "served", "cooked", "in", "and", "fried", "topped", "pieces", "flavor", "spices")
+        if (descriptionStopWords.any { lower.contains(it) }) {
+            return null // It's a description, skip it
+        }
+
         if (words.size in 1..5 && config.noiseKeywords.none { lower.contains(it) }) {
             if (rowText.length > 2 && (rowText == rowText.uppercase() || !rowText.any { it.isDigit() })) {
                 return toTitleCase(rowText)
@@ -199,13 +206,16 @@ object OcrSpatialParser {
             .replace(Regex("""[\s\-:|.…]+$"""), "")
             .trim()
         
-        if (cleanName.length < 2 || cleanName.lowercase() in listOf("item", "description", "price", "total")) return null
+        // Universally safe: Ignore standard table headers
+        if (cleanName.length < 2 || cleanName.lowercase() in listOf("item", "description", "price", "total", "particulars", "amount", "menu", "half plate", "full plate")) {
+            return null
+        }
 
         val correctedName = fixTypos(toTitleCase(cleanName), config)
 
-        val variants = priceInfos.map { price ->
+        val variants = priceInfos.mapIndexed { index, price ->
             val closestHeader = currentHeaders.minByOrNull { Math.abs(it.xCenter - price.xCenter) }
-            val vLabel = closestHeader?.name ?: if (priceInfos.size > 1) "Variant" else "Base"
+            val vLabel = closestHeader?.name ?: if (priceInfos.size > 1) "Variant ${index + 1}" else "Base"
             DraftVariant(vLabel, price.value)
         }
 
@@ -228,16 +238,38 @@ object OcrSpatialParser {
             if (config.weightRegex.containsMatchIn(txt.lowercase())) continue
 
             val matcher = config.priceRegex.matcher(txt)
-            while (matcher.find()) {
-                val valStr = matcher.group(1)?.replace(",", "")
-                valStr?.toDoubleOrNull()?.let { 
-                    if (it in 1.0..100000.0) {
-                        prices.add(PriceInfo(it, line.boundingBox?.centerX() ?: 0))
+            var matchCount = 0
+            while (matcher.find()) matchCount++
+
+            if (matchCount > 1 && line.elements.isNotEmpty()) {
+                // SCALABLE FIX: If multiple prices are grouped in one line (common in PDFs), 
+                // iterate through the individual words (elements) to get their true X-coordinates.
+                for (element in line.elements) {
+                    val elTxt = element.text.trim()
+                    val elMatcher = config.priceRegex.matcher(elTxt)
+                    while (elMatcher.find()) {
+                        val valStr = elMatcher.group(1)?.replace(",", "")
+                        valStr?.toDoubleOrNull()?.let {
+                            if (it in 1.0..100000.0) {
+                                prices.add(PriceInfo(it, element.boundingBox?.centerX() ?: line.boundingBox?.centerX() ?: 0))
+                            }
+                        }
+                    }
+                }
+            } else {
+                val matcher2 = config.priceRegex.matcher(txt)
+                while (matcher2.find()) {
+                    val valStr = matcher2.group(1)?.replace(",", "")
+                    valStr?.toDoubleOrNull()?.let { 
+                        if (it in 1.0..100000.0) {
+                            prices.add(PriceInfo(it, line.boundingBox?.centerX() ?: 0))
+                        }
                     }
                 }
             }
         }
-        return prices.sortedBy { it.xCenter }
+        // distinctBy prevents duplicate additions if regex overlaps elements
+        return prices.distinctBy { "${it.value}_${it.xCenter}" }.sortedBy { it.xCenter }
     }
 
     private fun fixTypos(name: String, config: OcrConfig): String {

@@ -251,19 +251,27 @@ fun LoginScreen(
                         modifier =
                                 Modifier.size(52.dp)
                                         .border(1.dp, BorderGold, CircleShape)
-                                        .clickable { viewModel.loginWithGoogle(context) },
+                                        .clickable(enabled = !isLoading) { viewModel.loginWithGoogle(context) },
                         shape = CircleShape,
                         color = Color.White,
                         tonalElevation = 0.dp,
                         shadowElevation = 0.dp
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                                text = "G",
-                                color = GoogleRed,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = GoogleRed,
+                                    strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                    text = "G",
+                                    color = GoogleRed,
+                                    fontSize = 24.sp,
+                                    fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
