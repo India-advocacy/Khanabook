@@ -64,6 +64,9 @@ class BillingViewModel @Inject constructor(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
     fun addToCart(item: MenuItemEntity, variant: ItemVariantEntity? = null) {
         viewModelScope.launch {
             val latestItem = menuRepository.getItemById(item.id) ?: item
@@ -187,6 +190,7 @@ class BillingViewModel @Inject constructor(
     }
 
     suspend fun completeOrder(status: PaymentStatus): Boolean = orderMutex.withLock {
+        _isLoading.value = true
         try {
             val profile = restaurantRepository.getProfile() ?: return false
             
@@ -268,7 +272,7 @@ class BillingViewModel @Inject constructor(
                     BillPaymentEntity(billId = 0, paymentMode = PaymentMode.POS.dbValue, amount = _partAmount2.value)
                 )
                 PaymentMode.PART_UPI_POS -> listOf(
-                    BillPaymentEntity(billId = 0, paymentMode = PaymentMode.UPI.dbValue, amount = _partAmount1.value),
+                    BillPaymentEntity(billId = 0, paymentMode = PaymentMode.UPI.dbValue, amount = _partAmount2.value),
                     BillPaymentEntity(billId = 0, paymentMode = PaymentMode.POS.dbValue, amount = _partAmount2.value)
                 )
                 else -> listOf(
@@ -296,10 +300,12 @@ class BillingViewModel @Inject constructor(
             _cartItems.value = emptyList()
             updateSummary()
             _error.value = null
+            _isLoading.value = false
             return true
         } catch (e: Exception) {
             e.printStackTrace()
             _error.value = "Failed to save bill: ${e.message}"
+            _isLoading.value = false
             return false
         }
     }

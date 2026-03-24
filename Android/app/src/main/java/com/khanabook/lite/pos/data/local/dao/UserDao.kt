@@ -22,11 +22,6 @@ interface UserDao {
     fun getActiveStaff(): Flow<List<UserEntity>>
 
     @Query(
-        "UPDATE users SET password_hash = :newHash, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
-    )
-    suspend fun updatePasswordHash(userId: Long, newHash: String, updatedAt: Long)
-
-    @Query(
         "UPDATE users SET whatsapp_number = :newPhone, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
     )
     suspend fun updateWhatsappNumber(userId: Long, newPhone: String, updatedAt: Long)

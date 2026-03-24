@@ -155,6 +155,13 @@ public class GenericSyncService {
 								if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
 									user.setPasswordHash(existingUser.getPasswordHash());
 								}
+								// Data Overwrite Protection: Don't overwrite email with null/empty from app
+								if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+									user.setEmail(existingUser.getEmail());
+								}
+								if (user.getGoogleEmail() == null || user.getGoogleEmail().trim().isEmpty()) {
+									user.setGoogleEmail(existingUser.getGoogleEmail());
+								}
 							}
 							incomingRecord.setId(existingRecord.getId());
 

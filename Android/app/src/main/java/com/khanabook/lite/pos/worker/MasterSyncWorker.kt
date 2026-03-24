@@ -49,8 +49,8 @@ constructor(
                       .setConstraints(constraints)
                       .setBackoffCriteria(
                           androidx.work.BackoffPolicy.EXPONENTIAL,
-                          30,
-                          TimeUnit.SECONDS
+                          1,
+                          TimeUnit.MINUTES
                       )
                       .build()
 

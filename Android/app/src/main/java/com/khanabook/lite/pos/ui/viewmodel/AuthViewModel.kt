@@ -97,53 +97,28 @@ constructor(
     }
 
     private suspend fun performLogin(email: String, password: String) {
-        val localHash = authManager.hashPassword(password)
-        val result = userRepository.remoteLogin(email, password, localHash)
+        val result = userRepository.remoteLogin(email, password)
 
         result.onSuccess { user ->
             Log.d(TAG, "Remote login success for: $email")
             handleLoginSuccess(user)
             _loginStatus.value = LoginResult.Success(user)
         }.onFailure { e ->
-            Log.e(TAG, "Remote login failed: ${e.message}. Falling back to local.", e)
+            Log.e(TAG, "Remote login failed: ${e.message}.", e)
             
             val user = userRepository.getUserByEmail(email)
             if (user != null) {
-                val verified = authManager.verifyPassword(password, user.passwordHash.orEmpty())
-                if (verified) {
-                    if (user.isActive) {
-                        failedLoginAttempts = 0
-                        lockoutUntilMs = 0L
-                        userRepository.setCurrentUser(user)
-                        _loginStatus.value = LoginResult.Success(user)
-                    } else {
-                        _loginStatus.value =
-                                loginError("Account is inactive", LoginErrorCode.ACCOUNT_INACTIVE)
-                    }
-                } else {
-                    failedLoginAttempts++
-                    if (failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-                        lockoutUntilMs = System.currentTimeMillis() + 5 * 60 * 1000L
-                        _loginStatus.value = loginError("Too many failed attempts. Locked for 5 minutes.", LoginErrorCode.LOCKED_OUT)
-                    } else {
-                        val remaining = MAX_FAILED_ATTEMPTS - failedLoginAttempts
-                        _loginStatus.value = loginError(
-                            "Incorrect password. $remaining attempt(s) remaining.",
-                            LoginErrorCode.INCORRECT_PASSWORD
-                        )
-                    }
-                }
+                // Since we don't store password_hash locally anymore, 
+                // we cannot verify password if offline.
+                _loginStatus.value = loginError(
+                    "Server is offline. Please connect to internet to login.",
+                    LoginErrorCode.ACCOUNT_NOT_FOUND // Or a specific OFFLINE error
+                )
             } else {
-                failedLoginAttempts++
-                if (failedLoginAttempts >= MAX_FAILED_ATTEMPTS) {
-                    lockoutUntilMs = System.currentTimeMillis() + 5 * 60 * 1000L
-                    _loginStatus.value = loginError("Too many failed attempts. Locked for 5 minutes.", LoginErrorCode.LOCKED_OUT)
-                } else {
-                    _loginStatus.value = loginError(
-                        "No account found with this number or server is offline.",
-                        LoginErrorCode.ACCOUNT_NOT_FOUND
-                    )
-                }
+                _loginStatus.value = loginError(
+                    "No account found with this number or server is offline.",
+                    LoginErrorCode.ACCOUNT_NOT_FOUND
+                )
             }
         }
     }
@@ -315,10 +290,8 @@ constructor(
         viewModelScope.launch {
             _signUpStatus.value = SignUpResult.Loading
             try {
-                
-                val localHash = authManager.hashPassword(password)
-                val result = userRepository.remoteSignup(name, phoneNumber, password, localHash)
-                
+
+                val result = userRepository.remoteSignup(name, phoneNumber, password)                
                 result.onSuccess {
                     
                     val currentProfile = restaurantRepository.getProfile()
@@ -370,13 +343,6 @@ constructor(
             try {
                 
                 userRepository.remoteResetPassword(phoneNumber, newPassword)
-
-                
-                val user = userRepository.getUserByEmail(phoneNumber)
-                if (user != null) {
-                    val newHash = authManager.hashPassword(newPassword)
-                    userRepository.updatePasswordHash(user.id, newHash)
-                }
                 
                 _resetPasswordStatus.value = ResetPasswordResult.Success
             } catch (e: Exception) {
@@ -398,6 +364,7 @@ constructor(
 
     
     fun loginWithGoogle(context: Context) {
+        _loginStatus.value = LoginResult.Loading
         val activity = context.findActivity()
         if (activity == null) {
             _loginStatus.value =
@@ -524,42 +491,7 @@ constructor(
         _otpVerificationStatus.value = null
     }
 
-    fun loginWithTestOfflineCredentials() {
-        if (!BuildConfig.DEBUG) return
-        
-        viewModelScope.launch {
-            _loginStatus.value = LoginResult.Success(UserEntity(name="Loading...", email="test", restaurantId=0, deviceId="")) // Trigger loading state logic
-            
-            // 1. Create fake JWT
-            sessionManager.saveAuthToken("offline_test_token_" + System.currentTimeMillis())
-            sessionManager.saveRestaurantId(12345L)
-            sessionManager.setInitialSyncCompleted(true)
-
-            // 2. Create Owner with PIN 1234
-            val pinHash = authManager.hashPassword("1234")
-            val testOwner = UserEntity(
-                name = "Test Owner (1234)",
-                email = "owner_test@khanabook.com",
-                role = "owner",
-                pinHash = pinHash,
-                isActive = true,
-                isSynced = true,
-                restaurantId = 12345L,
-                deviceId = sessionManager.getDeviceId()
-            )
-            
-            userRepository.insertUser(testOwner)
-            
-            // 3. Clear active user to force Staff Selection screen
-            sessionManager.clearLocalUserSession()
-            userRepository.setCurrentUser(null)
-            
-            _loginStatus.value = LoginResult.Success(testOwner)
-        }
-    }
-
-    sealed class LoginResult {
-        object Loading : LoginResult()
+    sealed class LoginResult {        object Loading : LoginResult()
         data class Success(val user: UserEntity) : LoginResult()
         data class Error(val message: String, val code: LoginErrorCode) : LoginResult()
     }

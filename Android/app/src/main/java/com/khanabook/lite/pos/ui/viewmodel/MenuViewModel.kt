@@ -153,7 +153,8 @@ class MenuViewModel @Inject constructor(
         val variants: List<DraftVariant> = emptyList(),
         val isSelected: Boolean = true,
         val foodType: String = "veg",
-        val categoryName: String? = null
+        val categoryName: String? = null,
+        val description: String? = null
     )
 
     data class OcrImportUiState(
@@ -485,6 +486,7 @@ class MenuViewModel @Inject constructor(
                                     name = draft.name,
                                     basePrice = draft.price.toString(),
                                     foodType = draft.foodType,
+                                    description = draft.description,
                                     createdAt = System.currentTimeMillis()
                                 )
                             )

@@ -9,11 +9,11 @@ import com.journeyapps.barcodescanner.BarcodeEncoder
 object UpiQrManager {
 
     
-    fun generateUpiQr(vpa: String, name: String, amount: Double): Bitmap? {
+    fun generateUpiQr(vpa: String, name: String, amount: Double, size: Int = 512): Bitmap? {
         return try {
             val uri = "upi://pay?pa=$vpa&pn=$name&am=${"%.2f".format(amount)}&cu=INR"
             val multiFormatWriter = MultiFormatWriter()
-            val bitMatrix = multiFormatWriter.encode(uri, BarcodeFormat.QR_CODE, 512, 512)
+            val bitMatrix = multiFormatWriter.encode(uri, BarcodeFormat.QR_CODE, size, size)
             val barcodeEncoder = BarcodeEncoder()
             barcodeEncoder.createBitmap(bitMatrix)
         } catch (e: Exception) {

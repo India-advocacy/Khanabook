@@ -5,8 +5,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,7 +12,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -295,39 +292,51 @@ fun MenuConfigurationScreen(
     }
 
     if (showImportConfirmDialog) {
-        AlertDialog(
-            onDismissRequest = { showImportConfirmDialog = false },
-            containerColor = DarkBrown2,
-            title = { Text("Import Options", color = PrimaryGold) },
-            text = { 
-                Text(
-                    "You are importing items into \"${selectedCategoryName ?: "selected category"}\". Would you like to add them to your existing menu or completely overwrite it?",
-                    color = TextLight
-                ) 
-            },
-            confirmButton = {
-                Button(
-                    onClick = { 
-                        viewModel.saveImportedMenu(selectedCategoryId, overwrite = true)
-                        showImportConfirmDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = NonVegRed, contentColor = Color.White)
-                ) {
-                    Text("Overwrite Existing")
-                }
-            },
-            dismissButton = {
-                Button(
-                    onClick = { 
-                        viewModel.saveImportedMenu(selectedCategoryId, overwrite = false)
-                        showImportConfirmDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1)
-                ) {
-                    Text("Add New Items")
-                }
+        // Only show dialog if category isn't empty
+        val categoryHasItems = remember(selectedCategoryId, menuItems) {
+            menuItems.isNotEmpty()
+        }
+
+        if (!categoryHasItems) {
+            LaunchedEffect(Unit) {
+                viewModel.saveImportedMenu(selectedCategoryId, overwrite = false)
+                showImportConfirmDialog = false
             }
-        )
+        } else {
+            AlertDialog(
+                onDismissRequest = { showImportConfirmDialog = false },
+                containerColor = DarkBrown2,
+                title = { Text("Import Options", color = PrimaryGold) },
+                text = { 
+                    Text(
+                        "You are importing items into \"${selectedCategoryName ?: "selected category"}\". Would you like to add them to your existing menu or completely overwrite it?",
+                        color = TextLight
+                    ) 
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { 
+                            viewModel.saveImportedMenu(selectedCategoryId, overwrite = true)
+                            showImportConfirmDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = NonVegRed, contentColor = Color.White)
+                    ) {
+                        Text("Overwrite Existing")
+                    }
+                },
+                dismissButton = {
+                    Button(
+                        onClick = { 
+                            viewModel.saveImportedMenu(selectedCategoryId, overwrite = false)
+                            showImportConfirmDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1)
+                    ) {
+                        Text("Add New Items")
+                    }
+                }
+            )
+        }
     }
 
     if (scannedDrafts.isNotEmpty()) {

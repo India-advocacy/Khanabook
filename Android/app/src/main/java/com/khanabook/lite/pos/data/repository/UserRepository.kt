@@ -27,7 +27,7 @@ class UserRepository(
     private val _currentUser = MutableStateFlow<UserEntity?>(null)
     val currentUser: StateFlow<UserEntity?> = _currentUser
 
-    suspend fun remoteLogin(phoneNumber: String, passwordPlain: String, localPasswordHash: String): Result<UserEntity> {
+    suspend fun remoteLogin(phoneNumber: String, passwordPlain: String): Result<UserEntity> {
         return try {
             val deviceId = sessionManager.getDeviceId()
             val request = com.khanabook.lite.pos.data.remote.api.LoginRequest(phoneNumber, passwordPlain, deviceId)
@@ -42,8 +42,7 @@ class UserRepository(
             if (localUser == null) {
                 localUser = UserEntity(
                     name = response.userName,
-                    email = loginId,
-                    passwordHash = localPasswordHash,
+                    email = response.userEmail ?: loginId, // Use explicit email if available
                     whatsappNumber = response.whatsappNumber ?: phoneNumber,
                     restaurantId = response.restaurantId,
                     deviceId = deviceId,
@@ -56,7 +55,7 @@ class UserRepository(
             } else {
                 localUser = localUser.copy(
                     name = response.userName,
-                    email = loginId,
+                    email = response.userEmail ?: localUser.email, // Preserve email
                     whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
                     restaurantId = response.restaurantId,
                     isSynced = true
@@ -72,7 +71,7 @@ class UserRepository(
         }
     }
 
-    suspend fun remoteSignup(name: String, phoneNumber: String, passwordPlain: String, localPasswordHash: String): Result<UserEntity> {
+    suspend fun remoteSignup(name: String, phoneNumber: String, passwordPlain: String): Result<UserEntity> {
         return try {
             val deviceId = sessionManager.getDeviceId()
             val request = com.khanabook.lite.pos.data.remote.api.SignupRequest(phoneNumber, name, passwordPlain, deviceId)
@@ -88,7 +87,6 @@ class UserRepository(
                 localUser = UserEntity(
                     name = name,
                     email = loginId,
-                    passwordHash = localPasswordHash,
                     whatsappNumber = response.whatsappNumber ?: phoneNumber,
                     restaurantId = response.restaurantId,
                     deviceId = deviceId,
@@ -133,8 +131,7 @@ class UserRepository(
             if (localUser == null) {
                 localUser = UserEntity(
                     name = response.userName,
-                    email = loginId,
-                    passwordHash = "GOOGLE_AUTH",
+                    email = response.userEmail ?: loginId,
                     whatsappNumber = response.whatsappNumber,
                     restaurantId = response.restaurantId,
                     deviceId = deviceId,
@@ -147,7 +144,7 @@ class UserRepository(
             } else {
                 localUser = localUser.copy(
                     name = response.userName,
-                    email = loginId,
+                    email = response.userEmail ?: localUser.email,
                     whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
                     restaurantId = response.restaurantId,
                     isSynced = true
@@ -208,11 +205,6 @@ class UserRepository(
 
     suspend fun getUserByEmail(email: String): UserEntity? {
         return userDao.getUserByEmail(email)
-    }
-
-    suspend fun updatePasswordHash(userId: Long, newHash: String) {
-        userDao.updatePasswordHash(userId, newHash, System.currentTimeMillis())
-        triggerBackgroundSync()
     }
 
     suspend fun remoteResetPassword(phoneNumber: String, newPasswordPlain: String) {

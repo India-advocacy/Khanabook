@@ -561,6 +561,7 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
     var autoPrint by remember { mutableStateOf(profile?.autoPrintOnSuccess ?: false) }
     var includeLogo by remember { mutableStateOf(profile?.includeLogoInPrint ?: true) }
     var printWhatsapp by remember { mutableStateOf(profile?.printCustomerWhatsapp ?: true) }
+    var maskPhone by remember { mutableStateOf(profile?.maskCustomerPhone ?: true) }
     val context = LocalContext.current
     var isBtActive by remember { mutableStateOf(viewModel.isBluetoothEnabled(context)) }
     
@@ -588,6 +589,17 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
     val btIsConnected by viewModel.btIsConnected.collectAsStateWithLifecycle()
     var showBtSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(profile) {
+        profile?.let {
+            enabled = it.printerEnabled
+            paper58 = it.paperSize == "58mm"
+            autoPrint = it.autoPrintOnSuccess
+            includeLogo = it.includeLogoInPrint
+            printWhatsapp = it.printCustomerWhatsapp
+            maskPhone = it.maskCustomerPhone
+        }
+    }
 
     val bluetoothLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
@@ -716,9 +728,10 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
             PrinterOptionRow("Auto Print Success", autoPrint) { autoPrint = it }
             PrinterOptionRow("Include Logo", includeLogo) { includeLogo = it }
             PrinterOptionRow("Print WhatsApp", printWhatsapp) { printWhatsapp = it }
+            PrinterOptionRow("Privacy-First (Mask Phone)", maskPhone) { maskPhone = it }
         }
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = { profile?.copy(printerEnabled = enabled, paperSize = if (paper58) "58mm" else "80mm", autoPrintOnSuccess = autoPrint, includeLogoInPrint = includeLogo, printCustomerWhatsapp = printWhatsapp)?.let { onSave(it) } }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Green800)) { Text("SAVE SETTINGS", color = Color.White) }
+        Button(onClick = { profile?.copy(printerEnabled = enabled, paperSize = if (paper58) "58mm" else "80mm", autoPrintOnSuccess = autoPrint, includeLogoInPrint = includeLogo, printCustomerWhatsapp = printWhatsapp, maskCustomerPhone = maskPhone)?.let { onSave(it) } }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = Green800)) { Text("SAVE SETTINGS", color = Color.White) }
     }
 
     if (showBtSheet) {

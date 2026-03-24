@@ -22,6 +22,9 @@ public class User extends BaseSyncEntity {
 	@Column(name = "email", nullable = false)
 	private String email;
 
+	@Column(name = "google_email")
+	private String googleEmail;
+
 	@com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
 	@Column(name = "password_hash")
 	private String passwordHash;

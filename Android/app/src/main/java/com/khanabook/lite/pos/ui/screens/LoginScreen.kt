@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -45,14 +46,17 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var showForgotDialog by remember { mutableStateOf(false) }
+    var isGoogleLogin by remember { mutableStateOf(false) }
 
     val loginStatus by viewModel.loginStatus.collectAsState()
+    val isLoading = loginStatus is AuthViewModel.LoginResult.Loading
     val context = LocalContext.current
 
     LaunchedEffect(loginStatus) {
         when (val s = loginStatus) {
             is AuthViewModel.LoginResult.Loading -> {}
             is AuthViewModel.LoginResult.Success -> {
+                isGoogleLogin = false
                 android.widget.Toast.makeText(
                                 context,
                                 "Welcome back!",
@@ -62,10 +66,11 @@ fun LoginScreen(
                 onLoginSuccess()
             }
             is AuthViewModel.LoginResult.Error -> {
+                isGoogleLogin = false
                 android.widget.Toast.makeText(context, s.message, android.widget.Toast.LENGTH_LONG)
                         .show()
             }
-            else -> {}
+            else -> { isGoogleLogin = false }
         }
     }
 
@@ -251,14 +256,17 @@ fun LoginScreen(
                         modifier =
                                 Modifier.size(52.dp)
                                         .border(1.dp, BorderGold, CircleShape)
-                                        .clickable(enabled = !isLoading) { viewModel.loginWithGoogle(context) },
+                                        .clickable(enabled = !isLoading) { 
+                                            isGoogleLogin = true
+                                            viewModel.loginWithGoogle(context) 
+                                        },
                         shape = CircleShape,
                         color = Color.White,
                         tonalElevation = 0.dp,
                         shadowElevation = 0.dp
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        if (isLoading) {
+                        if (isLoading && isGoogleLogin) {
                             CircularProgressIndicator(
                                     modifier = Modifier.size(20.dp),
                                     color = GoogleRed,
@@ -277,6 +285,36 @@ fun LoginScreen(
             }
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        // Full-screen Loading Overlay
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f))
+                    .pointerInput(Unit) {}, // This consumes all touch events
+                contentAlignment = Alignment.Center
+            ) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(color = PrimaryGold)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = if (isGoogleLogin) "Connecting to Google..." else "Logging in...",
+                            color = TextLight,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
 
         if (showForgotDialog) {

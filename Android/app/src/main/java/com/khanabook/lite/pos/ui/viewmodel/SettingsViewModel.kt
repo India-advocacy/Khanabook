@@ -177,6 +177,42 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
+    fun updateAutoPrint(enabled: Boolean) {
+        viewModelScope.launch {
+            val current = restaurantRepository.getProfile()
+            current?.copy(autoPrintOnSuccess = enabled)?.let {
+                restaurantRepository.saveProfile(it)
+            }
+        }
+    }
+
+    fun updateMaskCustomerPhone(enabled: Boolean) {
+        viewModelScope.launch {
+            val current = restaurantRepository.getProfile()
+            current?.copy(maskCustomerPhone = enabled)?.let {
+                restaurantRepository.saveProfile(it)
+            }
+        }
+    }
+
+    fun updateShowBranding(enabled: Boolean) {
+        viewModelScope.launch {
+            val current = restaurantRepository.getProfile()
+            current?.copy(showBranding = enabled)?.let {
+                restaurantRepository.saveProfile(it)
+            }
+        }
+    }
+
+    fun updatePaperSize(size: String) {
+        viewModelScope.launch {
+            val current = restaurantRepository.getProfile()
+            current?.copy(paperSize = size)?.let {
+                restaurantRepository.saveProfile(it)
+            }
+        }
+    }
+
     fun resetDailyCounter() {
         viewModelScope.launch {
             val today = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())

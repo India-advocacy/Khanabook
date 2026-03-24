@@ -96,7 +96,9 @@ data class RestaurantProfileEntity(
 
     @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
     @ColumnInfo(name = "show_branding", defaultValue = "1")
-    val showBranding: Boolean = true
+    val showBranding: Boolean = true,
+    @ColumnInfo(name = "mask_customer_phone", defaultValue = "1")
+    val maskCustomerPhone: Boolean = true
 )
 
 

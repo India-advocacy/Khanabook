@@ -42,6 +42,9 @@ class ReportsViewModel @Inject constructor(
     private val _selectedBillDetails = MutableStateFlow<com.khanabook.lite.pos.data.local.relation.BillWithItems?>(null)
     val selectedBillDetails: StateFlow<com.khanabook.lite.pos.data.local.relation.BillWithItems?> = _selectedBillDetails
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
     private var currentFrom: Long = System.currentTimeMillis() - 86400000L
     private var currentTo: Long = System.currentTimeMillis()
 
@@ -56,7 +59,9 @@ class ReportsViewModel @Inject constructor(
 
     fun loadBillDetails(billId: Long) {
         viewModelScope.launch {
+            _isLoading.value = true
             _selectedBillDetails.value = reportGenerator.getOrderDetail(billId)
+            _isLoading.value = false
         }
     }
 
@@ -106,9 +111,11 @@ class ReportsViewModel @Inject constructor(
         currentFrom = from
         currentTo = to
         viewModelScope.launch {
+            _isLoading.value = true
             _paymentBreakdown.value = reportGenerator.getPaymentBreakdown(from, to)
             _orderLevelRows.value = reportGenerator.getOrderLevelRows(from, to)
             _orderDetailsTable.value = reportGenerator.getOrderDetailsTable(from, to)
+            _isLoading.value = false
         }
     }
 

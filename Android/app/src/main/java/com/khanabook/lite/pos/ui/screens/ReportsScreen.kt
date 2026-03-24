@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +52,7 @@ fun ReportsScreen(
     val paymentBreakdown by viewModel.paymentBreakdown.collectAsState()
     val orderLevelRows by viewModel.orderLevelRows.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
     
     var selectedBillId by remember { mutableStateOf<Long?>(null) }
     val selectedBillDetails by viewModel.selectedBillDetails.collectAsState()
@@ -226,6 +228,18 @@ fun ReportsScreen(
                         viewModel.loadBillDetails(billId)
                     }
                 }
+            }
+        }
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .pointerInput(Unit) {},
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(color = PrimaryGold)
             }
         }
 

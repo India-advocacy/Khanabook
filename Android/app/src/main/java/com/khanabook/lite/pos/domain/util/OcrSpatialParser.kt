@@ -95,6 +95,15 @@ object OcrSpatialParser {
                         Log.d(TAG, "row[$rowIdx] item: name='${draftItem.name.take(120)}' categoryNow=$currentCategory priceInfos=${priceInfos.size} headers=${currentHeaders.size} variantLabels=${draftItem.variants.map { it.name }}")
                     }
                     drafts.add(draftItem)
+                } else {
+                    // If no prices and no headers, this might be a description for the LAST added item
+                    if (rowText.length > 5 && drafts.isNotEmpty()) {
+                        val lastItem = drafts.last()
+                        if (lastItem.description == null) {
+                            drafts[drafts.size - 1] = lastItem.copy(description = rowText)
+                            Log.d(TAG, "row[$rowIdx] detected as description for: ${lastItem.name}")
+                        }
+                    }
                 }
 
             } catch (e: Exception) {
@@ -215,7 +224,12 @@ object OcrSpatialParser {
 
         val variants = priceInfos.mapIndexed { index, price ->
             val closestHeader = currentHeaders.minByOrNull { Math.abs(it.xCenter - price.xCenter) }
-            val vLabel = closestHeader?.name ?: if (priceInfos.size > 1) "Variant ${index + 1}" else "Base"
+            val vLabel = closestHeader?.name ?: when (priceInfos.size) {
+                1 -> "Regular"
+                2 -> if (index == 0) "Half" else "Full"
+                3 -> if (index == 0) "Small" else if (index == 1) "Medium" else "Large"
+                else -> "Variant ${index + 1}"
+            }
             DraftVariant(vLabel, price.value)
         }
 

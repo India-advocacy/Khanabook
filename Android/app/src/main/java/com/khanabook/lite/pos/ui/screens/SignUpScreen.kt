@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -66,15 +67,16 @@ fun SignUpScreen(
     var isOtpVerified by remember { mutableStateOf(false) }
 
     val signUpStatus by viewModel.signUpStatus.collectAsState()
+    val loginStatus by viewModel.loginStatus.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val isLoading = signUpStatus is AuthViewModel.SignUpResult.Loading
+    val isLoading = signUpStatus is AuthViewModel.SignUpResult.Loading || loginStatus is AuthViewModel.LoginResult.Loading
 
     LaunchedEffect(signUpStatus) {
         when (val status = signUpStatus) {
             is AuthViewModel.SignUpResult.Loading -> {}
             is AuthViewModel.SignUpResult.Success -> {
-                onSignUpSuccess()
-                viewModel.resetSignUpStatus()
+                // Success is handled by checking currentUser in MainActivity or here if needed
+                // But usually we wait for performLogin which is called inside signUp
             }
             is AuthViewModel.SignUpResult.OtpSent -> {
                 otpSent = true
@@ -88,6 +90,15 @@ fun SignUpScreen(
                 snackbarHostState.showSnackbar(status.message)
             }
             else -> {}
+        }
+    }
+
+    // Handle the auto-login success separately if needed, 
+    // though MainActivity observes currentUser.
+    LaunchedEffect(loginStatus) {
+        if (loginStatus is AuthViewModel.LoginResult.Success) {
+            onSignUpSuccess()
+            viewModel.resetSignUpStatus()
         }
     }
 
@@ -377,46 +388,36 @@ fun SignUpScreen(
                                 isPasswordValid &&
                                 passwordsMatch &&
                                 isOtpVerified && !isLoading
+
                 Button(
                         onClick = {
                             if (isFormValid) {
                                 viewModel.signUp(shopName, phoneNumber, newPassword)
                             }
                         },
-                        modifier =
-                                Modifier.fillMaxWidth()
-                                        .height(56.dp)
-                                        .background(
-                                                Brush.horizontalGradient(
-                                                        if (isFormValid)
-                                                                listOf(
-                                                                        PrimaryGold,
-                                                                        LightGold,
-                                                                        PrimaryGold
-                                                                )
-                                                        else listOf(Color.Gray, Color.DarkGray)
-                                                ),
-                                                RoundedCornerShape(28.dp)
-                                        ),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isFormValid) PrimaryGold else Color.Gray,
+                            contentColor = DarkBrown1
+                        ),
                         shape = RoundedCornerShape(28.dp),
                         enabled = isFormValid
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(24.dp),
                             color = DarkBrown1,
-                            strokeWidth = 2.dp
+                            strokeWidth = 3.dp
                         )
                     } else {
                         Text(
                                 "Sign Up",
-                                color = if (isFormValid) DarkBrown1 else Color.LightGray,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 18.sp
                         )
                     }
                 }
+
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -433,6 +434,36 @@ fun SignUpScreen(
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.clickable(enabled = !isLoading) { onLoginClick() }
                     )
+                }
+            }
+
+            // Full-screen Loading Overlay
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .pointerInput(Unit) {}, // This consumes all touch events
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(color = PrimaryGold)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = if (signUpStatus is AuthViewModel.SignUpResult.Loading) "Creating Account..." else "Logging in...",
+                                color = TextLight,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }

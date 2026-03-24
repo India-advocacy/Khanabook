@@ -43,7 +43,7 @@ object InvoiceFormatter {
     }
 
     fun formatForThermalPrinter(bill: BillWithItems, profile: RestaurantProfileEntity?): ByteArray {
-        val charsPerLine = if (profile?.paperSize == "80mm") 42 else 32
+        val charsPerLine = if (profile?.paperSize == "80mm") 48 else 32
         val currency = resolveCurrency(profile)
         val isGst = profile?.gstEnabled == true
         
@@ -55,20 +55,19 @@ object InvoiceFormatter {
 
         fun add(bytes: ByteArray) { out.addAll(bytes.toList()) }
         fun add(text: String) { 
-            
-            out.addAll(text.toByteArray(Charsets.UTF_8).toList())
+            out.addAll(text.toByteArray(java.nio.charset.Charset.forName("GBK")).toList())
         }
 
         add(RESET)
         add(ALIGN_CENTER)
         
-        
+        // 1. Logo (if enabled)
         if (profile?.includeLogoInPrint == true && !profile.logoPath.isNullOrBlank()) {
             try {
                 val bitmap = BitmapFactory.decodeFile(profile.logoPath)
                 if (bitmap != null) {
                     try {
-                        add(decodeBitmapToESC_POS(bitmap, 384))
+                        add(decodeBitmapToESC_POS(bitmap, if(width > 40) 384 else 256))
                         add("\n")
                     } finally {
                         bitmap.recycle()
@@ -79,85 +78,137 @@ object InvoiceFormatter {
             }
         }
 
-        
+        // 2. Header - Center Bold
+        add(BOLD_ON)
         add(LARGE_FONT)
-        add(BOLD_ON)
-        add(profile?.shopName?.uppercase() ?: "RESTAURANT")
-        add("\n")
-        add(BOLD_OFF)
+        add("${profile?.shopName ?: "BIRYANIWALE ANNA"}\n".uppercase())
         add(NORMAL_FONT)
+        add(BOLD_OFF)
         
-        
-        profile?.shopAddress?.takeIf { it.isNotBlank() }?.let { add(it + "\n") }
-        if (!profile?.whatsappNumber.isNullOrBlank()) add("Contact: ${profile?.whatsappNumber}\n")
-        if (!profile?.fssaiNumber.isNullOrBlank()) add("FSSAI No: ${profile?.fssaiNumber}\n")
-        if (isGst && !profile?.gstin.isNullOrBlank()) add("GSTIN: ${profile?.gstin}\n")
-        
+        // Address & Tax Info
+        profile?.shopAddress?.takeIf { it.isNotBlank() }?.let { add("$it\n") }
+        profile?.fssaiNumber?.takeIf { it.isNotBlank() }?.let { add("FSSAI: $it\n") }
+        profile?.gstin?.takeIf { it.isNotBlank() }?.let { add("GSTIN: $it\n") }
+        add("$line\n")
+
+        // 3. Transaction Details (Left/Right split)
         add(ALIGN_LEFT)
-        add("$doubleLine\n")
-        add(centerText(if (isGst) "TAX INVOICE" else "INVOICE", width) + "\n")
+        val billNo = "Bill: ${bill.bill.lifetimeOrderId}"
+        val dateStr = DateUtils.formatDateOnly(bill.bill.createdAt)
+        
+        // Customer Masking
+        val rawCust = bill.bill.customerName?.takeIf { it.isNotBlank() } ?: "Guest"
+        val rawPhone = bill.bill.customerWhatsapp?.takeIf { it.isNotBlank() } ?: ""
+        val shouldMask = profile?.maskCustomerPhone ?: true
+        val displayPhone = if (shouldMask && rawPhone.length >= 10) {
+            rawPhone.take(2) + "XXXXXX" + rawPhone.takeLast(2)
+        } else {
+            rawPhone
+        }
+        
+        add(formatRow(billNo, "Date: $dateStr", width))
+        add(formatRow("Cust: $rawCust", displayPhone, width))
         add("$line\n")
-        
-        add("Bill : ${bill.bill.lifetimeOrderId}\n")
-        val dateStr = com.khanabook.lite.pos.domain.util.DateUtils.formatDateOnly(bill.bill.createdAt)
-        add("Date: $dateStr\n")
-        bill.bill.customerName?.takeIf { it.isNotBlank() }?.let { add("Cust : $it\n") }
-        bill.bill.customerWhatsapp?.takeIf { it.isNotBlank() }?.let { add("WA   : $it\n") }
-        add("$line\n")
-        
-        
-        val itemW = (width * 0.45).toInt()
+
+        // 4. Itemized Table (80mm optimization)
+        // Give the removed HSN width entirely to the item name column
+        val itemW = if (width > 40) 24 else 12
         val qtyW = 4
-        val rateW = (width * 0.2).toInt()
-        val amtW = maxOf(4, width - itemW - qtyW - rateW - 3)
-        
-        val headerFormat = "%-${itemW}s %${qtyW}s %${rateW}s %${amtW}s\n"
-        add(String.format(headerFormat, "ITEM", "QTY", "RATE", "AMT"))
-        add("$line\n")
-        
-        for (item in bill.items) {
-            val name = if (item.variantName != null) "${item.itemName} (${item.variantName})" else item.itemName
-            add(String.format(headerFormat, name.take(itemW), item.quantity, formatMoney(item.price), formatMoney(item.itemTotal)))
-        }
-        
-        add("$line\n")
-        
-        
-        add(formatRow("Subtotal:", "$currency ${formatMoney(bill.bill.subtotal)}", width))
-        
-        if (isGst && (BigDecimal(bill.bill.cgstAmount).compareTo(BigDecimal.ZERO) > 0)) {
-            
-            val halfGst = BigDecimal(bill.bill.gstPercentage).divide(BigDecimal("2"), 2, RoundingMode.HALF_UP)
-            add(formatRow("CGST (${halfGst.stripTrailingZeros().toPlainString()}%):", "$currency ${formatMoney(bill.bill.cgstAmount)}", width))
-            add(formatRow("SGST (${halfGst.stripTrailingZeros().toPlainString()}%):", "$currency ${formatMoney(bill.bill.sgstAmount)}", width))
-        }
-        
-        if (!isGst && (BigDecimal(bill.bill.customTaxAmount).compareTo(BigDecimal.ZERO) > 0)) {
-            val taxLabel = profile?.customTaxName?.takeIf { it.isNotBlank() } ?: "Tax"
-            add(formatRow("$taxLabel:", "$currency ${formatMoney(bill.bill.customTaxAmount)}", width))
-        }
-        
-        add("$line\n")
+        val rateW = if (width > 40) 8 else 7
+        val amtW = width - itemW - qtyW - rateW - 3 // 3 gaps
+
+        val tableHeader = String.format("%-${itemW}s %${qtyW}s %${rateW}s %${amtW}s\n", "ITEM", "QTY", "RATE", "AMT")
         add(BOLD_ON)
-        add(formatRow("TOTAL AMOUNT:", "$currency ${formatMoney(bill.bill.totalAmount)}", width))
+        add(tableHeader)
         add(BOLD_OFF)
         add("$line\n")
+
+        for (item in bill.items) {
+            val name = item.itemName.uppercase()
+            
+            // Wrapping logic
+            val itemLines = wrapText(name, itemW)
+            val rateStr = formatMoney(item.price).take(rateW)
+            val amtStr = formatMoney(item.itemTotal).take(amtW)
+
+            add(String.format("%-${itemW}s %${qtyW}s %${rateW}s %${amtW}s\n", 
+                itemLines[0], item.quantity, rateStr, amtStr))
+            
+            for (i in 1 until itemLines.size) {
+                add(String.format("%-${itemW}s\n", itemLines[i]))
+            }
+        }
+        add("$line\n")
+
+        // 5. Financial Summary
+        add(formatRow("Sub-total:", formatMoney(bill.bill.subtotal), width))
         
+        if (isGst) {
+            val halfGstAmt = formatMoney(bill.bill.cgstAmount)
+            add(formatRow("CGST (2.5%):", halfGstAmt, width))
+            add(formatRow("SGST (2.5%):", halfGstAmt, width))
+        }
+        
+        add(BOLD_ON)
+        add(LARGE_FONT)
+        add(formatRow("NET AMT:", "$currency ${formatMoney(bill.bill.totalAmount)}", width))
+        add(NORMAL_FONT)
+        add(BOLD_OFF)
+        add("$doubleLine\n")
+
+        // 6. Payment & QR
         add("Payment Mode : ${bill.bill.paymentMode.uppercase()}\n")
         
-        add("$doubleLine\n")
+        if (profile?.upiHandle?.isNotBlank() == true) {
+            try {
+                val amount = BigDecimal(bill.bill.totalAmount).toDouble()
+                val qrBitmap = com.khanabook.lite.pos.domain.manager.UpiQrManager.generateUpiQr(
+                    profile.upiHandle ?: "", 
+                    profile.shopName ?: "RESTAURANT", 
+                    amount, 
+                    256
+                )
+                qrBitmap?.let {
+                    add(ALIGN_CENTER)
+                    add("\n")
+                    add(decodeBitmapToESC_POS(it, 256))
+                    add("\nSCAN TO PAY\n")
+                    it.recycle()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error printing UPI QR", e)
+            }
+        }
+
+        // 7. Footer
         add(ALIGN_CENTER)
         add("Thank you! Visit again.\n")
-        add("$doubleLine\n")
         if (profile?.showBranding != false) {
+            add(BOLD_ON)
             add("Powered by KhanaBook\n")
+            add(BOLD_OFF)
         }
-        
-        
-        add("\n\n\n\n")
+        add("\n\n\n\n") // Line feeds for clean cut
         add(CUT_PAPER)
 
         return out.toByteArray()
+    }
+
+    private fun wrapText(text: String, width: Int): List<String> {
+        val words = text.split(" ")
+        val lines = mutableListOf<String>()
+        var currentLine = StringBuilder()
+        for (word in words) {
+            if (currentLine.length + word.length + 1 <= width) {
+                if (currentLine.isNotEmpty()) currentLine.append(" ")
+                currentLine.append(word)
+            } else {
+                lines.add(currentLine.toString())
+                currentLine = StringBuilder(word)
+            }
+        }
+        if (currentLine.isNotEmpty()) lines.add(currentLine.toString())
+        return if (lines.isEmpty()) listOf("") else lines
     }
 
     fun formatForWhatsApp(bill: BillWithItems, profile: RestaurantProfileEntity?): String {

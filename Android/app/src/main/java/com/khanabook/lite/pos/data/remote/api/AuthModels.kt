@@ -24,5 +24,6 @@ data class AuthResponse(
     val userName: String,
     val loginId: String? = null,
     val whatsappNumber: String? = null,
+    val userEmail: String? = null,
     val role: String? = null
 )

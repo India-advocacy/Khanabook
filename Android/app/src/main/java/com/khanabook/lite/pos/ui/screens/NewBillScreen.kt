@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -58,6 +59,7 @@ fun NewBillScreen(
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val summary by billingViewModel.billSummary.collectAsStateWithLifecycle()
     val error by billingViewModel.error.collectAsStateWithLifecycle()
+    val isLoading by billingViewModel.isLoading.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     LaunchedEffect(error) {
@@ -128,6 +130,35 @@ fun NewBillScreen(
                                 settingsViewModel = hiltViewModel(),
                                 onDone = onBack
                         )
+            }
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .pointerInput(Unit) {},
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(color = PrimaryGold)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Saving Bill...",
+                                color = TextLight,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -255,6 +286,7 @@ fun MenuSelectionStep(
     val items by menuViewModel.menuItems.collectAsStateWithLifecycle()
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     
     val scannedBarcode by (navController
@@ -500,7 +532,10 @@ fun MenuSelectionStep(
 
         if (navController != null) {
             FloatingActionButton(
-                onClick = { navController.navigate("ocr_scanner/billing") },
+                onClick = {
+                    // navController.navigate("ocr_scanner/billing")
+                    android.widget.Toast.makeText(context, "Not yet implemented", android.widget.Toast.LENGTH_SHORT).show()
+                },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 16.dp, bottom = 100.dp), 
