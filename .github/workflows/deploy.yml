@@ -15,9 +15,8 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          fingerprint: ${{ secrets.SSH_FINGERPRINT }}
-          proxy_fingerprint: ${{ secrets.SSH_FINGERPRINT }}
           script_stop: true
+          debug: true
           script: |
             cd /var/www/kbook.iadv.cloud
             git fetch origin main
