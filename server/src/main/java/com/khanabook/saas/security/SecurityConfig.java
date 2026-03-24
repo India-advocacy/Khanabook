@@ -32,7 +32,7 @@ public class SecurityConfig {
 				.sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.authorizeHttpRequests(auth -> auth
 
-						.requestMatchers("/auth/login", "/auth/signup", "/auth/google", "/auth/check-user", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/error")
+						.requestMatchers("/auth/**", "/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/error")
 						.permitAll()
 
 						.anyRequest().authenticated())
