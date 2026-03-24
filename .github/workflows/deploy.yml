@@ -17,6 +17,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script_stop: true
           debug: true
+          key_is_base64: true
           script: |
             cd /var/www/kbook.iadv.cloud
             git fetch origin main
