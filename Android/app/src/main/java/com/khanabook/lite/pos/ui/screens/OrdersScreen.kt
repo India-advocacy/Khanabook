@@ -335,7 +335,7 @@ fun OrderTableRow(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (row.orderStatus == OrderStatus.COMPLETED) "Completion" else "Cancelled",
+                        text = if (row.orderStatus == OrderStatus.COMPLETED) "Completed" else "Cancelled",
                         color = Color.White,
                         fontSize = 8.sp,
                         textAlign = TextAlign.Center,
@@ -350,7 +350,7 @@ fun OrderTableRow(
                 modifier = Modifier.background(ParchmentBG)
             ) {
                 DropdownMenuItem(
-                    text = { Text("Completion", color = DarkBrown1, fontSize = 12.sp) },
+                    text = { Text("Completed", color = DarkBrown1, fontSize = 12.sp) },
                     onClick = {
                         onStatusChange(OrderStatus.COMPLETED.dbValue)
                         statusExpanded = false
