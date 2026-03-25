@@ -36,6 +36,9 @@ import com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel
 import kotlinx.coroutines.launch
 import java.util.*
 
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+
 @Composable
 fun OrdersScreen(
     onBack: () -> Unit,
@@ -44,6 +47,7 @@ fun OrdersScreen(
 ) {
     val allRows by viewModel.orderDetailsTable.collectAsState()
     val profile by settingsViewModel.profile.collectAsState()
+    val haptic = LocalHapticFeedback.current
     val enabledModes = remember(profile) { 
         profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH) 
     }
@@ -59,6 +63,11 @@ fun OrdersScreen(
             val (from, to) = periodRange(selectedPeriod)
             viewModel.loadReports(from, to)
         }
+    }
+
+    fun onStatusChange(billId: Long, newStatus: String) {
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        viewModel.updateOrderStatus(billId, newStatus)
     }
 
     if (showDateRangePicker) {
@@ -176,7 +185,7 @@ fun OrdersScreen(
                             }
                         },
                         onStatusChange = { newStatus ->
-                            viewModel.updateOrderStatus(row.billId, newStatus)
+                            onStatusChange(row.billId, newStatus)
                         },
                         onPayModeChange = { newMode ->
                             viewModel.updatePaymentMode(row.billId, newMode.dbValue)

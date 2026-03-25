@@ -22,6 +22,9 @@ import com.khanabook.lite.pos.ui.navigation.TabItem
 import com.khanabook.lite.pos.ui.navigation.NavigationUtils
 import androidx.activity.compose.BackHandler
 
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+
 @Composable
 fun MainScreen(
     initialTab: Int = 0,
@@ -34,6 +37,7 @@ fun MainScreen(
     authViewModel: AuthViewModel = hiltViewModel()
 ) {
     val visibleTabs = remember { NavigationUtils.getVisibleTabs() }
+    val haptic = LocalHapticFeedback.current
 
     var selectedTabIndex by rememberSaveable(initialTab, visibleTabs) { 
         val initialVisibleIndex = visibleTabs.indexOfFirst { it.originalIndex == initialTab }
@@ -50,7 +54,10 @@ fun MainScreen(
             AppBottomBar(
                 visibleTabs = visibleTabs,
                 currentSelectedIndex = selectedTabIndex, 
-                onTabSelected = { selectedTabIndex = it }
+                onTabSelected = { 
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    selectedTabIndex = it 
+                }
             )
         }
     ) { padding ->
