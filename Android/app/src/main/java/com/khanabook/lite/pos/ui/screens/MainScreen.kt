@@ -20,6 +20,7 @@ import com.khanabook.lite.pos.ui.viewmodel.MenuViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.ui.navigation.TabItem
 import com.khanabook.lite.pos.ui.navigation.NavigationUtils
+import androidx.activity.compose.BackHandler
 
 @Composable
 fun MainScreen(
@@ -37,6 +38,11 @@ fun MainScreen(
     var selectedTabIndex by rememberSaveable(initialTab, visibleTabs) { 
         val initialVisibleIndex = visibleTabs.indexOfFirst { it.originalIndex == initialTab }
         mutableIntStateOf(if (initialVisibleIndex != -1) initialVisibleIndex else 0) 
+    }
+
+    // Intercept back gesture to return to Home tab if not already there
+    BackHandler(enabled = selectedTabIndex != 0) {
+        selectedTabIndex = 0
     }
     
     Scaffold(

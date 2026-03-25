@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -72,6 +73,11 @@ fun SettingsScreen(
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     var section by rememberSaveable { mutableStateOf("menu") }
+
+    // Intercept back gesture when in a sub-section
+    androidx.activity.compose.BackHandler(enabled = section != "menu") {
+        section = "menu"
+    }
 
     Box(
         modifier = Modifier

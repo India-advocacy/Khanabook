@@ -53,12 +53,14 @@ class MainActivity : ComponentActivity() {
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = currentBackStackEntry?.destination?.route
                 
-                // If on a top-level screen, intercept back and check for double-tap
+                // Root back handling (Double Back to Background)
+                // This will be overridden by nested BackHandlers in MainScreen and sub-screens
                 if (currentRoute?.startsWith("main/") == true) {
                     androidx.activity.compose.BackHandler {
+                        // Root double-back-to-background logic.
+                        // Nested BackHandlers (like in MainScreen) take precedence.
                         val currentTime = System.currentTimeMillis()
                         if (currentTime - lastBackPressTime < 2000) {
-                            // WhatsApp-like behavior: Move to background instead of killing the app
                             moveTaskToBack(true)
                         } else {
                             Toast.makeText(context, context.getString(R.string.press_back_again_to_exit), Toast.LENGTH_SHORT).show()
