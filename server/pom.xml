@@ -132,6 +132,12 @@
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
+        <!-- Hibernate JSON Serialization Fix -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-hibernate6</artifactId>
+        </dependency>
+
         <!-- Tabula (FIXED all logging conflicts) -->
         <dependency>
             <groupId>technology.tabula</groupId>

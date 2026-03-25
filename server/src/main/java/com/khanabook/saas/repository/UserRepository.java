@@ -10,5 +10,10 @@ public interface UserRepository extends SyncRepository<User, Long> {
 
 	Optional<User> findByEmail(String email);
 
+	Optional<User> findByWhatsappNumber(String whatsappNumber);
+
+	Optional<User> findByGoogleEmail(String googleEmail);
+
 	boolean existsByEmail(String email);
-}
+
+	boolean existsByWhatsappNumber(String whatsappNumber);}

@@ -9,4 +9,6 @@ public interface UserService {
 	PushSyncResponse pushData(Long tenantId, List<User> payload);
 
 	List<User> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
+
+	void updateMobileNumber(Long tenantId, String newMobileNumber);
 }

@@ -6,7 +6,9 @@ import com.khanabook.saas.sync.dto.PushSyncResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import com.khanabook.saas.security.TenantContext;
 
 @RestController
@@ -24,5 +26,11 @@ public class UserController {
 	@GetMapping("/pull")
 	public ResponseEntity<List<User>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
 		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	}
+
+	@PostMapping("/update-mobile")
+	public ResponseEntity<?> updateMobileNumber(@Valid @RequestBody UpdateMobileRequest request) {
+		service.updateMobileNumber(TenantContext.getCurrentTenant(), request.getNewMobileNumber());
+		return ResponseEntity.ok(Map.of("message", "Mobile number updated successfully."));
 	}
 }

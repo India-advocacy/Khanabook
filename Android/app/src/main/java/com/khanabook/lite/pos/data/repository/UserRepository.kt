@@ -220,6 +220,26 @@ class UserRepository(
         }
     }
 
+    suspend fun remoteUpdateMobileNumber(newPhone: String): Result<Unit> {
+        return try {
+            val request = com.khanabook.lite.pos.data.remote.api.UpdateMobileRequest(newPhone)
+            val response = api.updateMobileNumber(request)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = try {
+                    org.json.JSONObject(errorBody ?: "").getString("error")
+                } catch (e: Exception) {
+                    "Failed to update mobile number."
+                }
+                Result.failure(Exception(errorMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun updateWhatsappNumber(userId: Long, newPhone: String) {
         userDao.updateWhatsappNumber(userId, newPhone, System.currentTimeMillis())
         triggerBackgroundSync()

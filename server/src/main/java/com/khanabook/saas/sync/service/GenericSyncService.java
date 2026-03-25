@@ -158,9 +158,30 @@ public class GenericSyncService {
 								// Data Overwrite Protection: Don't overwrite email with null/empty from app
 								if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
 									user.setEmail(existingUser.getEmail());
+								} else if (existingUser.getEmail() != null && existingUser.getEmail().contains("@") && !user.getEmail().contains("@")) {
+									// Safety: If existing record has a real email, and incoming looks like a phone number, protect the email
+									user.setEmail(existingUser.getEmail());
 								}
+								
 								if (user.getGoogleEmail() == null || user.getGoogleEmail().trim().isEmpty()) {
 									user.setGoogleEmail(existingUser.getGoogleEmail());
+								}
+
+								// Prevent duplicate email/phone numbers from crashing the batch sync
+								if (repository instanceof com.khanabook.saas.repository.UserRepository) {
+									com.khanabook.saas.repository.UserRepository userRepo = (com.khanabook.saas.repository.UserRepository) repository;
+									
+									if (existingUser.getEmail() != null && user.getEmail() != null && !existingUser.getEmail().equalsIgnoreCase(user.getEmail())) {
+										if (userRepo.existsByEmail(user.getEmail())) {
+											throw new RuntimeException("Sync rejected: Email/Phone already exists for another user");
+										}
+									}
+									
+									if (existingUser.getWhatsappNumber() != null && user.getWhatsappNumber() != null && !existingUser.getWhatsappNumber().equalsIgnoreCase(user.getWhatsappNumber())) {
+										if (userRepo.existsByWhatsappNumber(user.getWhatsappNumber())) {
+											throw new RuntimeException("Sync rejected: Whatsapp number already exists for another user");
+										}
+									}
 								}
 							}
 							incomingRecord.setId(existingRecord.getId());

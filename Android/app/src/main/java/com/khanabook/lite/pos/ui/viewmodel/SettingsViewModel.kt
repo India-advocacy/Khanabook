@@ -116,21 +116,50 @@ class SettingsViewModel @Inject constructor(
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategoriesFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _saveProfileLoading = MutableStateFlow(false)
+    val saveProfileLoading: StateFlow<Boolean> = _saveProfileLoading.asStateFlow()
+
+    private val _saveProfileError = MutableStateFlow<String?>(null)
+    val saveProfileError: StateFlow<String?> = _saveProfileError.asStateFlow()
+
+    private val _saveProfileSuccess = MutableStateFlow(false)
+    val saveProfileSuccess: StateFlow<Boolean> = _saveProfileSuccess.asStateFlow()
+
+    fun clearSaveProfileState() {
+        _saveProfileError.value = null
+        _saveProfileSuccess.value = false
+    }
+
     fun saveProfile(profile: RestaurantProfileEntity) {
         viewModelScope.launch {
+            _saveProfileLoading.value = true
+            _saveProfileError.value = null
+            _saveProfileSuccess.value = false
+
+            val currentNumber = userRepository.currentUser.value?.whatsappNumber ?: ""
+            val newNumber = profile.whatsappNumber ?: ""
+
+            if (newNumber.isNotBlank() && newNumber != currentNumber) {
+                val result = userRepository.remoteUpdateMobileNumber(newNumber)
+                if (result.isFailure) {
+                    _saveProfileError.value = result.exceptionOrNull()?.message ?: "Failed to update mobile number"
+                    _saveProfileLoading.value = false
+                    return@launch
+                }
+            }
+
             restaurantRepository.saveProfile(profile)
             
             userRepository.currentUser.value?.let { current ->
-                val newNumber = profile.whatsappNumber ?: ""
-                
                 userRepository.updateAccountDetails(current.id, newNumber, newNumber)
-                
                 
                 userRepository.setCurrentUser(current.copy(
                     email = newNumber,
                     whatsappNumber = newNumber
                 ))
             }
+            _saveProfileSuccess.value = true
+            _saveProfileLoading.value = false
         }
     }
 

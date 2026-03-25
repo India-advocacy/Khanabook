@@ -42,6 +42,7 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	public AuthResponse login(LoginRequest request) {
 		User user = userRepository.findByEmail(request.getPhoneNumber())
+				.or(() -> userRepository.findByWhatsappNumber(request.getPhoneNumber()))
 				.orElseThrow(() -> new IllegalArgumentException("Invalid phone number or password"));
 
 		if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
@@ -113,14 +114,23 @@ public class AuthServiceImpl implements AuthService {
 				String email = payload.getEmail();
 				String name = (String) payload.get("name");
 
-				return userRepository.findByEmail(email).map(user -> {
-					if (!Boolean.TRUE.equals(user.getIsActive())) {
-						throw new IllegalArgumentException("Account is disabled. Contact your administrator.");
-					}
-					String token = jwtUtility.generateToken(user.getEmail(), user.getRestaurantId());
-					return new AuthResponse(token, user.getRestaurantId(), user.getName(), user.getEmail(),
-							user.getWhatsappNumber());
-				}).orElseGet(() -> {
+				// 1. Try finding by primary identifier (phone/email) OR by linked google email
+				return userRepository.findByEmail(email)
+						.or(() -> userRepository.findByGoogleEmail(email))
+						.map(user -> {
+							if (!Boolean.TRUE.equals(user.getIsActive())) {
+								throw new IllegalArgumentException("Account is disabled. Contact your administrator.");
+							}
+							// If they logged in with Google but googleEmail wasn't set, link it now
+							if (user.getGoogleEmail() == null) {
+								user.setGoogleEmail(email);
+								user.setUpdatedAt(System.currentTimeMillis());
+								userRepository.save(user);
+							}
+							String token = jwtUtility.generateToken(user.getEmail(), user.getRestaurantId());
+							return new AuthResponse(token, user.getRestaurantId(), user.getName(), user.getEmail(),
+									user.getWhatsappNumber());
+						}).orElseGet(() -> {
 
 					Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
 
@@ -137,7 +147,8 @@ public class AuthServiceImpl implements AuthService {
 					User user = new User();
 					user.setName(name != null ? name : "Google User");
 					user.setEmail(email);
-					user.setWhatsappNumber("");
+					user.setGoogleEmail(email);
+					user.setWhatsappNumber(null);
 					user.setPasswordHash("GOOGLE_AUTH");
 					user.setRestaurantId(newRestaurantId);
 					user.setDeviceId(request.getDeviceId());

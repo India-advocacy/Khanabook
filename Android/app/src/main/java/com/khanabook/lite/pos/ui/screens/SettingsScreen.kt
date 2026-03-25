@@ -278,6 +278,26 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
     var logoUpdateTrigger by remember { mutableStateOf(0L) }
 
+    val saveProfileLoading by viewModel.saveProfileLoading.collectAsState()
+    val saveProfileError by viewModel.saveProfileError.collectAsState()
+    val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsState()
+    
+    LaunchedEffect(saveProfileError) {
+        saveProfileError?.let { error ->
+            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+            viewModel.clearSaveProfileState()
+        }
+    }
+    
+    LaunchedEffect(saveProfileSuccess) {
+        if (saveProfileSuccess) {
+            Toast.makeText(context, "Profile saved successfully", Toast.LENGTH_SHORT).show()
+            viewModel.clearSaveProfileState()
+            authViewModel.clearOtpStatus()
+            onBack()
+        }
+    }
+
     
     LaunchedEffect(profile) {
         profile?.let {
@@ -442,15 +462,19 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                             profile?.copy(shopName = name, shopAddress = address, whatsappNumber = whatsapp, email = email, logoPath = logoPath, emailInvoiceConsent = consent)?.let { 
                                 viewModel.saveProfile(it) 
                             }
-                            authViewModel.clearOtpStatus()
-                            onBack() 
                         }
                     }, 
                     modifier = Modifier.weight(1f).height(48.dp), 
                     colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen), 
                     shape = RoundedCornerShape(24.dp),
-                    enabled = !numberChanged || isOtpVerified
-                ) { Text("Save", color = Color.White) }
+                    enabled = (!numberChanged || isOtpVerified) && !saveProfileLoading
+                ) { 
+                    if (saveProfileLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
+                    } else {
+                        Text("Save", color = Color.White) 
+                    }
+                }
                 OutlinedButton(onClick = { viewModel.resetDailyCounter(); Toast.makeText(context, "Daily order counter reset", Toast.LENGTH_SHORT).show() }, modifier = Modifier.weight(1f).height(48.dp), border = BorderStroke(1.dp, DangerRed), colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed), shape = RoundedCornerShape(24.dp)) { Text("Reset Counter", fontSize = 11.sp) }
             }
         }

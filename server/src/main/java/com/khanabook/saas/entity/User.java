@@ -10,8 +10,7 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "users", indexes = { @Index(name = "idx_users_tenant_updated", columnList = "restaurant_id, updated_at"),
-		@Index(name = "idx_users_device", columnList = "restaurant_id, device_id, local_id"),
-		@Index(name = "idx_users_tenant_email", columnList = "restaurant_id, email", unique = true) })
+		@Index(name = "idx_users_device", columnList = "restaurant_id, device_id, local_id") })
 @Getter
 @Setter
 public class User extends BaseSyncEntity {
@@ -19,7 +18,7 @@ public class User extends BaseSyncEntity {
 	@Column(name = "name", nullable = false)
 	private String name;
 
-	@Column(name = "email", nullable = false)
+	@Column(name = "email", nullable = false, unique = true)
 	private String email;
 
 	@Column(name = "google_email")
@@ -41,4 +40,7 @@ public class User extends BaseSyncEntity {
 
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive = true;
-}
+
+	@Column(name = "google_email")
+	private String googleEmail;
+	}

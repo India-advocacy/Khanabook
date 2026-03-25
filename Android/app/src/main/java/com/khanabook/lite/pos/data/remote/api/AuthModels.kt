@@ -27,3 +27,7 @@ data class AuthResponse(
     val userEmail: String? = null,
     val role: String? = null
 )
+
+data class UpdateMobileRequest(
+    val newMobileNumber: String
+)
