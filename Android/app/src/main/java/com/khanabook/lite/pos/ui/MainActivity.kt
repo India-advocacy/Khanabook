@@ -58,7 +58,8 @@ class MainActivity : ComponentActivity() {
                     androidx.activity.compose.BackHandler {
                         val currentTime = System.currentTimeMillis()
                         if (currentTime - lastBackPressTime < 2000) {
-                            finish()
+                            // WhatsApp-like behavior: Move to background instead of killing the app
+                            moveTaskToBack(true)
                         } else {
                             Toast.makeText(context, context.getString(R.string.press_back_again_to_exit), Toast.LENGTH_SHORT).show()
                             lastBackPressTime = currentTime
