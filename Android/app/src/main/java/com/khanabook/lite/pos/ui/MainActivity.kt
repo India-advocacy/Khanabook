@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.manager.SessionManager
@@ -26,6 +27,14 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject lateinit var sessionManager: SessionManager
+    private var lastBackPressTime: Long = 0
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        // This is triggered when the user intentionally leaves the app (Home gesture, Home button, Recents)
+        // Useful for detecting if the user swiped to Home or switched apps.
+        android.util.Log.d("MainActivity", "User leaving app - intentionally navigated away (Home/Recents gesture)")
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +48,23 @@ class MainActivity : ComponentActivity() {
                 val networkMonitor = remember { NetworkMonitor(this) }
                 val connectionStatus by networkMonitor.status.collectAsState(initial = null)
                 val context = this
+
+                // Handle Double Back Press to Exit
+                val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                val currentRoute = currentBackStackEntry?.destination?.route
+                
+                // If on a top-level screen, intercept back and check for double-tap
+                if (currentRoute?.startsWith("main/") == true) {
+                    androidx.activity.compose.BackHandler {
+                        val currentTime = System.currentTimeMillis()
+                        if (currentTime - lastBackPressTime < 2000) {
+                            finish()
+                        } else {
+                            Toast.makeText(context, context.getString(R.string.press_back_again_to_exit), Toast.LENGTH_SHORT).show()
+                            lastBackPressTime = currentTime
+                        }
+                    }
+                }
 
                 // Network Status Monitoring
                 var lastStatus by remember { mutableStateOf<ConnectionStatus?>(null) }
