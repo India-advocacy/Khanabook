@@ -151,10 +151,13 @@ class SettingsViewModel @Inject constructor(
             restaurantRepository.saveProfile(profile)
             
             userRepository.currentUser.value?.let { current ->
-                userRepository.updateAccountDetails(current.id, newNumber, newNumber)
+                val oldNumber = current.whatsappNumber
+                val updatedEmail = if (current.email == oldNumber) newNumber else current.email
+                
+                userRepository.updateAccountDetails(current.id, updatedEmail, newNumber)
                 
                 userRepository.setCurrentUser(current.copy(
-                    email = newNumber,
+                    email = updatedEmail,
                     whatsappNumber = newNumber
                 ))
             }
