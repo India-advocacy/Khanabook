@@ -10,6 +10,12 @@ import com.khanabook.lite.pos.data.local.dao.UserDao
 import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.worker.MasterSyncWorker
+import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
+import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
+import com.khanabook.lite.pos.data.remote.api.UpdateMobileRequest
+import com.khanabook.lite.pos.data.remote.api.LoginRequest
+import com.khanabook.lite.pos.data.remote.api.GoogleLoginRequest
+import com.khanabook.lite.pos.data.remote.api.SignupRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +27,7 @@ class UserRepository(
         private val prefs: SharedPreferences,
         private val sessionManager: SessionManager,
         private val workManager: WorkManager,
-        private val api: com.khanabook.lite.pos.data.remote.api.KhanaBookApi
+        private val api: KhanaBookApi
 ) {
 
     private val _currentUser = MutableStateFlow<UserEntity?>(null)
@@ -30,7 +36,7 @@ class UserRepository(
     suspend fun remoteLogin(phoneNumber: String, passwordPlain: String): Result<UserEntity> {
         return try {
             val deviceId = sessionManager.getDeviceId()
-            val request = com.khanabook.lite.pos.data.remote.api.LoginRequest(phoneNumber, passwordPlain, deviceId)
+            val request = LoginRequest(phoneNumber, passwordPlain, deviceId)
             
             val response = api.login(request)
             val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
@@ -81,7 +87,7 @@ class UserRepository(
     suspend fun remoteSignup(name: String, phoneNumber: String, passwordPlain: String): Result<UserEntity> {
         return try {
             val deviceId = sessionManager.getDeviceId()
-            val request = com.khanabook.lite.pos.data.remote.api.SignupRequest(phoneNumber, name, passwordPlain, deviceId)
+            val request = SignupRequest(phoneNumber, name, passwordPlain, deviceId)
             
             val response = api.signup(request)
             val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
@@ -132,7 +138,7 @@ class UserRepository(
     suspend fun remoteGoogleLogin(idToken: String): Result<UserEntity> {
         return try {
             val deviceId = sessionManager.getDeviceId()
-            val request = com.khanabook.lite.pos.data.remote.api.GoogleLoginRequest(idToken, deviceId)
+            val request = GoogleLoginRequest(idToken, deviceId)
             val response = api.loginWithGoogle(request)
             val loginId =
                 response.loginId?.takeIf { it.isNotBlank() }
@@ -227,7 +233,7 @@ class UserRepository(
     }
 
     suspend fun remoteResetPassword(phoneNumber: String, newPasswordPlain: String) {
-        val request = com.khanabook.lite.pos.data.remote.ResetPasswordRequest(phoneNumber, newPasswordPlain)
+        val request = ResetPasswordRequest(phoneNumber, newPasswordPlain)
         api.resetPassword(request)
     }
 
@@ -241,7 +247,7 @@ class UserRepository(
 
     suspend fun remoteUpdateMobileNumber(newPhone: String): Result<Unit> {
         return try {
-            val request = com.khanabook.lite.pos.data.remote.api.UpdateMobileRequest(newPhone)
+            val request = UpdateMobileRequest(newPhone)
             val response = api.updateMobileNumber(request)
             if (response.isSuccessful) {
                 Result.success(Unit)
