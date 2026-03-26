@@ -221,6 +221,13 @@ fun HomeScreen(
     }
 }
 
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
+
 @Composable
 fun SyncStatusHeader(
     connectionStatus: com.khanabook.lite.pos.domain.util.ConnectionStatus,
@@ -232,54 +239,121 @@ fun SyncStatusHeader(
     val currentUser by viewModel.currentUser.collectAsState()
     val isSessionValid = currentUser != null
     
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
+    // Animation for the rotating icon
+    val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+
+    // Pulse animation for the "Syncing" background
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.1f,
+        targetValue = 0.3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse"
+    )
+
+    val containerColor = when {
+        !isOnline -> DangerRed
+        !isSessionValid -> WarningYellow
+        unsyncedCount > 0 -> PrimaryGold
+        else -> SuccessGreen
+    }
+
+    Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
-            .background(
-                when {
-                    !isOnline -> DangerRed.copy(alpha = 0.1f)
-                    !isSessionValid -> WarningYellow.copy(alpha = 0.1f)
-                    unsyncedCount > 0 -> PrimaryGold.copy(alpha = 0.1f)
-                    else -> Green800.copy(alpha = 0.1f)
-                },
-                RoundedCornerShape(16.dp)
-            )
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(16.dp))
     ) {
-        Icon(
-            imageVector = when {
-                !isOnline -> Icons.Default.CloudOff
-                !isSessionValid -> Icons.Default.Lock
-                unsyncedCount > 0 -> Icons.Default.CloudSync
-                else -> Icons.Default.CloudDone
-            },
-            contentDescription = null,
-            tint = when {
-                !isOnline -> DangerRed
-                !isSessionValid -> WarningYellow
-                unsyncedCount > 0 -> PrimaryGold
-                else -> SuccessGreen
-            },
-            modifier = Modifier.size(18.dp)
-        )
-        
-        Spacer(modifier = Modifier.width(6.dp))
-        
-        Text(
-            text = when {
-                !isOnline -> "Offline"
-                !isSessionValid -> "Auth Required"
-                unsyncedCount > 0 -> "Syncing ($unsyncedCount)"
-                else -> "Cloud Synced"
-            },
-            color = when {
-                !isOnline -> DangerRed
-                !isSessionValid -> WarningYellow
-                else -> TextLight
-            },
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium
-        )
+        // Subtle "Bluk"/Blur glow effect behind the pill when syncing
+        if (unsyncedCount > 0 && isOnline && isSessionValid) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .blur(8.dp)
+                    .background(containerColor.copy(alpha = pulseAlpha))
+            )
+        }
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .background(containerColor.copy(alpha = if (unsyncedCount > 0) pulseAlpha else 0.15f))
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Icon(
+                imageVector = when {
+                    !isOnline -> Icons.Default.CloudOff
+                    !isSessionValid -> Icons.Default.Lock
+                    unsyncedCount > 0 -> Icons.Default.Sync
+                    else -> Icons.Default.CloudDone
+                },
+                contentDescription = null,
+                tint = containerColor,
+                modifier = Modifier
+                    .size(18.dp)
+                    .then(
+                        if (unsyncedCount > 0 && isOnline && isSessionValid) 
+                            Modifier.rotate(rotation) 
+                        else Modifier
+                    )
+            )
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            // Animated countdown text
+            AnimatedContent(
+                targetState = when {
+                    !isOnline -> "Offline"
+                    !isSessionValid -> "Auth Required"
+                    unsyncedCount > 0 -> "$unsyncedCount" // Show just the number for the "countdown" feel
+                    else -> "Cloud Synced"
+                },
+                transitionSpec = {
+                    if (unsyncedCount > 0) {
+                        // Slide up and fade in when the number changes (countdown feel)
+                        (slideInVertically { height -> height } + fadeIn()).togetherWith(
+                            slideOutVertically { height -> -height } + fadeOut()
+                        )
+                    } else {
+                        fadeIn(animationSpec = tween(500)) togetherWith fadeOut(animationSpec = tween(500))
+                    }
+                },
+                label = "sync_text"
+            ) { targetText ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (unsyncedCount > 0 && isOnline && isSessionValid) {
+                        Text(
+                            text = "Syncing... ",
+                            color = TextLight,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Text(
+                        text = targetText,
+                        color = if (unsyncedCount > 0 || !isOnline || !isSessionValid) containerColor else TextLight,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = androidx.compose.ui.text.TextStyle(
+                            shadow = if (unsyncedCount > 0) androidx.compose.ui.graphics.Shadow(
+                                color = containerColor.copy(alpha = 0.5f),
+                                blurRadius = 4f
+                            ) else null
+                        )
+                    )
+                }
+            }
+        }
     }
 }
 
