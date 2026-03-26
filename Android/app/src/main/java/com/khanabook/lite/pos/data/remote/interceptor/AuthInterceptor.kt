@@ -18,7 +18,7 @@ class AuthInterceptor @Inject constructor(private val sessionManager: SessionMan
 
     
     val isExternalApi = request.url.host.contains("facebook.com") || request.url.host.contains("google")
-    val isAuthPath = path.endsWith("/auth/login") || path.endsWith("/auth/signup") || path.endsWith("/auth/google") || path.endsWith("/auth/check-user") || path.endsWith("/auth/reset-password")
+    val isAuthPath = path.contains("/auth/login") || path.contains("/auth/signup") || path.contains("/auth/google") || path.contains("/auth/check-user") || path.contains("/auth/reset-password")
     
     if (!(isAuthPath || isExternalApi)) {
         
