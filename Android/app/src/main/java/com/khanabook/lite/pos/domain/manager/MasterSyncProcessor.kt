@@ -173,7 +173,11 @@ class MasterSyncProcessor @Inject constructor(
                         deviceId = remoteProfile.deviceId.orFallback("unknown_device"),
                         isSynced = true,
                         updatedAt = remoteProfile.updatedAt,
-                        isDeleted = remoteProfile.isDeleted ?: false
+                        timezone = remoteProfile.timezone ?: "Asia/Kolkata",
+                        reviewUrl = remoteProfile.reviewUrl,
+                        isDeleted = remoteProfile.isDeleted ?: false,
+                        showBranding = remoteProfile.showBranding ?: true,
+                        maskCustomerPhone = remoteProfile.maskCustomerPhone ?: true
                     )
                 }
             )

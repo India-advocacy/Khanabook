@@ -94,6 +94,9 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "timezone", defaultValue = "Asia/Kolkata")
     val timezone: String? = "Asia/Kolkata",
 
+    @ColumnInfo(name = "review_url")
+    val reviewUrl: String? = null,
+
     @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
     @ColumnInfo(name = "show_branding", defaultValue = "1")
     val showBranding: Boolean = true,

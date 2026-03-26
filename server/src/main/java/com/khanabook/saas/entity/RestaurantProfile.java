@@ -128,4 +128,7 @@ public class RestaurantProfile extends BaseSyncEntity {
 
 	@Column(name = "timezone")
 	private String timezone = "Asia/Kolkata";
+
+	@Column(name = "review_url")
+	private String reviewUrl;
 }

@@ -162,7 +162,7 @@ object InvoiceFormatter {
         if (profile?.upiHandle?.isNotBlank() == true) {
             try {
                 val amount = BigDecimal(bill.bill.totalAmount).toDouble()
-                val qrBitmap = com.khanabook.lite.pos.domain.manager.UpiQrManager.generateUpiQr(
+                val qrBitmap = com.khanabook.lite.pos.domain.manager.QrCodeManager.generateUpiQr(
                     profile.upiHandle ?: "", 
                     profile.shopName ?: "RESTAURANT", 
                     amount, 
@@ -177,6 +177,24 @@ object InvoiceFormatter {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error printing UPI QR", e)
+            }
+        }
+
+        if (profile?.reviewUrl?.isNotBlank() == true) {
+            try {
+                val reviewQrBitmap = com.khanabook.lite.pos.domain.manager.QrCodeManager.generateQr(
+                    profile.reviewUrl ?: "",
+                    256
+                )
+                reviewQrBitmap?.let {
+                    add(ALIGN_CENTER)
+                    add("\n")
+                    add(decodeBitmapToESC_POS(it, 256))
+                    add("\nRATE US / FEEDBACK\n")
+                    it.recycle()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error printing Review QR", e)
             }
         }
 
@@ -280,6 +298,11 @@ object InvoiceFormatter {
             com.khanabook.lite.pos.domain.model.PaymentMode
                 .fromDbValue(bill.bill.paymentMode).displayLabel
         }\n")
+        
+        if (!profile?.reviewUrl.isNullOrBlank()) {
+            sb.append("\n⭐ *Rate Us / Feedback:* ${profile?.reviewUrl}\n")
+        }
+
         sb.append("\nThank you! Visit Again 🙏\n")
         if (profile?.showBranding != false) {
             sb.append("_Software by KhanaBook_")

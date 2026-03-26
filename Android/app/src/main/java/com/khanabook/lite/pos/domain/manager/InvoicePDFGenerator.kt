@@ -59,8 +59,10 @@ class InvoicePDFGenerator(private val context: Context) {
             val headerHeight = 180 + logoHeight + whatsappHeight + fssaiHeight + gstinHeight + shopWaHeight
             val summaryHeight = 140
             val taxHeight = if (profile?.gstEnabled == true) 50 else 0
+            val upiQrHeight = if (profile?.upiHandle?.isNotBlank() == true) 100 else 0
+            val reviewQrHeight = if (profile?.reviewUrl?.isNotBlank() == true) 100 else 0
             val footerHeight = 126
-            val pageHeight = headerHeight + itemHeight + summaryHeight + taxHeight + footerHeight
+            val pageHeight = headerHeight + itemHeight + summaryHeight + taxHeight + upiQrHeight + reviewQrHeight + footerHeight
 
             val pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create()
             val page = pdfDocument.startPage(pageInfo)
@@ -410,6 +412,55 @@ class InvoicePDFGenerator(private val context: Context) {
             "PAYMENT MODE: ${com.khanabook.lite.pos.domain.model.PaymentMode.fromDbValue(bill.bill.paymentMode).displayLabel.uppercase()}",
             5f, y, paint
         )
+
+        // 14. QR Codes
+        if (profile?.upiHandle?.isNotBlank() == true) {
+            y += 20f
+            try {
+                val amount = try { java.math.BigDecimal(bill.bill.totalAmount).toDouble() } catch (e: Exception) { 0.0 }
+                val qrBitmap = QrCodeManager.generateUpiQr(
+                    profile.upiHandle ?: "",
+                    profile.shopName ?: "RESTAURANT",
+                    amount,
+                    200
+                )
+                qrBitmap?.let {
+                    val qrSize = if (is80mm) 80f else 60f
+                    val left = (pageWidth - qrSize) / 2
+                    val rect = RectF(left, y, left + qrSize, y + qrSize)
+                    canvas.drawBitmap(it, null, rect, paint)
+                    y += qrSize + 10f
+                    paint.textAlign = Paint.Align.CENTER
+                    paint.textSize = 6f
+                    canvas.drawText("SCAN TO PAY", (pageWidth / 2).toFloat(), y, paint)
+                    y += 5f
+                    it.recycle()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+
+        if (profile?.reviewUrl?.isNotBlank() == true) {
+            y += 20f
+            try {
+                val reviewQrBitmap = QrCodeManager.generateQr(profile.reviewUrl ?: "", 200)
+                reviewQrBitmap?.let {
+                    val qrSize = if (is80mm) 80f else 60f
+                    val left = (pageWidth - qrSize) / 2
+                    val rect = RectF(left, y, left + qrSize, y + qrSize)
+                    canvas.drawBitmap(it, null, rect, paint)
+                    y += qrSize + 10f
+                    paint.textAlign = Paint.Align.CENTER
+                    paint.textSize = 6f
+                    canvas.drawText("RATE US / FEEDBACK", (pageWidth / 2).toFloat(), y, paint)
+                    y += 5f
+                    it.recycle()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
 
         // 15. Footer
         y += 16f 

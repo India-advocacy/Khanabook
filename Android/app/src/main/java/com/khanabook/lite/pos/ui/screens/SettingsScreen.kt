@@ -311,6 +311,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
     var email by remember { mutableStateOf(profile?.email ?: "") }
     var logoPath by remember { mutableStateOf(profile?.logoPath) }
     var consent by remember { mutableStateOf(profile?.emailInvoiceConsent ?: false) }
+    var reviewUrl by remember { mutableStateOf(profile?.reviewUrl ?: "") }
     var logoUpdateTrigger by remember { mutableStateOf(0L) }
 
     val saveProfileLoading by viewModel.saveProfileLoading.collectAsState()
@@ -342,6 +343,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             email = it.email ?: ""
             logoPath = it.logoPath
             consent = it.emailInvoiceConsent
+            reviewUrl = it.reviewUrl ?: ""
         }
     }
 
@@ -483,6 +485,8 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             Spacer(modifier = Modifier.height(12.dp))
             ParchmentTextField(value = email, onValueChange = { email = it }, label = "Email")
             Spacer(modifier = Modifier.height(12.dp))
+            ParchmentTextField(value = reviewUrl, onValueChange = { reviewUrl = it }, label = "Review Link (Google Review / Feedback)")
+            Spacer(modifier = Modifier.height(12.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = consent, onCheckedChange = { consent = it }, colors = CheckboxDefaults.colors(checkedColor = PrimaryGold))
                 Text("Receive invoice copies on Email", color = TextGold, fontSize = 12.sp)
@@ -494,7 +498,15 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                         if (numberChanged && !isOtpVerified) {
                             Toast.makeText(context, "Please verify the new WhatsApp number", Toast.LENGTH_SHORT).show()
                         } else {
-                            profile?.copy(shopName = name, shopAddress = address, whatsappNumber = whatsapp, email = email, logoPath = logoPath, emailInvoiceConsent = consent)?.let { 
+                            profile?.copy(
+                                shopName = name, 
+                                shopAddress = address, 
+                                whatsappNumber = whatsapp, 
+                                email = email, 
+                                logoPath = logoPath, 
+                                emailInvoiceConsent = consent,
+                                reviewUrl = reviewUrl
+                            )?.let { 
                                 viewModel.saveProfile(it) 
                             }
                         }
