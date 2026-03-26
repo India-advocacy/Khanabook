@@ -118,5 +118,5 @@ interface KhanaBookApi {
         suspend fun checkUser(@Query("phoneNumber") phoneNumber: String): Boolean
 
         @POST("api/v1/sync/config/users/update-mobile")
-        suspend fun updateMobileNumber(@Body request: com.khanabook.lite.pos.data.remote.api.UpdateMobileRequest): retrofit2.Response<Unit>
+        suspend fun updateMobileNumber(@Body request: UpdateMobileRequest): retrofit2.Response<Unit>
 }

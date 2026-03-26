@@ -12,7 +12,7 @@ import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
-import com.khanabook.lite.pos.data.remote.api.UpdateMobileRequest
+import com.khanabook.lite.pos.data.remote.dto.UpdateMobileRequest
 import com.khanabook.lite.pos.data.remote.api.LoginRequest
 import com.khanabook.lite.pos.data.remote.api.GoogleLoginRequest
 import com.khanabook.lite.pos.data.remote.api.SignupRequest

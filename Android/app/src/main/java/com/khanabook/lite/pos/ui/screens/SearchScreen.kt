@@ -5,6 +5,8 @@ package com.khanabook.lite.pos.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -271,11 +273,11 @@ fun SearchScreen(
                                 .fillMaxWidth()
                                 .heightIn(max = 240.dp) // Responsive limit for smaller screens
                         ) {
-                            androidx.compose.foundation.lazy.LazyColumn(
+                            LazyColumn(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                androidx.compose.foundation.lazy.items(currentResult.items) { item ->
+                                items(currentResult.items) { item ->
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -371,7 +373,7 @@ fun SearchScreen(
                                         shape = RoundedCornerShape(10.dp),
                                         elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                                     ) {
-                                        Icon(Icons.Default.WhatsApp, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                        Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text("WhatsApp", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
