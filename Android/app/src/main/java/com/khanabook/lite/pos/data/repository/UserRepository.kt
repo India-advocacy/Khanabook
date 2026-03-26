@@ -146,11 +146,11 @@ class UserRepository(
             sessionManager.saveRestaurantId(response.restaurantId)
             sessionManager.saveActiveUserRole(response.role ?: "OWNER")
 
-            var localUser = userDao.getUserByEmail(phoneNumber)
+            var localUser = userDao.getUserByEmail(loginId)
             if (localUser == null) {
                 localUser = UserEntity(
                     name = response.userName,
-                    email = phoneNumber,
+                    email = loginId,
                     whatsappNumber = response.whatsappNumber,
                     restaurantId = response.restaurantId,
                     role = response.role ?: "OWNER",

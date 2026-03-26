@@ -115,14 +115,12 @@ class GenericSyncServiceTest {
         Bill incoming = bill(1L, 1000L);
         incoming.setRestaurantId(666L); 
         stubNoExisting();
-        doAnswer(i -> i.getArgument(0)).when(billRepo).saveAll(any());
 
-        service.handlePushSync(TENANT_ID, List.of(incoming), billRepo);
+        assertThatThrownBy(() -> service.handlePushSync(TENANT_ID, List.of(incoming), billRepo))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("Permission denied");
 
-        verify(billRepo).saveAll(billSaveCaptor.capture());
-        Bill saved = billSaveCaptor.getValue().iterator().next();
-        assertThat(saved.getRestaurantId()).isEqualTo(TENANT_ID);
-        assertThat(saved.getRestaurantId()).isNotEqualTo(666L);
+        verify(billRepo, never()).saveAll(any());
     }
 
     

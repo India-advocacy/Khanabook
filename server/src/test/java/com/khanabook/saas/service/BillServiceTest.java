@@ -19,7 +19,7 @@ import org.mockito.quality.Strictness;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -101,17 +101,10 @@ class BillServiceTest {
         profile.setTimezone("Asia/Kolkata");
         when(profileRepository.findByRestaurantId(AUTHENTICATED_RESTAURANT_ID)).thenReturn(Optional.of(profile));
 
-        when(billRepository.findByRestaurantIdAndDeviceIdAndLocalIdIn(anyLong(), anyString(), anyList()))
-                .thenReturn(List.of());
+        assertThatThrownBy(() -> billService.pushData(AUTHENTICATED_RESTAURANT_ID, List.of(hackedMobileBill)))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("Permission denied");
 
-        doAnswer(i -> i.getArgument(0)).when(billRepository).saveAll(anyList());
-
-        billService.pushData(AUTHENTICATED_RESTAURANT_ID, List.of(hackedMobileBill));
-
-        verify(billRepository).saveAll(listCaptor.capture());
-        Bill savedBill = listCaptor.getValue().iterator().next();
-
-        
-        assertThat(savedBill.getRestaurantId()).isEqualTo(AUTHENTICATED_RESTAURANT_ID);
+        verify(billRepository, never()).saveAll(any());
     }
 }

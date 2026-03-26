@@ -29,6 +29,12 @@ import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
 
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Brush
 
 @Composable
 fun HomeScreen(
@@ -220,13 +226,6 @@ fun HomeScreen(
         }
     }
 }
-
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Brush
 
 @Composable
 fun SyncStatusHeader(

@@ -26,7 +26,15 @@ class JwtRequestFilterTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer " + token);
         MockHttpServletResponse response = new MockHttpServletResponse();
-        MockFilterChain chain = new MockFilterChain();
+        
+        MockFilterChain chain = new MockFilterChain() {
+            @Override
+            public void doFilter(jakarta.servlet.ServletRequest req, jakarta.servlet.ServletResponse res) {
+                assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
+                assertThat(TenantContext.getCurrentTenant()).isEqualTo(42L);
+                assertThat(TenantContext.getCurrentRole()).isEqualTo("OWNER");
+            }
+        };
 
         when(jwtUtility.isTokenExpired(token)).thenReturn(false);
         when(jwtUtility.extractRestaurantId(token)).thenReturn(42L);
@@ -34,10 +42,6 @@ class JwtRequestFilterTest {
         when(jwtUtility.extractRole(token)).thenReturn("OWNER");
 
         filter.doFilterInternal(request, response, chain);
-
-        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNotNull();
-        assertThat(TenantContext.getCurrentTenant()).isEqualTo(42L);
-        assertThat(TenantContext.getCurrentRole()).isEqualTo("OWNER");
     }
 
     @Test
