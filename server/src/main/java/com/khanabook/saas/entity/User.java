@@ -40,7 +40,4 @@ public class User extends BaseSyncEntity {
 
 	@Column(name = "is_active", nullable = false)
 	private Boolean isActive = true;
-
-	@Column(name = "google_email")
-	private String googleEmail;
 	}

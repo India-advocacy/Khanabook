@@ -61,6 +61,17 @@ fun NewBillScreen(
 ) {
     var step by remember { mutableIntStateOf(1) }
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
+
+    // Intercept system back gesture to navigate through steps
+    androidx.activity.compose.BackHandler(enabled = step > 1) {
+        when (step) {
+            2 -> step = 1
+            3 -> step = 2
+            // For step 4 (Success), we let the default behavior take over or use the 'Done' button
+            else -> { /* Do nothing, or exit if step is 1 */ }
+        }
+    }
+
     val summary by billingViewModel.billSummary.collectAsStateWithLifecycle()
     val error by billingViewModel.error.collectAsStateWithLifecycle()
     val isLoading by billingViewModel.isLoading.collectAsStateWithLifecycle()
