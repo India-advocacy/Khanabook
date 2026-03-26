@@ -71,14 +71,6 @@ class LogoutViewModel @Inject constructor(
         _logoutState.value = LogoutState.Idle
     }
 
-    fun performStaffLogout() {
-        viewModelScope.launch {
-            sessionManager.clearLocalUserSession()
-            userRepository.setCurrentUser(null)
-            _logoutState.value = LogoutState.LoggedOut
-        }
-    }
-
     private fun performHardLogout() {
         viewModelScope.launch {
             Log.d(debugTag, "performHardLogout: starting clearSession + clearing DB")

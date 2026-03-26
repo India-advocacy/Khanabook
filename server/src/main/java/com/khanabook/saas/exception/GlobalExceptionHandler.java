@@ -29,6 +29,12 @@ public class GlobalExceptionHandler {
 		return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
 	}
 
+	@ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+	public ResponseEntity<Map<String, String>> handleAccessDeniedException(org.springframework.security.access.AccessDeniedException e) {
+		log.warn("Access denied: {}", e.getMessage());
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+	}
+
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<Map<String, String>> handleGeneralException(Exception e) {
 		log.error("Unhandled exception", e);

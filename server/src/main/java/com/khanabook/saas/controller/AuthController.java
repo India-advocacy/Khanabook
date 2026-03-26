@@ -165,5 +165,6 @@ public class AuthController {
 		private String userName;
 		private String loginId;
 		private String whatsappNumber;
+		private String role;
 	}
 }

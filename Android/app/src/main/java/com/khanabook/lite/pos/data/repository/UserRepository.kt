@@ -35,8 +35,13 @@ class UserRepository(
             val response = api.login(request)
             val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
 
+            if (response.role != null && response.role != "OWNER") {
+                return Result.failure(Exception("Access denied: This app is only for Restaurant Owners."))
+            }
+
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
+            sessionManager.saveActiveUserRole(response.role ?: "OWNER")
 
             var localUser = userDao.getUserByEmail(loginId)
             if (localUser == null) {
@@ -45,6 +50,7 @@ class UserRepository(
                     email = response.userEmail ?: loginId, // Use explicit email if available
                     whatsappNumber = response.whatsappNumber ?: phoneNumber,
                     restaurantId = response.restaurantId,
+                    role = response.role ?: "OWNER",
                     deviceId = deviceId,
                     isActive = true,
                     isSynced = true,
@@ -58,6 +64,7 @@ class UserRepository(
                     email = response.userEmail ?: localUser.email, // Preserve email
                     whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
                     restaurantId = response.restaurantId,
+                    role = response.role ?: "OWNER",
                     isSynced = true
                 )
                 val id = userDao.insertUser(localUser)
@@ -79,8 +86,13 @@ class UserRepository(
             val response = api.signup(request)
             val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
 
+            if (response.role != null && response.role != "OWNER") {
+                return Result.failure(Exception("Access denied: This app is only for Restaurant Owners."))
+            }
+
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
+            sessionManager.saveActiveUserRole(response.role ?: "OWNER")
 
             var localUser = userDao.getUserByEmail(loginId)
             if (localUser == null) {
@@ -89,6 +101,7 @@ class UserRepository(
                     email = loginId,
                     whatsappNumber = response.whatsappNumber ?: phoneNumber,
                     restaurantId = response.restaurantId,
+                    role = response.role ?: "OWNER",
                     deviceId = deviceId,
                     isActive = true,
                     isSynced = true,
@@ -102,6 +115,7 @@ class UserRepository(
                     email = loginId,
                     whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
                     restaurantId = response.restaurantId,
+                    role = response.role ?: "OWNER",
                     isSynced = true
                 )
                 val id = userDao.insertUser(localUser)
@@ -124,18 +138,22 @@ class UserRepository(
                 response.loginId?.takeIf { it.isNotBlank() }
                     ?: throw IllegalStateException("Auth response missing login identifier")
 
+            if (response.role != null && response.role != "OWNER") {
+                return Result.failure(Exception("Access denied: This app is only for Restaurant Owners."))
+            }
+
             sessionManager.saveAuthToken(response.token)
             sessionManager.saveRestaurantId(response.restaurantId)
+            sessionManager.saveActiveUserRole(response.role ?: "OWNER")
 
-            var localUser = userDao.getUserByEmail(loginId)
+            var localUser = userDao.getUserByEmail(phoneNumber)
             if (localUser == null) {
                 localUser = UserEntity(
                     name = response.userName,
-                    email = response.userEmail ?: loginId,
+                    email = phoneNumber,
                     whatsappNumber = response.whatsappNumber,
                     restaurantId = response.restaurantId,
-                    deviceId = deviceId,
-                    isActive = true,
+                    role = response.role ?: "OWNER",
                     isSynced = true,
                     createdAt = System.currentTimeMillis()
                 )
@@ -147,6 +165,7 @@ class UserRepository(
                     email = response.userEmail ?: localUser.email,
                     whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
                     restaurantId = response.restaurantId,
+                    role = response.role ?: "OWNER",
                     isSynced = true
                 )
                 val id = userDao.insertUser(localUser)
@@ -252,10 +271,6 @@ class UserRepository(
 
     fun getAllUsers(): Flow<List<UserEntity>> {
         return userDao.getAllUsers()
-    }
-
-    fun getActiveStaff(): Flow<List<UserEntity>> {
-        return userDao.getActiveStaff()
     }
 
     suspend fun setActivationStatus(userId: Long, isActive: Boolean) {

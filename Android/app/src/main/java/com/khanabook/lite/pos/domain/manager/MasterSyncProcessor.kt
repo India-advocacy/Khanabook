@@ -194,6 +194,7 @@ class MasterSyncProcessor @Inject constructor(
                         name = remoteUser.name.orFallback("User"),
                         email = remoteUser.email.orFallback(""),
                         whatsappNumber = remoteUser.whatsappNumber ?: localUser?.whatsappNumber ?: "",
+                        role = remoteUser.role ?: localUser?.role ?: "OWNER",
                         isActive = remoteUser.isActive ?: true,
                         createdAt = remoteUser.createdAt ?: System.currentTimeMillis(),
                         restaurantId = remoteUser.restaurantId ?: 0L,

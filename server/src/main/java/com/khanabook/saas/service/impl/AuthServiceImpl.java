@@ -5,6 +5,7 @@ import com.khanabook.saas.controller.AuthController.LoginRequest;
 import com.khanabook.saas.controller.AuthController.SignupRequest;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
+import com.khanabook.saas.entity.UserRole;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
 import com.khanabook.saas.service.AuthService;
@@ -54,9 +55,9 @@ public class AuthServiceImpl implements AuthService {
 		}
 
 		log.info("User logged in: restaurantId={}", user.getRestaurantId());
-		String token = jwtUtility.generateToken(user.getEmail(), user.getRestaurantId());
+		String token = jwtUtility.generateToken(user.getEmail(), user.getRestaurantId(), user.getRole().name());
 		return new AuthResponse(token, user.getRestaurantId(), user.getName(), user.getEmail(),
-				user.getWhatsappNumber());
+				user.getWhatsappNumber(), user.getRole().name());
 	}
 
 	@Override
@@ -88,6 +89,7 @@ public class AuthServiceImpl implements AuthService {
 		user.setRestaurantId(newRestaurantId);
 		user.setDeviceId(request.getDeviceId());
 		user.setLocalId(1L);
+		user.setRole(UserRole.OWNER);
 		user.setIsActive(true);
 		user.setUpdatedAt(System.currentTimeMillis());
 		user.setServerUpdatedAt(System.currentTimeMillis());
@@ -95,8 +97,9 @@ public class AuthServiceImpl implements AuthService {
 		userRepository.save(user);
 
 		log.info("New user signed up: restaurantId={}", newRestaurantId);
-		String token = jwtUtility.generateToken(user.getEmail(), newRestaurantId);
-		return new AuthResponse(token, newRestaurantId, user.getName(), user.getEmail(), user.getWhatsappNumber());
+		String token = jwtUtility.generateToken(user.getEmail(), newRestaurantId, user.getRole().name());
+		return new AuthResponse(token, newRestaurantId, user.getName(), user.getEmail(), user.getWhatsappNumber(),
+				user.getRole().name());
 	}
 
 	@Override
@@ -127,9 +130,10 @@ public class AuthServiceImpl implements AuthService {
 								user.setUpdatedAt(System.currentTimeMillis());
 								userRepository.save(user);
 							}
-							String token = jwtUtility.generateToken(user.getEmail(), user.getRestaurantId());
+							String token = jwtUtility.generateToken(user.getEmail(), user.getRestaurantId(),
+									user.getRole().name());
 							return new AuthResponse(token, user.getRestaurantId(), user.getName(), user.getEmail(),
-									user.getWhatsappNumber());
+									user.getWhatsappNumber(), user.getRole().name());
 						}).orElseGet(() -> {
 
 					Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
@@ -153,15 +157,16 @@ public class AuthServiceImpl implements AuthService {
 					user.setRestaurantId(newRestaurantId);
 					user.setDeviceId(request.getDeviceId());
 					user.setLocalId(1L);
+					user.setRole(UserRole.OWNER);
 					user.setIsActive(true);
 					user.setUpdatedAt(System.currentTimeMillis());
 					user.setServerUpdatedAt(System.currentTimeMillis());
 					user.setCreatedAt(System.currentTimeMillis());
 					userRepository.save(user);
 
-					String token = jwtUtility.generateToken(user.getEmail(), newRestaurantId);
+					String token = jwtUtility.generateToken(user.getEmail(), newRestaurantId, user.getRole().name());
 					return new AuthResponse(token, newRestaurantId, user.getName(), user.getEmail(),
-							user.getWhatsappNumber());
+							user.getWhatsappNumber(), user.getRole().name());
 				});
 			} else {
 				throw new IllegalArgumentException("Invalid Google ID token.");

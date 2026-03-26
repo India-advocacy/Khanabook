@@ -30,13 +30,26 @@ public class GenericSyncService {
 			throw new IllegalArgumentException("Push payload exceeds maximum size of 500 items");
 		}
 
-		if (tenantId == null) {
+		String role = com.khanabook.saas.security.TenantContext.getCurrentRole();
+		boolean isKbookAdmin = "KBOOK_ADMIN".equals(role);
+
+		if (tenantId == null && !isKbookAdmin) {
 			throw new IllegalArgumentException(
 					"Tenant ID (Restaurant ID) cannot be null. Ensure valid JWT is provided.");
 		}
 
 		if (payload == null || payload.isEmpty()) {
 			return new PushSyncResponse(new ArrayList<>(), new ArrayList<>());
+		}
+
+		// Cross-tenant guard for OWNER: ensure every record's restaurantId matches tenantId
+		if (!isKbookAdmin) {
+			for (T record : payload) {
+				if (record.getRestaurantId() != null && !record.getRestaurantId().equals(tenantId)) {
+					throw new org.springframework.security.access.AccessDeniedException(
+							"Permission denied: Accessing other restaurant data is forbidden.");
+				}
+			}
 		}
 
 		long distinctDevices = payload.stream()
@@ -50,7 +63,7 @@ public class GenericSyncService {
 				"GenericSyncService:handlePushSync",
 				"Push sync started",
 				java.util.Map.of(
-						"tenantId", tenantId,
+						"tenantId", tenantId != null ? tenantId : "null",
 						"payloadSize", payload.size(),
 						"distinctDevices", distinctDevices
 				)
@@ -148,6 +161,21 @@ public class GenericSyncService {
 						}
 					}
 
+					// For KBOOK_ADMIN, ensure we use the record's restaurantId if tenantId is null
+					Long targetTenantId = tenantId != null ? tenantId : incomingRecord.getRestaurantId();
+					if (targetTenantId == null) {
+						log.warn("Skipping record with NULL restaurantId for device: {}", deviceId);
+						continue;
+					}
+
+					incomingRecord.setRestaurantId(targetTenantId);
+					incomingRecord.setServerUpdatedAt(serverTime);
+
+					if (incomingRecord.getCreatedAt() == null) {
+						incomingRecord.setCreatedAt(
+								incomingRecord.getUpdatedAt() != null ? incomingRecord.getUpdatedAt() : serverTime);
+					}
+
 					if (existingRecord != null) {
 						if (incomingRecord.getUpdatedAt() > existingRecord.getUpdatedAt()) {
 
@@ -234,7 +262,7 @@ public class GenericSyncService {
 				"GenericSyncService:handlePushSync",
 				"Push sync completed",
 				java.util.Map.of(
-						"tenantId", tenantId,
+						"tenantId", tenantId != null ? tenantId : "null",
 						"successfulLocalIdsSize", successfulLocalIds.size(),
 						"failedLocalIdsSize", failedLocalIds.size(),
 						"recordsSavedSize", allRecordsToSave.size()

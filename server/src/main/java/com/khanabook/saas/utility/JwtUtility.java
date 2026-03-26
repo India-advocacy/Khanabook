@@ -43,6 +43,11 @@ public class JwtUtility {
 		return claims.get("restaurantId", Long.class);
 	}
 
+	public String extractRole(String token) {
+		final Claims claims = extractAllClaims(token);
+		return claims.get("role", String.class);
+	}
+
 	public String extractUsername(String token) {
 		return extractClaim(token, Claims::getSubject);
 	}
@@ -56,9 +61,10 @@ public class JwtUtility {
 		return Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token).getBody();
 	}
 
-	public String generateToken(String username, Long restaurantId) {
-		return Jwts.builder().setSubject(username).claim("restaurantId", restaurantId).setIssuedAt(new Date())
-				.setExpiration(new Date(System.currentTimeMillis() + expirationMs)).signWith(getSigningKey()).compact();
+	public String generateToken(String username, Long restaurantId, String role) {
+		return Jwts.builder().setSubject(username).claim("restaurantId", restaurantId).claim("role", role)
+				.setIssuedAt(new Date()).setExpiration(new Date(System.currentTimeMillis() + expirationMs))
+				.signWith(getSigningKey()).compact();
 	}
 
 	public Boolean isTokenExpired(String token) {

@@ -31,8 +31,9 @@ public class User extends BaseSyncEntity {
 	@Column(name = "whatsapp_number")
 	private String whatsappNumber;
 
+	@jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
 	@Column(name = "role", nullable = false)
-	private String role = "owner";
+	private UserRole role = UserRole.OWNER;
 
 	@com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
 	@Column(name = "pin_hash")

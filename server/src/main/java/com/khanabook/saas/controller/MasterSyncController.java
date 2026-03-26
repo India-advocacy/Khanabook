@@ -33,9 +33,15 @@ public class MasterSyncController {
 	@org.springframework.transaction.annotation.Transactional(readOnly = true)
 	@GetMapping("/pull")
 	public ResponseEntity<MasterSyncResponse> pullMasterSync(@RequestParam Long lastSyncTimestamp,
-			@RequestParam String deviceId) {
+			@RequestParam String deviceId, @RequestParam(required = false) Long restaurantId) {
 
 		Long tenantId = TenantContext.getCurrentTenant();
+		String role = TenantContext.getCurrentRole();
+
+		if ("KBOOK_ADMIN".equals(role) && restaurantId != null) {
+			tenantId = restaurantId;
+		}
+
 		long currentServerTime = System.currentTimeMillis();
 
 		MasterSyncResponse response = new MasterSyncResponse();

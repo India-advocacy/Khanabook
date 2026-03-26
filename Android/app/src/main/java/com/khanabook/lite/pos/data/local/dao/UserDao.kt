@@ -18,9 +18,6 @@ interface UserDao {
     @Query("SELECT * FROM users WHERE is_deleted = 0 LIMIT 1")
     suspend fun getAnyUser(): UserEntity?
 
-    @Query("SELECT * FROM users WHERE role = 'staff' AND is_active = 1 AND is_deleted = 0 ORDER BY name ASC")
-    fun getActiveStaff(): Flow<List<UserEntity>>
-
     @Query(
         "UPDATE users SET whatsapp_number = :newPhone, is_synced = 0, updated_at = :updatedAt WHERE id = :userId"
     )

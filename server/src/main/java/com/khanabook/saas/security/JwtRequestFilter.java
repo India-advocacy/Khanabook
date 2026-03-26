@@ -46,16 +46,26 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 				if (!tokenExpired) {
 					Long restaurantId = jwtUtility.extractRestaurantId(jwt);
 					String username = jwtUtility.extractUsername(jwt);
+					String role = jwtUtility.extractRole(jwt);
 					jwtExtractOk = true;
 					restaurantIdPresent = restaurantId;
 
-					if (restaurantId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+					if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-						TenantContext.setCurrentTenant(restaurantId);
-						tenantSet = true;
+						if (restaurantId != null) {
+							TenantContext.setCurrentTenant(restaurantId);
+							tenantSet = true;
+						}
+
+						if (role != null) {
+							TenantContext.setCurrentRole(role);
+						}
+
+						org.springframework.security.core.authority.SimpleGrantedAuthority authority = new org.springframework.security.core.authority.SimpleGrantedAuthority(
+								"ROLE_" + (role != null ? role : "OWNER"));
 
 						UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-								username, null, Collections.emptyList());
+								username, null, java.util.Collections.singletonList(authority));
 						authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 						SecurityContextHolder.getContext().setAuthentication(authToken);
 					}
