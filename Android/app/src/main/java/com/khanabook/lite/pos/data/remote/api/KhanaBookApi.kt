@@ -10,113 +10,113 @@ import retrofit2.http.Query
 
 interface KhanaBookApi {
 
-        @POST("auth/login")
+        @POST("api/v1/auth/login")
         suspend fun login(@Body request: LoginRequest): AuthResponse
 
-        @POST("auth/signup")
+        @POST("api/v1/auth/signup")
         suspend fun signup(@Body request: SignupRequest): AuthResponse
 
-        @POST("auth/google")
+        @POST("api/v1/auth/google")
         suspend fun loginWithGoogle(@Body request: GoogleLoginRequest): AuthResponse
 
-        @POST("sync/bills/push")
+        @POST("api/v1/sync/bills/push")
         suspend fun pushBills(@Body bills: List<BillEntity>): PushSyncResponse
 
-        @GET("sync/bills/pull")
+        @GET("api/v1/sync/bills/pull")
         suspend fun pullBills(
                 @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
                 @Query("deviceId") deviceId: String
         ): List<BillEntity>
 
-        @POST("sync/bills/items/push")
+        @POST("api/v1/sync/bills/items/push")
         suspend fun pushBillItems(@Body items: List<BillItemEntity>): PushSyncResponse
 
-        @GET("sync/bills/items/pull")
+        @GET("api/v1/sync/bills/items/pull")
         suspend fun pullBillItems(
             @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
             @Query("deviceId") deviceId: String
         ): List<BillItemEntity>
 
-        @POST("sync/bills/payments/push")
+        @POST("api/v1/sync/bills/payments/push")
         suspend fun pushBillPayments(@Body payments: List<BillPaymentEntity>): PushSyncResponse
 
-        @GET("sync/bills/payments/pull")
+        @GET("api/v1/sync/bills/payments/pull")
         suspend fun pullBillPayments(
             @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
             @Query("deviceId") deviceId: String
         ): List<BillPaymentEntity>
 
         
-        @POST("sync/restaurantprofile/push")
+        @POST("api/v1/sync/restaurantprofile/push")
         suspend fun pushRestaurantProfiles(@Body profiles: List<RestaurantProfileEntity>): PushSyncResponse
 
-        @GET("sync/restaurantprofile/pull")
+        @GET("api/v1/sync/restaurantprofile/pull")
         suspend fun pullRestaurantProfiles(
                 @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
                 @Query("deviceId") deviceId: String
         ): List<RestaurantProfileEntity>
 
-        @POST("sync/config/users/push")
+        @POST("api/v1/sync/config/users/push")
         suspend fun pushUsers(@Body users: List<UserEntity>): PushSyncResponse
 
-        @GET("sync/config/users/pull")
+        @GET("api/v1/sync/config/users/pull")
         suspend fun pullUsers(
             @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
             @Query("deviceId") deviceId: String
         ): List<UserEntity>
 
         
-        @POST("sync/menu/categories/push")
+        @POST("api/v1/sync/menu/categories/push")
         suspend fun pushCategories(@Body categories: List<CategoryEntity>): PushSyncResponse
 
-        @GET("sync/menu/categories/pull")
+        @GET("api/v1/sync/menu/categories/pull")
         suspend fun pullCategories(
                 @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
                 @Query("deviceId") deviceId: String
         ): List<CategoryEntity>
 
-        @POST("sync/menuitem/push")
+        @POST("api/v1/sync/menuitem/push")
         suspend fun pushMenuItems(@Body items: List<MenuItemEntity>): PushSyncResponse
 
-        @GET("sync/menuitem/pull")
+        @GET("api/v1/sync/menuitem/pull")
         suspend fun pullMenuItems(
             @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
             @Query("deviceId") deviceId: String
         ): List<MenuItemEntity>
 
-        @POST("sync/itemvariant/push")
+        @POST("api/v1/sync/itemvariant/push")
         suspend fun pushItemVariants(@Body variants: List<ItemVariantEntity>): PushSyncResponse
 
-        @GET("sync/itemvariant/pull")
+        @GET("api/v1/sync/itemvariant/pull")
         suspend fun pullItemVariants(
             @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
             @Query("deviceId") deviceId: String
         ): List<ItemVariantEntity>
 
-        @POST("sync/stocklog/push")
+        @POST("api/v1/sync/stocklog/push")
         suspend fun pushStockLogs(@Body logs: List<StockLogEntity>): PushSyncResponse
 
-        @GET("sync/stocklog/pull")
+        @GET("api/v1/sync/stocklog/pull")
         suspend fun pullStockLogs(
             @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
             @Query("deviceId") deviceId: String
         ): List<StockLogEntity>
 
-        @GET("sync/master/pull")
+        @GET("api/v1/sync/master/pull")
         suspend fun pullMasterSync(
             @Query("lastSyncTimestamp") lastSyncTimestamp: Long,
             @Query("deviceId") deviceId: String
         ): MasterSyncResponse
 
-        @POST("sync/restaurantprofile/counters/increment")
+        @POST("api/v1/sync/restaurantprofile/counters/increment")
         suspend fun incrementCounters(): CounterResponse
 
-        @POST("auth/reset-password")
+        @POST("api/v1/auth/reset-password")
         suspend fun resetPassword(@Body request: ResetPasswordRequest)
 
-        @GET("auth/check-user")
+        @GET("api/v1/auth/check-user")
         suspend fun checkUser(@Query("phoneNumber") phoneNumber: String): Boolean
 
-        @POST("sync/config/users/update-mobile")
+        @POST("api/v1/sync/config/users/update-mobile")
         suspend fun updateMobileNumber(@Body request: UpdateMobileRequest): retrofit2.Response<Unit>
 }
