@@ -10,6 +10,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -287,20 +291,13 @@ fun MenuSelectionStep(
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
     val selectedCategoryId by menuViewModel.selectedCategoryId.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
-
+    val configuration = LocalConfiguration.current
     
-    val scannedBarcode by (navController
-        ?.currentBackStackEntry
-        ?.savedStateHandle
-        ?.getStateFlow("scanned_barcode", "")
-        ?: kotlinx.coroutines.flow.MutableStateFlow(""))
-        .collectAsStateWithLifecycle()
-
-    LaunchedEffect(scannedBarcode) {
-        if (scannedBarcode.isNotEmpty()) {
-            billingViewModel.handleScannedBarcode(scannedBarcode)
-            navController?.currentBackStackEntry?.savedStateHandle?.set("scanned_barcode", "")
-        }
+    // Adaptive grid columns: 1 for phones, 2 for tablets/landscape, 3 for large tablets
+    val gridColumns = when {
+        configuration.screenWidthDp >= 900 -> 3
+        configuration.screenWidthDp >= 600 -> 2
+        else -> 1
     }
 
     LaunchedEffect(categories) {
@@ -373,9 +370,11 @@ fun MenuSelectionStep(
                 }
             }
 
-            LazyColumn(
+            LazyVerticalGrid(
+                    columns = GridCells.Fixed(gridColumns),
                     modifier = Modifier.weight(1f).padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(items, key = { it.menuItem.id }) { menuWithVariants ->
                     val item = menuWithVariants.menuItem
@@ -483,6 +482,10 @@ fun MenuSelectionStep(
                         )
                     }
                 }
+                
+                item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(gridColumns) }) {
+                    Spacer(modifier = Modifier.height(100.dp))
+                }
             }
 
 
@@ -528,30 +531,8 @@ fun MenuSelectionStep(
                 }
             }
         }
-
-
-        if (navController != null) {
-            FloatingActionButton(
-                onClick = {
-                    // navController.navigate("ocr_scanner/billing")
-                    android.widget.Toast.makeText(context, "Not yet implemented", android.widget.Toast.LENGTH_SHORT).show()
-                },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(end = 16.dp, bottom = 100.dp), 
-                containerColor = PrimaryGold,
-                contentColor = DarkBrown1,
-                shape = CircleShape,
-                elevation = FloatingActionButtonDefaults.elevation(8.dp)
-            ) {
-                Icon(
-                    Icons.Default.QrCodeScanner,
-                    contentDescription = "Scan Barcode",
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-    }}
+    }
+}
 
 @Composable
 fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {

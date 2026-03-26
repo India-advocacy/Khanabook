@@ -61,6 +61,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import coil.request.CachePolicy
 
+import androidx.compose.ui.platform.LocalConfiguration
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -73,6 +75,8 @@ fun SettingsScreen(
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
     var section by rememberSaveable { mutableStateOf("menu") }
+    val configuration = LocalConfiguration.current
+    val isWideScreen = configuration.screenWidthDp >= 600
 
     // Intercept back gesture when in a sub-section
     androidx.activity.compose.BackHandler(enabled = section != "menu") {
@@ -127,11 +131,36 @@ fun SettingsScreen(
                             ProfileCard(currentUser, profile)
                             Spacer(modifier = Modifier.height(16.dp))
                             
-                            SettingsItem(icon = Icons.Filled.Store, text = "Shop/Restaurant Configuration") { section = "shop" }
-                            SettingsItem(icon = Icons.AutoMirrored.Filled.ReceiptLong, text = "Menu Configuration") { section = "menu_config" }
-                            SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration") { section = "payment" }
-                            SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") { section = "printer" }
-                            SettingsItem(icon = Icons.Filled.Settings, text = "Tax Configuration") { section = "tax" }
+                            if (isWideScreen) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        SettingsItem(icon = Icons.Filled.Store, text = "Shop Configuration") { section = "shop" }
+                                    }
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        SettingsItem(icon = Icons.AutoMirrored.Filled.ReceiptLong, text = "Menu Configuration") { section = "menu_config" }
+                                    }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration") { section = "payment" }
+                                    }
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") { section = "printer" }
+                                    }
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        SettingsItem(icon = Icons.Filled.Settings, text = "Tax Configuration") { section = "tax" }
+                                    }
+                                    Spacer(modifier = Modifier.weight(1f))
+                                }
+                            } else {
+                                SettingsItem(icon = Icons.Filled.Store, text = "Shop/Restaurant Configuration") { section = "shop" }
+                                SettingsItem(icon = Icons.AutoMirrored.Filled.ReceiptLong, text = "Menu Configuration") { section = "menu_config" }
+                                SettingsItem(icon = Icons.Filled.CreditCard, text = "Payment Configuration") { section = "payment" }
+                                SettingsItem(icon = Icons.Filled.Print, text = "Printer Configuration") { section = "printer" }
+                                SettingsItem(icon = Icons.Filled.Settings, text = "Tax Configuration") { section = "tax" }
+                            }
                             
                             Spacer(modifier = Modifier.height(16.dp))
                             

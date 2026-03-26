@@ -28,6 +28,8 @@ import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
 
+import androidx.compose.ui.platform.LocalConfiguration
+
 @Composable
 fun HomeScreen(
     onNewBill: () -> Unit,
@@ -39,6 +41,8 @@ fun HomeScreen(
     val stats by viewModel.todayStats.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
     val unsyncedCount by viewModel.unsyncedCount.collectAsState()
+    val configuration = LocalConfiguration.current
+    val isWideScreen = configuration.screenWidthDp >= 600
 
     Box(
         modifier = Modifier
@@ -145,33 +149,71 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                HomeActionCard(
-                    text = "Print/Share",
-                    icon = Icons.Default.Print,
-                    backgroundColor = DarkBrown2,
+            if (isWideScreen) {
+                // Adaptive grid for tablets/landscape
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = onSearchBill
-                )
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    HomeActionCard(
+                        text = "Print/Share",
+                        icon = Icons.Default.Print,
+                        backgroundColor = DarkBrown2,
+                        modifier = Modifier.weight(1f),
+                        onClick = onSearchBill
+                    )
+                    HomeActionCard(
+                        text = "Order Status",
+                        icon = Icons.Default.Info,
+                        backgroundColor = DarkBrown2,
+                        modifier = Modifier.weight(1f),
+                        onClick = onOrderStatus
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    HomeActionCard(
+                        text = "Call Customers",
+                        icon = Icons.Default.Call,
+                        backgroundColor = DarkBrown2,
+                        modifier = Modifier.weight(1f),
+                        onClick = onCallCustomer
+                    )
+                    Spacer(modifier = Modifier.weight(1f)) // Empty space for balance
+                }
+            } else {
+                // Vertical list for phones
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    HomeActionCard(
+                        text = "Print/Share",
+                        icon = Icons.Default.Print,
+                        backgroundColor = DarkBrown2,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onSearchBill
+                    )
 
-                HomeActionCard(
-                    text = "Order Status",
-                    icon = Icons.Default.Info,
-                    backgroundColor = DarkBrown2,
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onOrderStatus
-                )
+                    HomeActionCard(
+                        text = "Order Status",
+                        icon = Icons.Default.Info,
+                        backgroundColor = DarkBrown2,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onOrderStatus
+                    )
 
-                HomeActionCard(
-                    text = "Call Customers",
-                    icon = Icons.Default.Call,
-                    backgroundColor = DarkBrown2,
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = onCallCustomer
-                )
+                    HomeActionCard(
+                        text = "Call Customers",
+                        icon = Icons.Default.Call,
+                        backgroundColor = DarkBrown2,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = onCallCustomer
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
