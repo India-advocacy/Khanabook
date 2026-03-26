@@ -48,13 +48,17 @@ class ReportGenerator(private val billRepository: BillRepository) {
 
     suspend fun getOrderLevelRows(from: Long, to: Long): List<OrderLevelRow> {
         val bills = billRepository.getBillsByDateRange(from, to).firstOrNull() ?: emptyList()
-        return bills.filter { OrderStatus.fromDbValue(it.orderStatus) == OrderStatus.COMPLETED }
+        return bills.filter { 
+            val status = OrderStatus.fromDbValue(it.orderStatus)
+            status == OrderStatus.COMPLETED || status == OrderStatus.CANCELLED 
+        }
             .map { bill ->
                 OrderLevelRow(
                     dailyId = bill.dailyOrderDisplay.split("-").last(),
                     lifetimeId = bill.lifetimeOrderId,
                     billId = bill.id,
                     paymentMode = PaymentMode.fromDbValue(bill.paymentMode),
+                    orderStatus = OrderStatus.fromDbValue(bill.orderStatus),
                     date = DateUtils.formatDisplay(bill.createdAt)
                 )
             }

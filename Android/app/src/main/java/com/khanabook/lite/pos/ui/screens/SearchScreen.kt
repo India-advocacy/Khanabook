@@ -212,30 +212,37 @@ fun SearchScreen(
                     border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f))
                 ) {
                     Column(modifier = Modifier.padding(16.dp).wrapContentHeight()) {
+                        // Header Section: Phone and Date in single line
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.Top
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Phone, null, tint = TextGold, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    "Order #${currentResult.bill.lifetimeOrderId}",
-                                    color = PrimaryGold,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 16.sp
+                                    currentResult.bill.customerWhatsapp ?: "N/A",
+                                    color = TextLight,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
                                 )
+                            }
+                            
+                            Text(" | ", color = BorderGold.copy(alpha = 0.3f))
+                            
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Event, null, tint = TextGold, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     DateUtils.formatDisplay(currentResult.bill.createdAt),
                                     color = TextGold,
                                     fontSize = 11.sp
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    "Phone: ${currentResult.bill.customerWhatsapp ?: "N/A"}",
-                                    color = TextLight,
-                                    fontSize = 12.sp
-                                )
                             }
+                            
+                            Spacer(modifier = Modifier.weight(1f))
+
                             Surface(
                                 color = if (currentResult.bill.paymentStatus == "success")
                                     SuccessGreen.copy(alpha = 0.1f)
@@ -253,124 +260,136 @@ fun SearchScreen(
                         }
 
                         HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 10.dp),
+                            modifier = Modifier.padding(vertical = 12.dp),
                             color = BorderGold.copy(alpha = 0.2f)
                         )
 
-                        Column(
-                            modifier = Modifier.wrapContentHeight().verticalScroll(rememberScrollState())
+                        // Scrollable Items Section
+                        Box(
+                            modifier = Modifier
+                                .weight(1f, fill = false) // Allow it to take available space but not force it
+                                .fillMaxWidth()
+                                .heightIn(max = 240.dp) // Responsive limit for smaller screens
                         ) {
-                            currentResult.items.forEach { item ->
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Text(
-                                        "${item.itemName} x${item.quantity}",
-                                        color = TextLight,
-                                        fontSize = 13.sp,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Text(
-                                        CurrencyUtils.formatPrice(item.itemTotal),
-                                        color = TextLight,
-                                        fontSize = 13.sp
-                                    )
+                            androidx.compose.foundation.lazy.LazyColumn(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                androidx.compose.foundation.lazy.items(currentResult.items) { item ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            "${item.itemName} x${item.quantity}",
+                                            color = TextLight,
+                                            fontSize = 13.sp,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Text(
+                                            CurrencyUtils.formatPrice(item.itemTotal),
+                                            color = TextLight,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
                                 }
                             }
                         }
 
                         HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 10.dp),
+                            modifier = Modifier.padding(vertical = 12.dp),
                             color = BorderGold.copy(alpha = 0.2f)
                         )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                "Total Amount",
-                                color = PrimaryGold,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-                            Text(
-                                CurrencyUtils.formatPrice(currentResult.bill.totalAmount),
-                                color = PrimaryGold,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        if (title.contains("Status", ignoreCase = true)) {
+                        // Fixed Footer Section
+                        Column(modifier = Modifier.fillMaxWidth()) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Payment Mode", color = TextGold, fontSize = 10.sp)
-                                    Surface(
-                                        color = Color.Black.copy(alpha = 0.2f),
-                                        shape = RoundedCornerShape(4.dp),
-                                        border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.5f))
-                                    ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                Text(
+                                    "Total Amount",
+                                    color = PrimaryGold,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    "₹${CurrencyUtils.formatPrice(currentResult.bill.totalAmount)}",
+                                    color = PrimaryGold,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 18.sp
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            if (title.contains("Status", ignoreCase = true)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Column(modifier = Modifier.weight(1.3f)) {
+                                        Text("Payment Mode", color = TextGold, fontSize = 10.sp, modifier = Modifier.padding(bottom = 4.dp))
+                                        Surface(
+                                            color = Color.Black.copy(alpha = 0.3f),
+                                            shape = RoundedCornerShape(6.dp),
+                                            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.4f))
                                         ) {
                                             Text(
                                                 PaymentMode.fromDbValue(currentResult.bill.paymentMode).displayLabel,
                                                 color = TextLight,
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp
+                                                fontSize = 12.sp,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                                             )
                                         }
                                     }
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Order ID", color = TextGold, fontSize = 10.sp, modifier = Modifier.padding(bottom = 4.dp))
+                                        Text(
+                                            "#${currentResult.bill.dailyOrderDisplay.split("-").last()}",
+                                            color = TextLight,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                    }
                                 }
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text("Daily ID", color = TextGold, fontSize = 10.sp)
-                                    Text(
-                                        currentResult.bill.dailyOrderDisplay.split("-").last(),
-                                        color = TextLight,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-                        } else {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                Button(
-                                    onClick = {
-                                        result?.let { shareBillOnWhatsApp(context, it, profile) }
-                                    },
-                                    modifier = Modifier.weight(1f).height(40.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                                    shape = RoundedCornerShape(8.dp)
+                            } else {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("WhatsApp", color = Color.White, fontSize = 11.sp)
-                                }
-                                OutlinedButton(
-                                    onClick = {
-                                        result?.let {
-                                            directPrint(context, it, profile, billingViewModel.printerManager)
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f).height(40.dp),
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
-                                    border = BorderStroke(1.dp, PrimaryGold)
-                                ) {
-                                    Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Print", fontSize = 11.sp)
+                                    Button(
+                                        onClick = {
+                                            result?.let { shareBillOnWhatsApp(context, it, profile) }
+                                        },
+                                        modifier = Modifier.weight(1f).height(44.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                                        shape = RoundedCornerShape(10.dp),
+                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
+                                    ) {
+                                        Icon(Icons.Default.WhatsApp, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("WhatsApp", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                    OutlinedButton(
+                                        onClick = {
+                                            result?.let {
+                                                directPrint(context, it, profile, billingViewModel.printerManager)
+                                            }
+                                        },
+                                        modifier = Modifier.weight(1f).height(44.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
+                                        border = BorderStroke(1.5.dp, PrimaryGold)
+                                    ) {
+                                        Icon(Icons.Default.Print, null, tint = PrimaryGold, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Print Bill", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }

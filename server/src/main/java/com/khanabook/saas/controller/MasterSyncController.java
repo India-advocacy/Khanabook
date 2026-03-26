@@ -93,6 +93,11 @@ public class MasterSyncController {
 		return ResponseEntity.ok(response);
 	}
 
+	@GetMapping("/admin/test")
+	public ResponseEntity<String> adminTest() {
+		return ResponseEntity.ok("ADMIN_OK");
+	}
+
 	@Data
 	public static class MasterSyncResponse {
 		private Long serverTimestamp;

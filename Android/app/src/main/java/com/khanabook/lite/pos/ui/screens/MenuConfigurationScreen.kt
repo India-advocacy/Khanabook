@@ -96,24 +96,29 @@ fun MenuConfigurationScreen(
                         onScanClick(selectedCategoryName)
                         showImportSourceDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1)
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(Icons.Default.CameraAlt, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Camera Scan")
+                    Text("Camera Scan", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 Button(
                     onClick = { 
-                        filePickerLauncher.launch(arrayOf("application/pdf", "image/*"))
+                        filePickerLauncher.launch(arrayOf("image/*"))
                         showImportSourceDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1)
+                    modifier = Modifier.fillMaxWidth().height(48.dp).padding(top = 8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold.copy(alpha = 0.15f), contentColor = PrimaryGold),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.3f))
                 ) {
-                    Icon(Icons.Default.UploadFile, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.Image, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Upload File")
+                    Text("Select from Gallery", fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -802,11 +807,16 @@ fun ReviewScannedItemsSheet(
                             onClick = onDismiss,
                             border = BorderStroke(1.dp, NonVegRed.copy(alpha = 0.5f)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = NonVegRed),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp)
                         ) {
-                            Icon(Icons.Default.DeleteForever, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Discard")
+                            Text(
+                                "Discard",
+                                maxLines = 1,
+                                softWrap = false,
+                                fontSize = 14.sp
+                            )
                         }
                         Button(
                             onClick = onConfirm,
@@ -1147,8 +1157,8 @@ fun MenuConfigurationContent(
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
-                                            Icons.Default.PictureAsPdf,
-                                            contentDescription = "Upload PDF",
+                                            Icons.Default.Image,
+                                            contentDescription = "Select Gallery",
                                             tint = if (canAddItem) Brown500 else Color.Gray,
                                             modifier = Modifier.size(20.dp)
                                         )

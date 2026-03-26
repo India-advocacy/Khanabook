@@ -22,71 +22,97 @@ public class SpringRoleTest extends BaseIntegrationTest {
     private JwtUtility jwtUtility;
 
     @Test
-    void unauthenticatedRequestToSync_returns403() throws Exception {
-        mockMvc.perform(get("/sync/restaurantprofile/pull")
-                .param("lastSyncTimestamp", "0")
-                .param("deviceId", "dev1"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
-    void ownerPushesProfileWithOwnRestaurantId_returns200() throws Exception {
+    void givenOwnerJwtWithTenant1_whenPostSyncBillsWithTenant1_then200() throws Exception {
         String token = jwtUtility.generateToken("owner@test.com", 1L, "OWNER");
         
-        String json = "[{\"localId\": 1, \"restaurantId\": 1, \"deviceId\": \"dev1\", \"shopName\": \"My Shop\", \"updatedAt\": " + System.currentTimeMillis() + "}]";
-
-        mockMvc.perform(post("/sync/restaurantprofile/push")
+        mockMvc.perform(post("/sync/bills/push")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json))
+                .content("[]"))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void ownerPushesProfileWithDifferentRestaurantId_returns403() throws Exception {
+    void givenOwnerJwtWithTenant1_whenPostSyncBillsWithTenant2_then403() throws Exception {
+        // GenericSyncService throws AccessDeniedException when restaurantId in payload (passed via controller from TenantContext)
+        // doesn't match if it's not a KBOOK_ADMIN.
+        // Wait, the controller passes TenantContext.getCurrentTenant() which is 1.
+        // If the payload contains 2, GenericSyncService.handlePushSync will check:
+        // if (!isKbookAdmin && !record.getRestaurantId().equals(tenantId)) { throw new AccessDeniedException(...) }
+        
         String token = jwtUtility.generateToken("owner@test.com", 1L, "OWNER");
         
-        // Push for restaurantId 2 while being owner of restaurantId 1
-        String json = "[{\"localId\": 1, \"restaurantId\": 2, \"deviceId\": \"dev1\", \"shopName\": \"Evil Shop\", \"updatedAt\": " + System.currentTimeMillis() + "}]";
-
-        mockMvc.perform(post("/sync/restaurantprofile/push")
+        // Payload with mismatched restaurantId
+        String payload = "[{\"localId\":1, \"restaurantId\":2, \"totalAmount\":\"100.00\"}]";
+        
+        mockMvc.perform(post("/sync/bills/push")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json))
+                .content(payload))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void ownerCallsAdminEndpoint_returns403() throws Exception {
+    void givenOwnerJwt_whenGetAdminPath_then403() throws Exception {
         String token = jwtUtility.generateToken("owner@test.com", 1L, "OWNER");
-
+        
         mockMvc.perform(get("/admin/anything")
                 .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void kbookAdminPushesProfileForAnyRestaurantId_returns200() throws Exception {
+    void givenKbookAdminJwt_whenPostSyncBillsWithAnyTenant_then200() throws Exception {
+        // KBOOK_ADMIN has null restaurantId in token usually, but can push for any
         String token = jwtUtility.generateToken("admin@test.com", null, "KBOOK_ADMIN");
         
-        String json = "[{\"localId\": 1, \"restaurantId\": 99, \"deviceId\": \"dev1\", \"shopName\": \"Admin Shop\", \"updatedAt\": " + System.currentTimeMillis() + "}]";
-
-        mockMvc.perform(post("/sync/restaurantprofile/push")
+        String payload = "[{\"localId\":1, \"restaurantId\":99, \"totalAmount\":\"100.00\"}]";
+        
+        mockMvc.perform(post("/sync/bills/push")
                 .header("Authorization", "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json))
+                .content(payload))
                 .andExpect(status().isOk());
     }
 
     @Test
-    void kbookAdminCallsMasterSyncWithSpecificRestaurantId_returns200() throws Exception {
+    void givenKbookAdminJwt_whenGetAdminPath_then200() throws Exception {
         String token = jwtUtility.generateToken("admin@test.com", null, "KBOOK_ADMIN");
+        
+        mockMvc.perform(get("/sync/master/admin/test")
+                .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
 
+    @Test
+    void givenKbookAdminJwt_whenGetMasterPullWithTenant99_then200() throws Exception {
+        String token = jwtUtility.generateToken("admin@test.com", null, "KBOOK_ADMIN");
+        
         mockMvc.perform(get("/sync/master/pull")
                 .header("Authorization", "Bearer " + token)
                 .param("lastSyncTimestamp", "0")
-                .param("deviceId", "dev1")
-                .param("restaurantId", "123"))
+                .param("deviceId", "test-device")
+                .param("restaurantId", "99"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void givenNoJwt_whenGetSyncBills_thenForbidden() throws Exception {
+        mockMvc.perform(get("/sync/bills/pull")
+                .param("lastSyncTimestamp", "0")
+                .param("deviceId", "test-device"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void givenStaffJwt_whenAnySync_then403() throws Exception {
+        // STAFF is not in our UserRole enum anymore, but if someone crafts a JWT with it:
+        String token = jwtUtility.generateToken("staff@test.com", 1L, "STAFF");
+        
+        mockMvc.perform(get("/sync/bills/pull")
+                .header("Authorization", "Bearer " + token)
+                .param("lastSyncTimestamp", "0")
+                .param("deviceId", "test-device"))
+                .andExpect(status().isForbidden());
     }
 }

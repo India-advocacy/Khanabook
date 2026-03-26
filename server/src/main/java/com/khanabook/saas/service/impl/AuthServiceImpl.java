@@ -89,7 +89,7 @@ public class AuthServiceImpl implements AuthService {
 		user.setRestaurantId(newRestaurantId);
 		user.setDeviceId(request.getDeviceId());
 		user.setLocalId(1L);
-		user.setRole(UserRole.OWNER);
+		user.setRole(UserRole.OWNER); // Strictly force OWNER on signup
 		user.setIsActive(true);
 		user.setUpdatedAt(System.currentTimeMillis());
 		user.setServerUpdatedAt(System.currentTimeMillis());

@@ -6,6 +6,7 @@ data class OrderLevelRow(
     val lifetimeId: Long,
     val billId: Long,
     val paymentMode: PaymentMode,
+    val orderStatus: OrderStatus,
     val date: String
 )
 

@@ -434,10 +434,10 @@ fun OrderLevelView(rows: List<com.khanabook.lite.pos.domain.model.OrderLevelRow>
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             HeaderCell("D.ID", Modifier.weight(0.8f))
-            HeaderCell("L.ID", Modifier.weight(1f))
-            HeaderCell("Mode", Modifier.weight(2.3f))
-            HeaderCell("Action", Modifier.weight(1.2f))
-            HeaderCell("Date", Modifier.weight(1.4f))
+            HeaderCell("Mode", Modifier.weight(1.8f))
+            HeaderCell("Status", Modifier.weight(1.2f))
+            HeaderCell("Action", Modifier.weight(1f))
+            HeaderCell("Date", Modifier.weight(1.2f))
         }
 
         LazyColumn(
@@ -482,10 +482,8 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(row.dailyId, color = TextLight, fontSize = 13.sp, modifier = Modifier.weight(0.8f), textAlign = TextAlign.Center)
-            Text(row.lifetimeId.toString(), color = TextLight, fontSize = 13.sp, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             
-            
-            Box(modifier = Modifier.weight(2.3f), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.weight(1.8f), contentAlignment = Alignment.Center) {
                 val (color, label) = when (row.paymentMode) {
                     PaymentMode.ZOMATO -> ZomatoRed to "Zomato"
                     PaymentMode.SWIGGY -> SwiggyOrange to "Swiggy"
@@ -509,8 +507,25 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
                 }
             }
             
-            
             Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
+                val statusText = when(row.orderStatus) {
+                    OrderStatus.DRAFT -> "Pending"
+                    else -> row.orderStatus.name.lowercase().replaceFirstChar { it.uppercase() }
+                }
+                val statusColor = when(row.orderStatus) {
+                    OrderStatus.COMPLETED -> VegGreen
+                    OrderStatus.CANCELLED -> ZomatoRed
+                    else -> TextGold
+                }
+                Text(
+                    statusText,
+                    color = statusColor,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+            
+            Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
                 Surface(
                     color = Color.Transparent,
                     border = BorderStroke(1.dp, PrimaryGold),
@@ -530,7 +545,7 @@ fun OrderRowItem(row: com.khanabook.lite.pos.domain.model.OrderLevelRow, onViewD
                 formatDate(row.date),
                 color = TextLight,
                 fontSize = 11.sp,
-                modifier = Modifier.weight(1.4f),
+                modifier = Modifier.weight(1.2f),
                 textAlign = TextAlign.Center
             )
         }
@@ -586,50 +601,48 @@ fun OrderDetailsDialog(
                     val bill = billWithItems.bill
                     val items = billWithItems.items
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Bill ID: ${bill.id}", color = TextLight, fontSize = 14.sp)
-                        Text(DateUtils.formatDisplay(bill.createdAt), color = TextLight, fontSize = 14.sp)
-                    }
+                    DetailRow("Order ID:", "#${bill.dailyOrderDisplay.split("-").last()}")
                     Spacer(modifier = Modifier.height(8.dp))
+                    DetailRow("Date:", DateUtils.formatDisplay(bill.createdAt))
                     
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text("Items:", color = TextGold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
                     
                     items.forEach { item ->
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("${item.itemName} x${item.quantity}", color = TextLight, fontSize = 13.sp)
+                            Text("${item.itemName} x${item.quantity}", color = TextLight.copy(alpha = 0.9f), fontSize = 13.sp)
                             Text("₹${CurrencyUtils.formatPrice(item.itemTotal)}", color = TextLight, fontSize = 13.sp)
                         }
+                        Spacer(modifier = Modifier.height(4.dp))
                     }
                     
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = BorderGold.copy(alpha = 0.3f), thickness = 0.5.dp)
                     Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(color = BorderGold.copy(alpha = 0.3f), thickness = 0.5.dp)
+                    Spacer(modifier = Modifier.height(12.dp))
                     
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        Text("Total Amount", color = PrimaryGold, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        Text(CurrencyUtils.formatPrice(bill.totalAmount), color = PrimaryGold, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                    }
+                    DetailRow("Total Amount:", "₹${CurrencyUtils.formatPrice(bill.totalAmount)}", PrimaryGold, FontWeight.Bold)
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    Text("Payment Mode:", color = TextGold, fontSize = 12.sp)
-                    Surface(
-                        color = Color.Black.copy(alpha = 0.3f),
-                        border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.5f)),
-                        shape = RoundedCornerShape(4.dp),
-                        modifier = Modifier.padding(top = 4.dp)
-                    ) {
-                        Text(
-                            PaymentMode.fromDbValue(bill.paymentMode).displayLabel,
-                            color = TextLight,
-                            fontSize = 14.sp,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
+                    val status = OrderStatus.fromDbValue(bill.orderStatus)
+                    val statusText = when(status) {
+                        OrderStatus.DRAFT -> "Pending"
+                        else -> status.name.lowercase().replaceFirstChar { it.uppercase() }
                     }
+                    val statusColor = when(status) {
+                        OrderStatus.COMPLETED -> VegGreen
+                        OrderStatus.CANCELLED -> ZomatoRed
+                        else -> TextGold
+                    }
+                    DetailRow("Status:", statusText, statusColor)
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    DetailRow("Payment Mode:", PaymentMode.fromDbValue(bill.paymentMode).displayLabel)
                 }
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.fillMaxWidth(),
@@ -639,6 +652,31 @@ fun OrderDetailsDialog(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun DetailRow(label: String, value: String, valueColor: Color = TextLight, fontWeight: FontWeight = FontWeight.Normal) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = label,
+            color = TextGold,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = value,
+            color = valueColor,
+            fontSize = 14.sp,
+            fontWeight = fontWeight,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 

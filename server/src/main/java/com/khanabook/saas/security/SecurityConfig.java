@@ -35,6 +35,7 @@ public class SecurityConfig {
 						.requestMatchers("/auth/**", "/docs/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html", "/error")
 						.permitAll()
 						.requestMatchers("/admin/**").hasRole("KBOOK_ADMIN")
+						.requestMatchers("/sync/**").hasAnyRole("OWNER", "KBOOK_ADMIN")
 						.anyRequest().authenticated())
 
 				.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
