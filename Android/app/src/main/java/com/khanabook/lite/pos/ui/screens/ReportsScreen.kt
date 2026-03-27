@@ -32,6 +32,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.relation.BillWithItems
+import com.khanabook.lite.pos.domain.model.OrderStatus
 import com.khanabook.lite.pos.domain.model.PaymentMode
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*

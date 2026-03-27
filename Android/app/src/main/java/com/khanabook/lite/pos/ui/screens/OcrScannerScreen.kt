@@ -34,7 +34,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PhotoLibrary
-import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -97,14 +96,8 @@ fun OcrScannerScreen(
         }
     }
 
-    
-    val pdfLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let {
-            viewModel.extractTextFromPdf(context, it)
-        }
-    }
+    // PDF import is handled via the separate "Upload PDF" path in MenuConfigurationScreen.
+    // No PDF launcher or icon is needed here.
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -180,7 +173,7 @@ fun OcrScannerScreen(
                     }
                 },
                 actions = {
-                    
+                    // Gallery icon — available in both Camera Scan and Barcode Scan modes
                     IconButton(
                         onClick = {
                             errorMessage = null
@@ -193,18 +186,8 @@ fun OcrScannerScreen(
                             tint = PrimaryGold
                         )
                     }
-                    
-                    if (!returnBarcode) {
-                        IconButton(
-                            onClick = { pdfLauncher.launch("application/pdf") }
-                        ) {
-                            Icon(
-                                Icons.Default.PictureAsPdf,
-                                contentDescription = "Upload PDF",
-                                tint = PrimaryGold
-                            )
-                        }
-                    }
+                    // PDF import is a separate flow accessed from Menu Configuration.
+                    // It is intentionally NOT shown here to keep Camera Scan clean.
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBrown1)
             )

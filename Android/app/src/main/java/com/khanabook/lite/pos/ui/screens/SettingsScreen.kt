@@ -15,6 +15,8 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -38,6 +40,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
@@ -317,14 +320,50 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
     val saveProfileLoading by viewModel.saveProfileLoading.collectAsState()
     val saveProfileError by viewModel.saveProfileError.collectAsState()
     val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsState()
-    
+
+    // Dirty flag: true when any field differs from the saved profile snapshot.
+    val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, logoPath, profile) {
+        name != (profile?.shopName ?: "") ||
+        address != (profile?.shopAddress ?: "") ||
+        whatsapp != (profile?.whatsappNumber ?: "") ||
+        email != (profile?.email ?: "") ||
+        consent != (profile?.emailInvoiceConsent ?: false) ||
+        reviewUrl != (profile?.reviewUrl ?: "") ||
+        logoPath != profile?.logoPath
+    }
+
+    // Back-navigation guard
+    var showUnsavedDialog by remember { mutableStateOf(false) }
+    BackHandler(enabled = isDirty && !saveProfileLoading) {
+        showUnsavedDialog = true
+    }
+
+    if (showUnsavedDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnsavedDialog = false },
+            containerColor = DarkBrown2,
+            title = { Text("Unsaved Changes", color = PrimaryGold, fontWeight = FontWeight.Bold) },
+            text = { Text("You have unsaved changes. Discard them?", color = TextLight) },
+            confirmButton = {
+                TextButton(onClick = { showUnsavedDialog = false; onBack() }) {
+                    Text("Discard", color = DangerRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showUnsavedDialog = false }) {
+                    Text("Keep Editing", color = PrimaryGold)
+                }
+            }
+        )
+    }
+
     LaunchedEffect(saveProfileError) {
         saveProfileError?.let { error ->
             Toast.makeText(context, error, Toast.LENGTH_LONG).show()
             viewModel.clearSaveProfileState()
         }
     }
-    
+
     LaunchedEffect(saveProfileSuccess) {
         if (saveProfileSuccess) {
             Toast.makeText(context, "Profile saved successfully", Toast.LENGTH_SHORT).show()
@@ -334,7 +373,6 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
         }
     }
 
-    
     LaunchedEffect(profile) {
         profile?.let {
             name = it.shopName ?: ""
@@ -347,7 +385,6 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
         }
     }
 
-    
     var otpValue by remember { mutableStateOf("") }
     val otpStatus by authViewModel.otpVerificationStatus.collectAsState()
 
@@ -379,9 +416,9 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
     }
 
     val logoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { 
+        uri?.let {
             logoPath = copyUriToInternalStorage(context, it, "shop_logo.png")
-            logoUpdateTrigger = System.currentTimeMillis() 
+            logoUpdateTrigger = System.currentTimeMillis()
         }
     }
 
@@ -395,9 +432,9 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                         AsyncImage(
                             model = ImageRequest.Builder(LocalContext.current)
                                 .data(logoPath)
-                                .setParameter("refresh", logoUpdateTrigger) 
+                                .setParameter("refresh", logoUpdateTrigger)
                                 .crossfade(true)
-                                .diskCachePolicy(CachePolicy.DISABLED) 
+                                .diskCachePolicy(CachePolicy.DISABLED)
                                 .build(),
                             contentDescription = "Logo",
                             modifier = Modifier.fillMaxSize().padding(4.dp)
@@ -417,8 +454,8 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
 
             Spacer(modifier = Modifier.height(12.dp))
             ParchmentTextField(
-                value = whatsapp, 
-                onValueChange = { 
+                value = whatsapp,
+                onValueChange = {
                     if (it.length <= 10) {
                         whatsapp = it
                         if (it != (profile?.whatsappNumber ?: "")) {
@@ -426,11 +463,11 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                             isOtpVerified = false
                             otpValue = ""
                         } else {
-                            
+                            // Reverted to original number — treat as verified
                             isOtpVerified = true
                         }
-                    } 
-                }, 
+                    }
+                },
                 label = "Whatsapp Number",
                 isError = whatsapp.isNotEmpty() && !isPhoneValid,
                 supportingText = if (whatsapp.isNotEmpty() && !isPhoneValid) "Enter 10-digit number" else null,
@@ -492,37 +529,71 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                 Text("Receive invoice copies on Email", color = TextGold, fontSize = 12.sp)
             }
             Spacer(modifier = Modifier.height(24.dp))
+
+            // Save is enabled only when there are actual changes AND WhatsApp is verified (if changed)
+            val isSaveEnabled = isDirty && (!numberChanged || isOtpVerified) && !saveProfileLoading
+
+            // Subtle animation: scale + alpha pulse when the button becomes enabled
+            val saveButtonScale by animateFloatAsState(
+                targetValue = if (isSaveEnabled) 1f else 0.97f,
+                animationSpec = tween(durationMillis = 250),
+                label = "save_scale"
+            )
+            val saveButtonAlpha by animateFloatAsState(
+                targetValue = if (isSaveEnabled) 1f else 0.45f,
+                animationSpec = tween(durationMillis = 250),
+                label = "save_alpha"
+            )
+
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = { 
+                    onClick = {
+                        // Guard: do nothing if not dirty or already saving
+                        if (!isSaveEnabled) return@Button
                         if (numberChanged && !isOtpVerified) {
                             Toast.makeText(context, "Please verify the new WhatsApp number", Toast.LENGTH_SHORT).show()
                         } else {
                             profile?.copy(
-                                shopName = name, 
-                                shopAddress = address, 
-                                whatsappNumber = whatsapp, 
-                                email = email, 
-                                logoPath = logoPath, 
+                                shopName = name,
+                                shopAddress = address,
+                                whatsappNumber = whatsapp,
+                                email = email,
+                                logoPath = logoPath,
                                 emailInvoiceConsent = consent,
                                 reviewUrl = reviewUrl
-                            )?.let { 
-                                viewModel.saveProfile(it) 
+                            )?.let {
+                                viewModel.saveProfile(it)
                             }
                         }
-                    }, 
-                    modifier = Modifier.weight(1f).height(48.dp), 
-                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen), 
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                        .graphicsLayer {
+                            scaleX = saveButtonScale
+                            scaleY = saveButtonScale
+                            alpha = saveButtonAlpha
+                        },
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                     shape = RoundedCornerShape(24.dp),
-                    enabled = (!numberChanged || isOtpVerified) && !saveProfileLoading
-                ) { 
+                    enabled = isSaveEnabled
+                ) {
                     if (saveProfileLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White, strokeWidth = 2.dp)
                     } else {
-                        Text("Save", color = Color.White) 
+                        Text("Save", color = Color.White)
                     }
                 }
-                OutlinedButton(onClick = { viewModel.resetDailyCounter(); Toast.makeText(context, "Daily order counter reset", Toast.LENGTH_SHORT).show() }, modifier = Modifier.weight(1f).height(48.dp), border = BorderStroke(1.dp, DangerRed), colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed), shape = RoundedCornerShape(24.dp)) { Text("Reset Counter", fontSize = 11.sp) }
+                OutlinedButton(
+                    onClick = {
+                        viewModel.resetDailyCounter()
+                        Toast.makeText(context, "Daily order counter reset", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    border = BorderStroke(1.dp, DangerRed),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = DangerRed),
+                    shape = RoundedCornerShape(24.dp)
+                ) { Text("Reset Counter", fontSize = 11.sp) }
             }
         }
     }

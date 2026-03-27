@@ -18,7 +18,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
@@ -32,14 +31,21 @@ class BillingViewModel @Inject constructor(
 ) : ViewModel() {
     private val orderMutex = Mutex()
 
+    // Cache the restaurant profile reactively — avoids repeated DB reads in updateSummary
+    // and completeOrder. Stays automatically fresh because it's backed by a Flow.
+    private val _cachedProfile: StateFlow<RestaurantProfileEntity?> =
+        restaurantRepository.getProfileFlow()
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     private val _cartItems = MutableStateFlow<List<CartItem>>(emptyList())
     val cartItems: StateFlow<List<CartItem>> = _cartItems
 
     init {
-        
-        _cartItems
-            .debounce(300)
-            .onEach { updateSummary() }
+        // Recompute summary whenever cart changes (debounced) OR profile changes
+        combine(_cartItems.debounce(300), _cachedProfile) { items, profile ->
+            computeSummary(items, profile)
+        }
+            .onEach { _billSummary.value = it }
             .launchIn(viewModelScope)
     }
 
@@ -153,29 +159,29 @@ class BillingViewModel @Inject constructor(
         }
     }
 
-    private fun updateSummary() {
-        viewModelScope.launch {
-            val profile = restaurantRepository.getProfile()
-            val subtotal = BillCalculator.calculateSubtotal(_cartItems.value.map { 
-                (it.variant?.price ?: it.item.basePrice) to it.quantity 
-            })
-            
-            var cgst = "0.0"
-            var sgst = "0.0"
-            var customTax = "0.0"
-            
-            if (profile?.gstEnabled == true) {
-                val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage)
-                cgst = gst.cgst
-                sgst = gst.sgst
-            } else if (profile?.customTaxPercentage != null && profile.customTaxPercentage > 0) {
-                customTax = BillCalculator.calculateCustomTax(subtotal, profile.customTaxPercentage)
-            }
+    /**
+     * Pure function — computes a BillSummary from a list of cart items and a profile snapshot.
+     * Called from the init combine{} block; no DB access, no side-effects.
+     */
+    private fun computeSummary(items: List<CartItem>, profile: RestaurantProfileEntity?): BillSummary {
+        val subtotal = BillCalculator.calculateSubtotal(items.map {
+            (it.variant?.price ?: it.item.basePrice) to it.quantity
+        })
 
-            val total = BillCalculator.calculateTotal(subtotal, cgst, sgst, customTax)
-            
-            _billSummary.value = BillSummary(subtotal, cgst, sgst, customTax, total)
+        var cgst = "0.0"
+        var sgst = "0.0"
+        var customTax = "0.0"
+
+        if (profile?.gstEnabled == true) {
+            val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage)
+            cgst = gst.cgst
+            sgst = gst.sgst
+        } else if (profile?.customTaxPercentage != null && profile.customTaxPercentage > 0) {
+            customTax = BillCalculator.calculateCustomTax(subtotal, profile.customTaxPercentage)
         }
+
+        val total = BillCalculator.calculateTotal(subtotal, cgst, sgst, customTax)
+        return BillSummary(subtotal, cgst, sgst, customTax, total)
     }
 
     fun setCustomerInfo(name: String, whatsapp: String) {
@@ -192,26 +198,13 @@ class BillingViewModel @Inject constructor(
     suspend fun completeOrder(status: PaymentStatus): Boolean = orderMutex.withLock {
         _isLoading.value = true
         try {
-            val profile = restaurantRepository.getProfile() ?: return false
-            
-            
-            val subtotal = BillCalculator.calculateSubtotal(_cartItems.value.map { 
-                (it.variant?.price ?: it.item.basePrice) to it.quantity 
-            })
-            var cgst = "0.0"
-            var sgst = "0.0"
-            var customTax = "0.0"
-            if (profile.gstEnabled) {
-                val gst = BillCalculator.calculateGST(subtotal, profile.gstPercentage)
-                cgst = gst.cgst
-                sgst = gst.sgst
-            } else if (profile.customTaxPercentage > 0) {
-                customTax = BillCalculator.calculateCustomTax(subtotal, profile.customTaxPercentage)
-            }
-            val total = BillCalculator.calculateTotal(subtotal, cgst, sgst, customTax)
-            val finalSummary = BillSummary(subtotal, cgst, sgst, customTax, total)
+            // Use cached profile — no extra DB read needed
+            val profile = _cachedProfile.value ?: restaurantRepository.getProfile() ?: return false
 
-            
+            // Re-use the already-computed summary (produced by the debounced cart+profile combine)
+            // instead of recalculating subtotal/tax/total from scratch.
+            val finalSummary = _billSummary.value
+
             val (dailyCounter, lifetimeId) = restaurantRepository.incrementAndGetCounters()
             val zoneId = try {
                 java.time.ZoneId.of(profile.timezone ?: "Asia/Kolkata")
@@ -220,7 +213,7 @@ class BillingViewModel @Inject constructor(
             }
             val today = java.time.LocalDate.now(zoneId).toString()
             val displayId = OrderIdManager.getDailyOrderDisplay(today, dailyCounter)
-            
+
             val bill = BillEntity(
                 restaurantId = sessionManager.getRestaurantId(),
                 deviceId = sessionManager.getDeviceId(),
@@ -246,10 +239,12 @@ class BillingViewModel @Inject constructor(
                 paidAt = if (status == PaymentStatus.SUCCESS) System.currentTimeMillis() else null,
                 lastResetDate = profile.lastResetDate ?: ""
             )
-            
+
             val items = _cartItems.value.map { cartItem ->
                 val price = cartItem.variant?.price ?: cartItem.item.basePrice
-                val itemTotal = (java.math.BigDecimal(price).multiply(java.math.BigDecimal.valueOf(cartItem.quantity.toLong()))).setScale(2, java.math.RoundingMode.HALF_UP).toString()
+                val itemTotal = (java.math.BigDecimal(price)
+                    .multiply(java.math.BigDecimal.valueOf(cartItem.quantity.toLong())))
+                    .setScale(2, java.math.RoundingMode.HALF_UP).toString()
                 BillItemEntity(
                     billId = 0,
                     menuItemId = cartItem.item.id,
@@ -276,29 +271,31 @@ class BillingViewModel @Inject constructor(
                     BillPaymentEntity(billId = 0, paymentMode = PaymentMode.POS.dbValue, amount = _partAmount2.value)
                 )
                 else -> listOf(
-                    BillPaymentEntity(billId = 0, paymentMode = _paymentMode.value.dbValue, amount = _billSummary.value.total)
+                    BillPaymentEntity(billId = 0, paymentMode = _paymentMode.value.dbValue, amount = finalSummary.total)
                 )
             }
-            
+
             billRepository.insertFullBill(bill, items, payments)
             val inserted = billRepository.getBillWithItemsByLifetimeId(lifetimeId)
             _lastBill.value = inserted
-            
-            
+
+            // Launch auto-print asynchronously — never blocks bill completion
             if (profile.printerEnabled && profile.autoPrintOnSuccess && inserted != null) {
                 viewModelScope.launch(Dispatchers.IO) {
                     if (!printerManager.isConnected() && !profile.printerMac.isNullOrBlank()) {
                         printerManager.connect(profile.printerMac)
                     }
                     if (printerManager.isConnected()) {
-                        val bytes = com.khanabook.lite.pos.domain.util.InvoiceFormatter.formatForThermalPrinter(inserted, profile)
+                        val bytes = com.khanabook.lite.pos.domain.util.InvoiceFormatter
+                            .formatForThermalPrinter(inserted, profile)
                         printerManager.printBytes(bytes)
                     }
                 }
             }
-            
+
+            // Clearing the cart automatically triggers the combine{} → new BillSummary(empty)
+            // No need to call updateSummary() manually.
             _cartItems.value = emptyList()
-            updateSummary()
             _error.value = null
             _isLoading.value = false
             return true

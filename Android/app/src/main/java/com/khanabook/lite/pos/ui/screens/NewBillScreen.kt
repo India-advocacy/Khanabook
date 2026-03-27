@@ -63,12 +63,12 @@ fun NewBillScreen(
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
 
     // Intercept system back gesture to navigate through steps
-    androidx.activity.compose.BackHandler(enabled = step > 1) {
+    androidx.activity.compose.BackHandler(enabled = step > 1 && step < 6) {
         when (step) {
             2 -> step = 1
             3 -> step = 2
-            // For step 4 (Success), we let the default behavior take over or use the 'Done' button
-            else -> { /* Do nothing, or exit if step is 1 */ }
+            5 -> step = 3 // Failed -> back to payment
+            else -> { /* step 4 success: use Done button */ }
         }
     }
 
@@ -88,6 +88,9 @@ fun NewBillScreen(
     LaunchedEffect(step) {
         if (step == 4) {
             android.widget.Toast.makeText(context, "Order Placed Successfully!", android.widget.Toast.LENGTH_SHORT).show()
+        }
+        if (step == 5) {
+            android.widget.Toast.makeText(context, "Payment marked as failed.", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -137,13 +140,20 @@ fun NewBillScreen(
                         PaymentStep(
                                 billingViewModel,
                                 onBackToMenu = { step = 2 },
-                                onComplete = { step = 4 }
+                                onComplete = { step = 4 },
+                                onFailed = { step = 5 }
                         )
                 4 ->
                         SuccessStep(
                                 billingViewModel,
                                 settingsViewModel = hiltViewModel(),
                                 onDone = onBack
+                        )
+                5 ->
+                        FailedStep(
+                                viewModel = billingViewModel,
+                                onRetryPayment = { step = 3 },
+                                onNewBill = onBack
                         )
             }
 
@@ -572,7 +582,7 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
 }
 
 @Composable
-fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplete: () -> Unit) {
+fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplete: () -> Unit, onFailed: () -> Unit = {}) {
     val summary by viewModel.billSummary.collectAsState()
     val settingsVM: SettingsViewModel = hiltViewModel()
     val profile by settingsVM.profile.collectAsState()
@@ -835,8 +845,9 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
         TextButton(
                 onClick = {
                     scope.launch {
+                        viewModel.setPaymentMode(selectedMode, p1Text, p2Text)
                         viewModel.completeOrder(PaymentStatus.FAILED)
-                        onComplete()
+                        onFailed()
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(48.dp)
@@ -914,6 +925,97 @@ fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplet
                     ) { Text("CLOSE", color = PrimaryGold, fontWeight = FontWeight.Bold) }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun FailedStep(
+        viewModel: BillingViewModel,
+        onRetryPayment: () -> Unit,
+        onNewBill: () -> Unit
+) {
+    val lastBill by viewModel.lastBill.collectAsState()
+    val totalAmount = lastBill?.bill?.totalAmount?.toDoubleOrNull() ?: 0.0
+    val orderDisplay = lastBill?.bill?.dailyOrderDisplay ?: "-"
+    val paymentMode = lastBill?.bill?.paymentMode ?: "-"
+
+    Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+    ) {
+        // Error icon
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .background(DangerRed.copy(alpha = 0.12f), CircleShape)
+                .border(2.dp, DangerRed.copy(alpha = 0.4f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                Icons.Default.Close,
+                contentDescription = "Payment Failed",
+                tint = DangerRed,
+                modifier = Modifier.size(52.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            "Payment Failed / Cancelled",
+            color = DangerRed,
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            "Order #$orderDisplay · ₹${"%.2f".format(totalAmount)}",
+            color = TextGold,
+            fontSize = 14.sp
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            "The payment was not completed. The order has been recorded as failed.",
+            color = TextLight.copy(alpha = 0.7f),
+            fontSize = 13.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Retry button — back to payment screen (cart is still intact per the failed order flow)
+        Button(
+            onClick = onRetryPayment,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Default.Refresh, null, tint = DarkBrown1)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Try Again", color = DarkBrown1, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = onNewBill,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Default.Add, null, tint = PrimaryGold)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("New Bill", color = TextGold, fontSize = 15.sp)
         }
     }
 }

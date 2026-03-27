@@ -74,15 +74,13 @@ class AuthViewModelTest {
             id = 1,
             name = "Owner",
             email = email,
-            passwordHash = hashedPassword,
             restaurantId = 1,
             deviceId = "device",
-            isActive = true,
-            isSynced = false,
+            isActive = true
         )
 
         coEvery { authManager.hashPassword(password) } returns localHash
-        coEvery { userRepository.remoteLogin(email, password, localHash) } returns Result.failure(Exception("Network Error"))
+        coEvery { userRepository.remoteLogin(email, password) } returns Result.failure(Exception("Network Error"))
         coEvery { userRepository.getUserByEmail(email) } returns fakeUser
         coEvery { authManager.verifyPassword(password, hashedPassword) } returns true
 
@@ -108,16 +106,13 @@ class AuthViewModelTest {
             id = 1,
             name = "Owner",
             email = email,
-            passwordHash = hashedPassword,
             restaurantId = 1,
             deviceId = "device",
-            isActive = true,
-            isSynced = false,
-            createdAt = System.currentTimeMillis()
+            isActive = true
         )
 
         coEvery { authManager.hashPassword(wrongPassword) } returns localHash
-        coEvery { userRepository.remoteLogin(email, wrongPassword, localHash) } returns Result.failure(Exception("Network Error"))
+        coEvery { userRepository.remoteLogin(email, wrongPassword) } returns Result.failure(Exception("Network Error"))
         coEvery { userRepository.getUserByEmail(email) } returns fakeUser
         coEvery { authManager.verifyPassword(wrongPassword, hashedPassword) } returns false
 

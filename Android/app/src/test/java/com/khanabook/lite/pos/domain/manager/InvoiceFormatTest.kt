@@ -28,11 +28,16 @@ class InvoiceFormatTest {
         val bill = BillWithItems(
             bill = BillEntity(
                 id = 1,
-                lifetimeOrderId = "123",
+                dailyOrderId = 1L,
+                dailyOrderDisplay = "ORD-001",
+                lifetimeOrderId = 123L,
                 customerName = "John Doe",
                 customerWhatsapp = "8122677849",
-                totalAmount = 500.0,
-                subtotal = 500.0,
+                totalAmount = "500.00",
+                subtotal = "500.00",
+                paymentMode = "cash",
+                paymentStatus = "success",
+                orderStatus = "completed",
                 createdAt = System.currentTimeMillis()
             ),
             items = listOf(
@@ -41,12 +46,13 @@ class InvoiceFormatTest {
                     billId = 1,
                     itemName = "Very Long Menu Item Name That Should Wrap Instead of Cutting",
                     quantity = 2,
-                    price = 250.0,
-                    itemTotal = 500.0
+                    price = "250.00",
+                    itemTotal = "500.00"
                 )
             ),
             payments = emptyList()
         )
+
 
         val profile = RestaurantProfileEntity(
             id = 1,
