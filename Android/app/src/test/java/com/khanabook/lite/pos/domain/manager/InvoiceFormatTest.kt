@@ -44,6 +44,7 @@ class InvoiceFormatTest {
                 BillItemEntity(
                     id = 1,
                     billId = 1,
+                    menuItemId = 1L,
                     itemName = "Very Long Menu Item Name That Should Wrap Instead of Cutting",
                     quantity = 2,
                     price = "250.00",

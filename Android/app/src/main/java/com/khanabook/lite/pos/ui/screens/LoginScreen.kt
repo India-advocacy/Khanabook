@@ -335,7 +335,10 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
     var phone by remember { mutableStateOf("") }
     var otp by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
-    var step by remember { mutableIntStateOf(1) } 
+    var confirmPassword by remember { mutableStateOf("") }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+    var step by remember { mutableIntStateOf(1) }
     var resendTimer by remember { mutableIntStateOf(0) }
 
     val resetStatus by viewModel.resetPasswordStatus.collectAsState()
@@ -438,8 +441,53 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 label = { Text("New Password") },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = loginTextFieldColors(),
-                                visualTransformation = PasswordVisualTransformation(),
-                                leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryGold) }
+                                visualTransformation =
+                                        if (showNewPassword) VisualTransformation.None
+                                        else PasswordVisualTransformation(),
+                                leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryGold) },
+                                trailingIcon = {
+                                    Icon(
+                                            imageVector =
+                                                    if (showNewPassword) Icons.Default.Visibility
+                                                    else Icons.Default.VisibilityOff,
+                                            contentDescription = "Toggle New Password",
+                                            tint = PrimaryGold,
+                                            modifier = Modifier.clickable {
+                                                showNewPassword = !showNewPassword
+                                            }
+                                    )
+                                }
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        val passwordsMatch = confirmPassword.isEmpty() || newPassword == confirmPassword
+                        OutlinedTextField(
+                                value = confirmPassword,
+                                onValueChange = { confirmPassword = it },
+                                label = { Text("Confirm Password") },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = loginTextFieldColors(),
+                                isError = !passwordsMatch,
+                                visualTransformation =
+                                        if (showConfirmPassword) VisualTransformation.None
+                                        else PasswordVisualTransformation(),
+                                leadingIcon = { Icon(Icons.Default.Lock, null, tint = PrimaryGold) },
+                                trailingIcon = {
+                                    Icon(
+                                            imageVector =
+                                                    if (showConfirmPassword) Icons.Default.Visibility
+                                                    else Icons.Default.VisibilityOff,
+                                            contentDescription = "Toggle Confirm Password",
+                                            tint = PrimaryGold,
+                                            modifier = Modifier.clickable {
+                                                showConfirmPassword = !showConfirmPassword
+                                            }
+                                    )
+                                },
+                                supportingText = {
+                                    if (!passwordsMatch) {
+                                        Text("Passwords do not match", color = Color.Red, fontSize = 12.sp)
+                                    }
+                                }
                         )
                     }
                 }
@@ -470,7 +518,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                     }
                                 }
                                 3 -> {
-                                    if (newPassword.isNotBlank()) {
+                                    if (newPassword.isNotBlank() && newPassword == confirmPassword) {
                                         viewModel.resetPassword(phone, otp, newPassword)
                                     }
                                 }
@@ -487,7 +535,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                 when (step) {
                                     1 -> phone.isNotBlank()
                                     2 -> otp.length == 6
-                                    3 -> newPassword.isNotBlank()
+                                    3 -> newPassword.isNotBlank() && newPassword == confirmPassword
                                     else -> false
                                 }
 

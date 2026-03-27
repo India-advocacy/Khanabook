@@ -27,7 +27,6 @@ import com.google.gson.Gson
 import com.khanabook.lite.pos.domain.util.CurrencyUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.HomeViewModel
-
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*

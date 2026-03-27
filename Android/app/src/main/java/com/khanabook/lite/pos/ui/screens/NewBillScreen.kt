@@ -991,31 +991,16 @@ fun FailedStep(
             modifier = Modifier.padding(horizontal = 8.dp)
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Retry button — back to payment screen (cart is still intact per the failed order flow)
-        Button(
-            onClick = onRetryPayment,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Icon(Icons.Default.Refresh, null, tint = DarkBrown1)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Try Again", color = DarkBrown1, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
+        // "Back to Home" button (onNewBill navigates back to Home screen per MainScreen.kt)
         OutlinedButton(
             onClick = onNewBill,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             border = androidx.compose.foundation.BorderStroke(1.dp, BorderGold),
             shape = RoundedCornerShape(12.dp)
         ) {
-            Icon(Icons.Default.Add, null, tint = PrimaryGold)
+            Icon(Icons.Default.Home, null, tint = PrimaryGold)
             Spacer(modifier = Modifier.width(8.dp))
-            Text("New Bill", color = TextGold, fontSize = 15.sp)
+            Text("Back to Home", color = TextGold, fontSize = 15.sp)
         }
     }
 }

@@ -247,7 +247,7 @@ object InvoiceFormatter {
         val formattedDate = com.khanabook.lite.pos.domain.util.DateUtils.formatDisplay(bill.bill.createdAt)
         sb.append("📅 *Date:* ${formattedDate}\n")
         
-        sb.append("👤 *Customer:* ${bill.bill.customerName?.takeIf { it.isNotBlank() } ?: "Walking Customer"}\n")
+        sb.append("👤 *Customer:* ${bill.bill.customerName?.takeIf { it.isNotBlank() && it != "Walking Customer" } ?: "Guest"}\n")
         
         sb.append("\n📦 *ORDER SUMMARY*\n")
         sb.append("$line\n")

@@ -610,12 +610,31 @@ fun OrderDetailsDialog(
                     Text("Items:", color = TextGold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(8.dp))
                     
-                    items.forEach { item ->
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("${item.itemName} x${item.quantity}", color = TextLight.copy(alpha = 0.9f), fontSize = 13.sp)
-                            Text("₹${CurrencyUtils.formatPrice(item.itemTotal)}", color = TextLight, fontSize = 13.sp)
+                    if (items.isEmpty()) {
+                        Text(
+                            text = "No items found in this order.",
+                            color = TextLight.copy(alpha = 0.5f),
+                            fontSize = 13.sp,
+                            modifier = Modifier.padding(vertical = 16.dp).align(Alignment.CenterHorizontally)
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 40.dp, max = 200.dp) 
+                        ) {
+                            LazyColumn(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                items(items) { item ->
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("${item.itemName} x${item.quantity}", color = TextLight.copy(alpha = 0.9f), fontSize = 13.sp, modifier = Modifier.weight(1f))
+                                        Text("₹${CurrencyUtils.formatPrice(item.itemTotal)}", color = TextLight, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                }
+                            }
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
                     }
                     
                     Spacer(modifier = Modifier.height(8.dp))

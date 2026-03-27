@@ -204,10 +204,10 @@ fun CallCustomerScreen(
                                 color = PrimaryGold.copy(alpha = 0.1f)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
+                                val name = currentResult.bill.customerName
+                                val initial = if (name.isNullOrBlank() || name == "Walking Customer") "G" else name.take(1).uppercase()
                                 Text(
-                                        text =
-                                                (currentResult.bill.customerName?.take(1) ?: "C")
-                                                        .uppercase(),
+                                        text = initial,
                                         color = PrimaryGold,
                                         fontSize = 32.sp,
                                         fontWeight = FontWeight.Bold
@@ -218,7 +218,7 @@ fun CallCustomerScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                                text = currentResult.bill.customerName ?: "Walking Customer",
+                                text = currentResult.bill.customerName?.takeIf { it != "Walking Customer" } ?: "Guest",
                                 color = TextLight,
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.Bold
