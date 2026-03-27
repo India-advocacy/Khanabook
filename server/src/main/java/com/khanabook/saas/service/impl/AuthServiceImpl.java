@@ -28,6 +28,7 @@ public class AuthServiceImpl implements AuthService {
 	private final RestaurantProfileRepository restaurantProfileRepository;
 	private final JwtUtility jwtUtility;
 	private final PasswordEncoder passwordEncoder;
+	private final com.khanabook.saas.service.PasswordResetOtpService passwordResetOtpService;
 
 	@org.springframework.beans.factory.annotation.Value("${google.client.id}")
 	private String googleClientId;
@@ -182,9 +183,18 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	@Transactional
-	public void resetPassword(String phoneNumber, String newPassword) {
+	public void requestPasswordResetOtp(String phoneNumber) {
+		findUserByLoginId(phoneNumber)
+				.orElseThrow(() -> new IllegalArgumentException("No account found with this number"));
+		passwordResetOtpService.issueOtp(phoneNumber);
+	}
 
-		User user = userRepository.findByEmail(phoneNumber)
+	@Override
+	@Transactional
+	public void resetPassword(String phoneNumber, String otp, String newPassword) {
+		passwordResetOtpService.validateOtpOrThrow(phoneNumber, otp);
+
+		User user = findUserByLoginId(phoneNumber)
 				.orElseThrow(() -> new IllegalArgumentException("User not found"));
 
 		user.setPasswordHash(passwordEncoder.encode(newPassword));
@@ -196,6 +206,11 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public boolean checkUserExists(String phoneNumber) {
-		return userRepository.existsByEmail(phoneNumber);
+		return findUserByLoginId(phoneNumber).isPresent();
+	}
+
+	private java.util.Optional<User> findUserByLoginId(String phoneNumber) {
+		return userRepository.findByEmail(phoneNumber)
+				.or(() -> userRepository.findByWhatsappNumber(phoneNumber));
 	}
 }

@@ -69,7 +69,6 @@ constructor(
     private val _otpVerificationStatus = MutableStateFlow<OtpVerificationResult?>(null)
     val otpVerificationStatus: StateFlow<OtpVerificationResult?> = _otpVerificationStatus
 
-    
     private var generatedOtp: String? = null
 
     
@@ -158,6 +157,17 @@ constructor(
 
     fun sendOtp(phoneNumber: String, purpose: String = "signup") {
         viewModelScope.launch {
+            if (purpose == "reset") {
+                try {
+                    userRepository.requestPasswordResetOtp(phoneNumber)
+                    _resetPasswordStatus.value = ResetPasswordResult.OtpSent
+                } catch (e: Exception) {
+                    _resetPasswordStatus.value =
+                        ResetPasswordResult.Error(e.message ?: "Failed to send OTP. Please try again.")
+                }
+                return@launch
+            }
+
             
             val otp = (100000..999999).random().toString()
             generatedOtp = otp
@@ -166,28 +176,6 @@ constructor(
 
             try {
                 
-                if (purpose == "reset") {
-                    
-                    var user = userRepository.getUserByEmail(phoneNumber)
-                    
-                    
-                    if (user == null) {
-                        try {
-                            val exists = userRepository.checkUserExistsRemotely(phoneNumber)
-                            if (!exists) {
-                                _resetPasswordStatus.value = ResetPasswordResult.Error("No account found with this number")
-                                generatedOtp = null
-                                return@launch
-                            }
-                        } catch (e: Exception) {
-                            
-                            _resetPasswordStatus.value = ResetPasswordResult.Error("Account not found locally and server is unreachable")
-                            generatedOtp = null
-                            return@launch
-                        }
-                    }
-                }
-
                 val formattedPhone = phoneNumber
 
                 if (BuildConfig.META_ACCESS_TOKEN.isEmpty() || BuildConfig.WHATSAPP_PHONE_NUMBER_ID.isEmpty()) {
@@ -338,11 +326,10 @@ constructor(
         }
     }
 
-    fun resetPassword(phoneNumber: String, newPassword: String) {
+    fun resetPassword(phoneNumber: String, otp: String, newPassword: String) {
         viewModelScope.launch {
             try {
-                
-                userRepository.remoteResetPassword(phoneNumber, newPassword)
+                userRepository.remoteResetPassword(phoneNumber, otp, newPassword)
                 
                 _resetPasswordStatus.value = ResetPasswordResult.Success
             } catch (e: Exception) {

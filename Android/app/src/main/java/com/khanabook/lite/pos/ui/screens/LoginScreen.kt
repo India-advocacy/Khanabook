@@ -465,13 +465,13 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                     }
                                 }
                                 2 -> {
-                                    if (viewModel.verifyOtp(otp)) {
+                                    if (otp.length == 6) {
                                         step = 3
                                     }
                                 }
                                 3 -> {
                                     if (newPassword.isNotBlank()) {
-                                        viewModel.resetPassword(phone, newPassword)
+                                        viewModel.resetPassword(phone, otp, newPassword)
                                     }
                                 }
                             }

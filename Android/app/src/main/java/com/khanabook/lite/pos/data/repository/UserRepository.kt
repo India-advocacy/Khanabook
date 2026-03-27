@@ -11,6 +11,7 @@ import com.khanabook.lite.pos.data.local.entity.UserEntity
 import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.worker.MasterSyncWorker
 import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
+import com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
 import com.khanabook.lite.pos.data.remote.dto.UpdateMobileRequest
 import com.khanabook.lite.pos.data.remote.api.LoginRequest
@@ -232,8 +233,12 @@ class UserRepository(
         return userDao.getUserByEmail(email)
     }
 
-    suspend fun remoteResetPassword(phoneNumber: String, newPasswordPlain: String) {
-        val request = ResetPasswordRequest(phoneNumber, newPasswordPlain)
+    suspend fun requestPasswordResetOtp(phoneNumber: String) {
+        api.requestPasswordResetOtp(PasswordResetOtpRequest(phoneNumber))
+    }
+
+    suspend fun remoteResetPassword(phoneNumber: String, otp: String, newPasswordPlain: String) {
+        val request = ResetPasswordRequest(phoneNumber, otp, newPasswordPlain)
         api.resetPassword(request)
     }
 

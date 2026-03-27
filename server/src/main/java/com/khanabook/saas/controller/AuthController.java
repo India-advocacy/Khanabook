@@ -92,8 +92,33 @@ public class AuthController {
 						"phoneNumberLen", request.getPhoneNumber() == null ? -1 : request.getPhoneNumber().length()
 				)
 		);
-		authService.resetPassword(request.getPhoneNumber(), request.getNewPassword());
+		authService.resetPassword(request.getPhoneNumber(), request.getOtp(), request.getNewPassword());
 		return ResponseEntity.ok().build();
+	}
+
+	@PostMapping("/reset-password/request")
+	public ResponseEntity<Void> requestResetPasswordOtp(@Valid @RequestBody PasswordResetOtpRequest request) {
+		DebugNDJSONLogger.log(
+				"pre-debug",
+				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
+				"AuthController:reset-password-request",
+				"Auth reset-password request endpoint called",
+				java.util.Map.of(
+						"phoneNumberLen", request.getPhoneNumber() == null ? -1 : request.getPhoneNumber().length()
+				)
+		);
+		authService.requestPasswordResetOtp(request.getPhoneNumber());
+		return ResponseEntity.ok().build();
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	public static class PasswordResetOtpRequest {
+		@NotBlank(message = "Phone number is required")
+		@Pattern(regexp = "^\\+?[1-9]\\d{6,19}$", message = "Phone number must be valid format")
+		@Size(max = 20)
+		private String phoneNumber;
 	}
 
 	@Data
@@ -102,6 +127,9 @@ public class AuthController {
 	public static class ResetPasswordRequest {
 		@NotBlank(message = "Phone number is required")
 		private String phoneNumber;
+		@NotBlank(message = "OTP is required")
+		@Pattern(regexp = "^\\d{6}$", message = "OTP must be 6 digits")
+		private String otp;
 		@NotBlank(message = "New password is required")
 		@Size(min = 6, max = 128)
 		private String newPassword;

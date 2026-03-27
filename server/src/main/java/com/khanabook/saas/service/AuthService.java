@@ -12,7 +12,9 @@ public interface AuthService {
 
 	AuthResponse googleLogin(com.khanabook.saas.controller.AuthController.GoogleLoginRequest request);
 
-	void resetPassword(String phoneNumber, String newPassword);
+	void requestPasswordResetOtp(String phoneNumber);
+
+	void resetPassword(String phoneNumber, String otp, String newPassword);
 
 	boolean checkUserExists(String phoneNumber);
 }
