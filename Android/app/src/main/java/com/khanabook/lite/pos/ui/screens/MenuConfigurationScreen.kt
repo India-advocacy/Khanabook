@@ -108,7 +108,7 @@ fun MenuConfigurationScreen(
             dismissButton = {
                 Button(
                     onClick = { 
-                        filePickerLauncher.launch(arrayOf("image/*"))
+                        filePickerLauncher.launch(arrayOf("application/pdf"))
                         showImportSourceDialog = false
                     },
                     modifier = Modifier.fillMaxWidth().height(48.dp).padding(top = 8.dp),
@@ -116,9 +116,9 @@ fun MenuConfigurationScreen(
                     shape = RoundedCornerShape(10.dp),
                     border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.3f))
                 ) {
-                    Icon(Icons.Default.Image, null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Select from Gallery", fontWeight = FontWeight.Bold)
+                    Text("Upload PDF", fontWeight = FontWeight.Bold)
                 }
             }
         )

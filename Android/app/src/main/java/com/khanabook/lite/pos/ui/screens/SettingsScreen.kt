@@ -236,13 +236,16 @@ fun SettingsScreen(
                         )
                     }
                     "payment" -> {
-                        PaymentConfigView(profile, onSave = { viewModel.saveProfile(it); section = "menu" }, onBack = { section = "menu" })
+                        val ctx = LocalContext.current
+                        PaymentConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, "Saved Payment Config", Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" })
                     }
                     "printer" -> {
-                        PrinterConfigView(profile, onSave = { viewModel.saveProfile(it); section = "menu" }, onBack = { section = "menu" }, viewModel = viewModel)
+                        val ctx = LocalContext.current
+                        PrinterConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, "Saved Printer Config", Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" }, viewModel = viewModel)
                     }
                     "tax" -> {
-                        TaxConfigView(profile, onSave = { viewModel.saveProfile(it); section = "menu" }, onBack = { section = "menu" })
+                        val ctx = LocalContext.current
+                        TaxConfigView(profile, onSave = { viewModel.saveProfile(it); Toast.makeText(ctx, "Saved Tax Config", Toast.LENGTH_SHORT).show(); section = "menu" }, onBack = { section = "menu" })
                     }
                 }
             }
@@ -553,7 +556,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                         if (numberChanged && !isOtpVerified) {
                             Toast.makeText(context, "Please verify the new WhatsApp number", Toast.LENGTH_SHORT).show()
                         } else {
-                            profile?.copy(
+                            val updatedProfile = profile?.copy(
                                 shopName = name,
                                 shopAddress = address,
                                 whatsappNumber = whatsapp,
@@ -561,9 +564,18 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                                 logoPath = logoPath,
                                 emailInvoiceConsent = consent,
                                 reviewUrl = reviewUrl
-                            )?.let {
-                                viewModel.saveProfile(it)
-                            }
+                            ) ?: RestaurantProfileEntity(
+                                shopName = name,
+                                shopAddress = address,
+                                whatsappNumber = whatsapp,
+                                email = email,
+                                logoPath = logoPath,
+                                emailInvoiceConsent = consent,
+                                reviewUrl = reviewUrl,
+                                upiMobile = whatsapp,
+                                lastResetDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date())
+                            )
+                            viewModel.saveProfile(updatedProfile)
                         }
                     },
                     modifier = Modifier
@@ -944,7 +956,7 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
     var country by remember { mutableStateOf(profile?.country ?: "India") }
     var gstEnabled by remember { mutableStateOf(profile?.gstEnabled ?: false) }
     var gstNumber by remember { mutableStateOf(profile?.gstin ?: "") }
-    var gstPct by remember { mutableStateOf((profile?.gstPercentage ?: 0.0).toString()) }
+    var gstPct by remember { mutableStateOf(profile?.gstPercentage?.let { if (it % 1.0 == 0.0) it.toInt().toString() else it.toString() } ?: "0") }
     var fssaiNumber by remember { mutableStateOf(profile?.fssaiNumber ?: "") }
     
     val isFssaiValid = if (country.equals("India", true)) {
@@ -961,7 +973,7 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
             Spacer(modifier = Modifier.height(16.dp))
             ParchmentTextField(
                 value = fssaiNumber, 
-                onValueChange = { fssaiNumber = it }, 
+                onValueChange = { if (it.length <= 14) fssaiNumber = it }, 
                 label = "FSSAI Number (Mandatory)",
                 isError = fssaiNumber.isNotEmpty() && !isFssaiValid,
                 supportingText = if (fssaiNumber.isNotEmpty() && !isFssaiValid) "Invalid FSSAI Number" else null
@@ -974,7 +986,7 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
                 if (gstEnabled) {
                     ParchmentTextField(
                         value = gstNumber, 
-                        onValueChange = { gstNumber = it.uppercase() }, 
+                        onValueChange = { if (it.length <= 15 && it.all { char -> char.isLetterOrDigit() }) gstNumber = it.uppercase() }, 
                         label = "GSTIN (Mandatory)",
                         isError = gstEnabled && gstNumber.isEmpty()
                     )

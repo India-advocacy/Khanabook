@@ -105,9 +105,16 @@ fun CallCustomerScreen(
             if (selectedTab == 0) {
                 OutlinedTextField(
                         value = dailyId,
-                        onValueChange = { dailyId = it },
+                        onValueChange = { 
+                            if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                dailyId = it
+                            } else {
+                                android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         label = { Text("Daily Order ID", color = TextGold) },
                         modifier = Modifier.fillMaxWidth(),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         colors =
                                 OutlinedTextFieldDefaults.colors(
                                         focusedTextColor = TextLight,
@@ -147,7 +154,13 @@ fun CallCustomerScreen(
             } else {
                 OutlinedTextField(
                         value = lifetimeId,
-                        onValueChange = { lifetimeId = it },
+                        onValueChange = { 
+                            if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                lifetimeId = it
+                            } else {
+                                android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         label = { Text("Lifetime Order ID", color = TextGold) },
                         modifier = Modifier.fillMaxWidth(),
                         colors =

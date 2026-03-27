@@ -105,6 +105,22 @@ constructor(
         }.onFailure { e ->
             Log.e(TAG, "Remote login failed: ${e.message}.", e)
             
+            if (e is retrofit2.HttpException) {
+                if (e.code() == 401 || e.code() == 404) {
+                    _loginStatus.value = loginError(
+                        "Incorrect mobile number or password.",
+                        LoginErrorCode.INCORRECT_PASSWORD
+                    )
+                    return@onFailure
+                }
+            } else if (e is java.io.IOException) {
+                _loginStatus.value = loginError(
+                    "Server is offline. Please check your connection.",
+                    LoginErrorCode.ACCOUNT_NOT_FOUND
+                )
+                return@onFailure
+            }
+
             val user = userRepository.getUserByEmail(email)
             if (user != null) {
                 // Since we don't store password_hash locally anymore, 

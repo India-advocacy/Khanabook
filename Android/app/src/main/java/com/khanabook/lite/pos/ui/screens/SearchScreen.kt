@@ -121,7 +121,13 @@ fun SearchScreen(
                 if (selectedTab == 0) {
                     OutlinedTextField(
                         value = dailyId,
-                        onValueChange = { dailyId = it },
+                        onValueChange = { 
+                            if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                dailyId = it
+                            } else {
+                                android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         label = { Text("Daily Order ID", color = TextGold) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -130,7 +136,8 @@ fun SearchScreen(
                             focusedBorderColor = PrimaryGold,
                             unfocusedBorderColor = BorderGold
                         ),
-                        singleLine = true
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
 
@@ -165,7 +172,13 @@ fun SearchScreen(
                 } else {
                     OutlinedTextField(
                         value = lifetimeQuery,
-                        onValueChange = { lifetimeQuery = it },
+                        onValueChange = { 
+                            if (it.isEmpty() || it.all { char -> char.isDigit() }) {
+                                lifetimeQuery = it
+                            } else {
+                                android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        },
                         label = { Text("Lifetime Order ID", color = TextGold) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
@@ -265,34 +278,43 @@ fun SearchScreen(
                         )
 
                         // Scrollable Items Section
-                        Box(
-                            modifier = Modifier
-                                .weight(1f, fill = false) // Allow it to take available space but not force it
-                                .fillMaxWidth()
-                                .heightIn(max = 240.dp) // Responsive limit for smaller screens
-                        ) {
-                            LazyColumn(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                        if (currentResult.items.isEmpty()) {
+                            Text(
+                                text = "No items found in this order.",
+                                color = TextLight.copy(alpha = 0.5f),
+                                fontSize = 13.sp,
+                                modifier = Modifier.padding(vertical = 16.dp).align(Alignment.CenterHorizontally)
+                            )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f, fill = false) // Allow it to take available space but not force it
+                                    .fillMaxWidth()
+                                    .heightIn(max = 240.dp) // Responsive limit for smaller screens
                             ) {
-                                items(currentResult.items) { item ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            "${item.itemName} x${item.quantity}",
-                                            color = TextLight,
-                                            fontSize = 13.sp,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        Text(
-                                            CurrencyUtils.formatPrice(item.itemTotal),
-                                            color = TextLight,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(currentResult.items) { item ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                "${item.itemName} x${item.quantity}",
+                                                color = TextLight,
+                                                fontSize = 13.sp,
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                            Text(
+                                                CurrencyUtils.formatPrice(item.itemTotal),
+                                                color = TextLight,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -366,6 +388,7 @@ fun SearchScreen(
                                         onClick = {
                                             result?.let { shareBillOnWhatsApp(context, it, profile) }
                                         },
+                                        enabled = currentResult.items.isNotEmpty(),
                                         modifier = Modifier.weight(1f).height(44.dp),
                                         colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                                         shape = RoundedCornerShape(10.dp),
@@ -381,6 +404,7 @@ fun SearchScreen(
                                                 directPrint(context, it, profile, billingViewModel.printerManager)
                                             }
                                         },
+                                        enabled = currentResult.items.isNotEmpty(),
                                         modifier = Modifier.weight(1f).height(44.dp),
                                         shape = RoundedCornerShape(10.dp),
                                         colors = ButtonDefaults.outlinedButtonColors(contentColor = PrimaryGold),
