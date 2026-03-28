@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -18,10 +19,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.*
@@ -53,12 +59,16 @@ fun LoginScreen(
     val isLoading = loginStatus is AuthViewModel.LoginResult.Loading
     val isPhoneValid = ValidationUtils.isValidPhone(phone)
     val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    val focusManager = LocalFocusManager.current
+    val passwordFocusRequester = remember { FocusRequester() }
 
     LaunchedEffect(loginStatus) {
         when (val s = loginStatus) {
             is AuthViewModel.LoginResult.Loading -> {}
             is AuthViewModel.LoginResult.Success -> {
                 isGoogleLogin = false
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 android.widget.Toast.makeText(
                                 context,
                                 "Welcome back!",
@@ -69,6 +79,7 @@ fun LoginScreen(
             }
             is AuthViewModel.LoginResult.Error -> {
                 isGoogleLogin = false
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 android.widget.Toast.makeText(context, s.message, android.widget.Toast.LENGTH_LONG)
                         .show()
             }
@@ -76,7 +87,7 @@ fun LoginScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(DarkBackground).imePadding()) {
+    Box(modifier = Modifier.fillMaxSize().background(DarkBackground)) {
         Column(
                 modifier =
                         Modifier.fillMaxSize()
@@ -103,7 +114,13 @@ fun LoginScreen(
             
             TextField(
                     value = phone,
-                    onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
+                    onValueChange = { 
+                        val filtered = it.filter { ch -> ch.isDigit() }.take(10)
+                        phone = filtered
+                        if (filtered.length == 10) {
+                            passwordFocusRequester.requestFocus()
+                        }
+                    },
                     placeholder = { Text("Phone Number", color = Color.Gray) },
                     leadingIcon = {
                         Icon(
@@ -127,6 +144,13 @@ fun LoginScreen(
                             ),
                     textStyle = LocalTextStyle.current.copy(color = TextLight),
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Phone,
+                        imeAction = ImeAction.Next
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onNext = { passwordFocusRequester.requestFocus() }
+                    ),
                     isError = (phone.isNotEmpty() && !isPhoneValid) || (phone.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
                     supportingText = {
                         if (phone.isNotEmpty() && !isPhoneValid) {
@@ -162,7 +186,7 @@ fun LoginScreen(
                     visualTransformation =
                             if (showPassword) VisualTransformation.None
                             else PasswordVisualTransformation(),
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    modifier = Modifier.fillMaxWidth().height(56.dp).focusRequester(passwordFocusRequester),
                     shape = RoundedCornerShape(12.dp),
                     colors =
                             TextFieldDefaults.colors(
@@ -177,6 +201,21 @@ fun LoginScreen(
                             ),
                     textStyle = LocalTextStyle.current.copy(color = TextLight),
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = { 
+                            val isLoadingStatus = loginStatus is AuthViewModel.LoginResult.Loading
+                            val isLoginEnabledAction = isPhoneValid && password.isNotBlank() && !isLoadingStatus
+                            if (isLoginEnabledAction) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.login(phone, password)
+                            }
+                            focusManager.clearFocus()
+                        }
+                    ),
                     isError = password.isBlank() && loginStatus is AuthViewModel.LoginResult.Error
             )
 
@@ -205,10 +244,14 @@ fun LoginScreen(
             }
 
             
-            val isLoading = loginStatus is AuthViewModel.LoginResult.Loading
             val isLoginEnabled = isPhoneValid && password.isNotBlank() && !isLoading
             Button(
-                    onClick = { if (isLoginEnabled) viewModel.login(phone, password) },
+                    onClick = { 
+                        if (isLoginEnabled) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.login(phone, password) 
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                     colors =
                             ButtonDefaults.buttonColors(
@@ -266,6 +309,7 @@ fun LoginScreen(
                                         .border(1.dp, BorderGold, CircleShape)
                                         .clickable(enabled = !isLoading) { 
                                             isGoogleLogin = true
+                                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                             viewModel.loginWithGoogle(context) 
                                         },
                         shape = CircleShape,
