@@ -438,17 +438,17 @@ fun ReviewScannedItemsSheet(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.6f))
-                .clickable { onDismiss() }
-                .statusBarsPadding(),
+                .clickable { onDismiss() },
             contentAlignment = Alignment.BottomCenter
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .fillMaxHeight(0.92f)
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                     .background(DarkBrown1)
                     .clickable(enabled = false) { }
-                    .safeDrawingPadding()
+                    .navigationBarsPadding()
             ) {
 
                 Box(
@@ -508,7 +508,8 @@ fun ReviewScannedItemsSheet(
                         .weight(1f)
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 8.dp)
                 ) {
                     val groupedDrafts = drafts.withIndex().groupBy { it.value.categoryName ?: "Uncategorized" }
                     
