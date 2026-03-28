@@ -66,6 +66,37 @@ constructor(
     private val _otpVerificationStatus = MutableStateFlow<OtpVerificationResult?>(null)
     val otpVerificationStatus: StateFlow<OtpVerificationResult?> = _otpVerificationStatus
 
+    private val _isUserChecking = MutableStateFlow(false)
+    val isUserChecking: StateFlow<Boolean> = _isUserChecking
+
+    private val _userExistsError = MutableStateFlow<String?>(null)
+    val userExistsError: StateFlow<String?> = _userExistsError
+
+    fun checkUserExists(phoneNumber: String) {
+        if (phoneNumber.length != 10) return
+        
+        viewModelScope.launch {
+            _isUserChecking.value = true
+            _userExistsError.value = null
+            try {
+                val exists = userRepository.checkUserExistsRemotely(phoneNumber)
+                if (exists) {
+                    _userExistsError.value = "An account with this number already exists."
+                }
+            } catch (e: Exception) {
+                // Silently fail or log, don't block user if check fails
+                Log.e(TAG, "User check failed", e)
+            } finally {
+                _isUserChecking.value = false
+            }
+        }
+    }
+
+    fun clearUserCheck() {
+        _userExistsError.value = null
+        _isUserChecking.value = false
+    }
+
     
     
     private var failedLoginAttempts = 0

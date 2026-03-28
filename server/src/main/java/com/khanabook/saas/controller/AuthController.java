@@ -76,10 +76,10 @@ public class AuthController {
 	}
 
 	@GetMapping("/check-user")
-	public ResponseEntity<Boolean> checkUser(
-			@RequestParam
-			@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
-			String phoneNumber) {
+	public ResponseEntity<Boolean> checkUser(@RequestParam String phoneNumber) {
+		if (phoneNumber == null || phoneNumber.length() != 10) {
+			return ResponseEntity.ok(false);
+		}
 		DebugNDJSONLogger.log(
 				"pre-debug",
 				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",

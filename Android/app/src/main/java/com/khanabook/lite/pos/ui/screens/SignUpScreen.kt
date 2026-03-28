@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -21,12 +22,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -54,6 +61,13 @@ fun SignUpScreen(
     var showNewPassword by remember { mutableStateOf(false) }
     var showConfirmPassword by remember { mutableStateOf(false) }
 
+    val haptic = LocalHapticFeedback.current
+    val focusManager = LocalFocusManager.current
+    val phoneFocusRequester = remember { FocusRequester() }
+    val otpFocusRequester = remember { FocusRequester() }
+    val passwordFocusRequester = remember { FocusRequester() }
+    val confirmPasswordFocusRequester = remember { FocusRequester() }
+
     
     val isNameValid = ValidationUtils.isValidName(shopName)
     val isPhoneValid = ValidationUtils.isValidPhone(phoneNumber)
@@ -66,6 +80,9 @@ fun SignUpScreen(
     var otpTimer by remember { mutableIntStateOf(120) }
     val signUpStatus by viewModel.signUpStatus.collectAsState()
     val loginStatus by viewModel.loginStatus.collectAsState()
+    val isUserChecking by viewModel.isUserChecking.collectAsState()
+    val userExistsError by viewModel.userExistsError.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val isLoading = signUpStatus is AuthViewModel.SignUpResult.Loading || loginStatus is AuthViewModel.LoginResult.Loading
 
@@ -73,21 +90,30 @@ fun SignUpScreen(
         when (val status = signUpStatus) {
             is AuthViewModel.SignUpResult.Loading -> {}
             is AuthViewModel.SignUpResult.Success -> {
-                // Success is handled by checking currentUser in MainActivity or here if needed
-                // But usually we wait for performLogin which is called inside signUp
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             }
             is AuthViewModel.SignUpResult.OtpSent -> {
                 otpSent = true
                 otpTimer = 120
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                otpFocusRequester.requestFocus()
                 snackbarHostState.showSnackbar(
                         "OTP Sent to your WhatsApp!",
                         duration = SnackbarDuration.Long
                 )
             }
             is AuthViewModel.SignUpResult.Error -> {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                 snackbarHostState.showSnackbar(status.message)
             }
             else -> {}
+        }
+    }
+
+    // Clear user check error if phone changes
+    LaunchedEffect(phoneNumber) {
+        if (phoneNumber.length < 10) {
+            viewModel.clearUserCheck()
         }
     }
 
@@ -120,14 +146,13 @@ fun SignUpScreen(
                 modifier =
                         Modifier.fillMaxSize()
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, Color.Black)))
-                                .imePadding()
                                 .padding(padding)
         ) {
             Column(
                     modifier =
                             Modifier.fillMaxSize()
-                                    .imePadding()
                                     .verticalScroll(rememberScrollState())
+                                    .imePadding()
                                     .padding(horizontal = 32.dp)
                                     .padding(top = 24.dp, bottom = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -176,6 +201,12 @@ fun SignUpScreen(
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
                             enabled = !isLoading,
+                            keyboardOptions = KeyboardOptions(
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { phoneFocusRequester.requestFocus() }
+                            ),
                             isError = shopName.isNotEmpty() && !isNameValid,
                             supportingText = {
                                 if (shopName.isNotEmpty() && !isNameValid)
@@ -187,7 +218,11 @@ fun SignUpScreen(
                     OutlinedTextField(
                             value = phoneNumber,
                             onValueChange = {
-                                phoneNumber = it.filter { ch -> ch.isDigit() }.take(10)
+                                val filtered = it.filter { ch -> ch.isDigit() }.take(10)
+                                phoneNumber = filtered
+                                if (filtered.length == 10) {
+                                    viewModel.checkUserExists(filtered)
+                                }
                             },
                             placeholder = {
                                 Text("WhatsApp Number", color = TextGold.copy(alpha = 0.5f))
@@ -199,22 +234,40 @@ fun SignUpScreen(
                                         tint = VegGreen
                                 )
                             },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                            modifier = Modifier.fillMaxWidth(),
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Phone,
+                                imeAction = if (otpSent) ImeAction.Next else ImeAction.Default
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { if (otpSent) otpFocusRequester.requestFocus() }
+                            ),
+                            modifier = Modifier.fillMaxWidth().focusRequester(phoneFocusRequester),
                             shape = RoundedCornerShape(24.dp),
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
                             enabled = !isLoading,
-                            isError = phoneNumber.isNotEmpty() && !isPhoneValid,
+                            isError = (phoneNumber.isNotEmpty() && !isPhoneValid) || userExistsError != null,
                             supportingText = {
-                                if (phoneNumber.isNotEmpty() && !isPhoneValid)
-                                        Text("Enter 10-digit number", color = DangerRed)
+                                if (userExistsError != null) {
+                                    Text(userExistsError!!, color = DangerRed)
+                                } else if (phoneNumber.isNotEmpty() && !isPhoneValid) {
+                                    Text("Enter 10-digit number", color = DangerRed)
+                                }
                             },
                             trailingIcon = {
-                                if (!otpSent || otpTimer == 0) {
+                                if (isUserChecking) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(16.dp),
+                                        strokeWidth = 2.dp,
+                                        color = PrimaryGold
+                                    )
+                                } else if (!otpSent || otpTimer == 0) {
                                     Button(
                                             onClick = {
-                                                if (isPhoneValid) viewModel.sendOtp(phoneNumber)
+                                                if (isPhoneValid && userExistsError == null) {
+                                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                    viewModel.sendOtp(phoneNumber)
+                                                }
                                             },
                                             modifier = Modifier.padding(end = 4.dp).height(36.dp),
                                             colors =
@@ -223,7 +276,7 @@ fun SignUpScreen(
                                                     ),
                                             shape = RoundedCornerShape(20.dp),
                                             contentPadding = PaddingValues(horizontal = 12.dp),
-                                            enabled = isPhoneValid && !isLoading
+                                            enabled = isPhoneValid && !isLoading && !isUserChecking && userExistsError == null
                                     ) {
                                         Text(
                                                 "Send OTP",
@@ -242,7 +295,11 @@ fun SignUpScreen(
                                 value = otp,
                                 onValueChange = {
                                     if (it.length <= 6) {
-                                        otp = it.filter { ch -> ch.isDigit() }
+                                        val filtered = it.filter { ch -> ch.isDigit() }
+                                        otp = filtered
+                                        if (filtered.length == 6) {
+                                            passwordFocusRequester.requestFocus()
+                                        }
                                     }
                                 },
                                 placeholder = {
@@ -256,8 +313,14 @@ fun SignUpScreen(
                                     )
                                 },
                                 keyboardOptions =
-                                        KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier = Modifier.fillMaxWidth(),
+                                        KeyboardOptions(
+                                            keyboardType = KeyboardType.Number,
+                                            imeAction = ImeAction.Next
+                                        ),
+                                keyboardActions = KeyboardActions(
+                                    onNext = { passwordFocusRequester.requestFocus() }
+                                ),
+                                modifier = Modifier.fillMaxWidth().focusRequester(otpFocusRequester),
                                 shape = RoundedCornerShape(24.dp),
                                 colors = outlinedTextFieldColors(),
                                 singleLine = true,
@@ -307,11 +370,18 @@ fun SignUpScreen(
                             visualTransformation =
                                     if (showNewPassword) VisualTransformation.None
                                     else PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().focusRequester(passwordFocusRequester),
                             shape = RoundedCornerShape(24.dp),
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
                             enabled = !isLoading,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Next
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onNext = { confirmPasswordFocusRequester.requestFocus() }
+                            ),
                             isError = newPassword.isNotEmpty() && !isPasswordValid,
                             supportingText = {
                                 if (newPassword.isNotEmpty() && !isPasswordValid)
@@ -354,11 +424,27 @@ fun SignUpScreen(
                             visualTransformation =
                                     if (showConfirmPassword) VisualTransformation.None
                                     else PasswordVisualTransformation(),
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().focusRequester(confirmPasswordFocusRequester),
                             shape = RoundedCornerShape(24.dp),
                             colors = outlinedTextFieldColors(),
                             singleLine = true,
                             enabled = !isLoading,
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Password,
+                                imeAction = ImeAction.Done
+                            ),
+                            keyboardActions = KeyboardActions(
+                                onDone = {
+                                    val isFormValidAction =
+                                        isNameValid && isPhoneValid && isPasswordValid &&
+                                                passwordsMatch && otp.length == 6 && !isLoading && userExistsError == null
+                                    if (isFormValidAction) {
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        viewModel.signUp(shopName, phoneNumber, otp, newPassword)
+                                    }
+                                    focusManager.clearFocus()
+                                }
+                            ),
                             isError = confirmPassword.isNotEmpty() && !passwordsMatch,
                             supportingText = {
                                 if (confirmPassword.isNotEmpty() && !passwordsMatch)
@@ -375,11 +461,12 @@ fun SignUpScreen(
                                 isPhoneValid &&
                                 isPasswordValid &&
                                 passwordsMatch &&
-                                otp.length == 6 && !isLoading
+                                otp.length == 6 && !isLoading && userExistsError == null
 
                 Button(
                         onClick = {
                             if (isFormValid) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 viewModel.signUp(shopName, phoneNumber, otp, newPassword)
                             }
                         },
