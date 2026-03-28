@@ -399,11 +399,18 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
         when (otpStatus) {
             is AuthViewModel.OtpVerificationResult.OtpSent -> {
                 otpSent = true
+                isOtpVerified = false
                 otpTimer = 120
                 Toast.makeText(context, "OTP Sent to your WhatsApp!", Toast.LENGTH_SHORT).show()
             }
+            is AuthViewModel.OtpVerificationResult.Success -> {
+                isOtpVerified = true
+                Toast.makeText(context, "Verified successfully!", Toast.LENGTH_SHORT).show()
+                authViewModel.clearOtpStatus()
+            }
             is AuthViewModel.OtpVerificationResult.Error -> {
                 val errorMsg = (otpStatus as AuthViewModel.OtpVerificationResult.Error).message
+                isOtpVerified = false
                 Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
                 authViewModel.clearOtpStatus()
             }
@@ -500,10 +507,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
                         if (it.length <= 6) {
                             otpValue = it
                             if (it.length == 6) {
-                                isOtpVerified = authViewModel.verifyOtp(it)
-                                if (isOtpVerified) {
-                                    Toast.makeText(context, "Verified successfully!", Toast.LENGTH_SHORT).show()
-                                }
+                                authViewModel.confirmMobileNumberUpdate(whatsapp, it)
                             } else {
                                 isOtpVerified = false
                             }
@@ -1018,5 +1022,4 @@ private fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: Strin
 private fun loadBitmap(path: String): Bitmap? {
     return try { BitmapFactory.decodeFile(path) } catch (_: Exception) { null }
 }
-
 

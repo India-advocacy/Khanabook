@@ -136,17 +136,7 @@ class SettingsViewModel @Inject constructor(
             _saveProfileError.value = null
             _saveProfileSuccess.value = false
 
-            val currentNumber = userRepository.currentUser.value?.whatsappNumber ?: ""
             val newNumber = profile.whatsappNumber ?: ""
-
-            if (newNumber.isNotBlank() && newNumber != currentNumber) {
-                val result = userRepository.remoteUpdateMobileNumber(newNumber)
-                if (result.isFailure) {
-                    _saveProfileError.value = result.exceptionOrNull()?.message ?: "Failed to update mobile number"
-                    _saveProfileLoading.value = false
-                    return@launch
-                }
-            }
 
             restaurantRepository.saveProfile(profile)
             

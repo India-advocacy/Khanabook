@@ -29,8 +29,14 @@ public class UserController {
 	}
 
 	@PostMapping("/update-mobile")
-	public ResponseEntity<?> updateMobileNumber(@Valid @RequestBody UpdateMobileRequest request) {
-		service.updateMobileNumber(TenantContext.getCurrentTenant(), request.getNewMobileNumber());
+	public ResponseEntity<?> confirmMobileNumberUpdate(@Valid @RequestBody UpdateMobileRequest request) {
+		service.confirmMobileNumberUpdate(TenantContext.getCurrentTenant(), request.getNewMobileNumber(), request.getOtp());
 		return ResponseEntity.ok(Map.of("message", "Mobile number updated successfully."));
+	}
+
+	@PostMapping("/update-mobile/request")
+	public ResponseEntity<?> requestMobileNumberUpdateOtp(@Valid @RequestBody UpdateMobileOtpRequest request) {
+		service.requestMobileNumberUpdateOtp(TenantContext.getCurrentTenant(), request.getNewMobileNumber());
+		return ResponseEntity.ok(Map.of("message", "OTP sent successfully."));
 	}
 }

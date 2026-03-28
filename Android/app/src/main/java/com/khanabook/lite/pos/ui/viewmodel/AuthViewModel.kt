@@ -184,6 +184,17 @@ constructor(
                 return@launch
             }
 
+            if (purpose == "update_whatsapp") {
+                val result = userRepository.requestMobileNumberUpdateOtp(phoneNumber)
+                result.onSuccess {
+                    _otpVerificationStatus.value = OtpVerificationResult.OtpSent
+                }.onFailure { e ->
+                    _otpVerificationStatus.value =
+                        OtpVerificationResult.Error(e.message ?: "Failed to send OTP. Please try again.")
+                }
+                return@launch
+            }
+
             
             val otp = (100000..999999).random().toString()
             generatedOtp = otp
@@ -288,6 +299,18 @@ constructor(
             generatedOtp = null 
         }
         return valid
+    }
+
+    fun confirmMobileNumberUpdate(phoneNumber: String, otp: String) {
+        viewModelScope.launch {
+            val result = userRepository.confirmMobileNumberUpdate(phoneNumber, otp)
+            result.onSuccess {
+                _otpVerificationStatus.value = OtpVerificationResult.Success
+            }.onFailure { e ->
+                _otpVerificationStatus.value =
+                    OtpVerificationResult.Error(e.message ?: "Failed to verify OTP.")
+            }
+        }
     }
 
     fun signUp(name: String, phoneNumber: String, password: String) {

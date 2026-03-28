@@ -123,4 +123,7 @@ interface KhanaBookApi {
 
         @POST("api/v1/sync/config/users/update-mobile")
         suspend fun updateMobileNumber(@Body request: UpdateMobileRequest): retrofit2.Response<Unit>
+
+        @POST("api/v1/sync/config/users/update-mobile/request")
+        suspend fun requestMobileNumberUpdateOtp(@Body request: UpdateMobileOtpRequest): retrofit2.Response<Unit>
 }

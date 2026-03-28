@@ -6,13 +6,9 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class UpdateMobileRequest {
+public class UpdateMobileOtpRequest {
 	@NotBlank(message = "New mobile number cannot be empty")
 	@Pattern(regexp = "^\\+?[1-9]\\d{6,19}$", message = "Phone number must be valid format")
 	@Size(max = 20)
 	private String newMobileNumber;
-
-	@NotBlank(message = "OTP is required")
-	@Pattern(regexp = "^\\d{6}$", message = "OTP must be 6 digits")
-	private String otp;
 }

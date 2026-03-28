@@ -10,5 +10,7 @@ public interface UserService {
 
 	List<User> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
 
-	void updateMobileNumber(Long tenantId, String newMobileNumber);
+	void requestMobileNumberUpdateOtp(Long tenantId, String newMobileNumber);
+
+	void confirmMobileNumberUpdate(Long tenantId, String newMobileNumber, String otp);
 }

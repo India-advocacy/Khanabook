@@ -10,7 +10,8 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "users", indexes = { @Index(name = "idx_users_tenant_updated", columnList = "restaurant_id, updated_at"),
-		@Index(name = "idx_users_device", columnList = "restaurant_id, device_id, local_id") })
+		@Index(name = "idx_users_device", columnList = "restaurant_id, device_id, local_id"),
+		@Index(name = "idx_users_whatsapp_number", columnList = "whatsapp_number") })
 @Getter
 @Setter
 public class User extends BaseSyncEntity {

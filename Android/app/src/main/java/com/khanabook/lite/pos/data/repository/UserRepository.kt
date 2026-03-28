@@ -13,6 +13,7 @@ import com.khanabook.lite.pos.worker.MasterSyncWorker
 import com.khanabook.lite.pos.data.remote.ResetPasswordRequest
 import com.khanabook.lite.pos.data.remote.PasswordResetOtpRequest
 import com.khanabook.lite.pos.data.remote.api.KhanaBookApi
+import com.khanabook.lite.pos.data.remote.dto.UpdateMobileOtpRequest
 import com.khanabook.lite.pos.data.remote.dto.UpdateMobileRequest
 import com.khanabook.lite.pos.data.remote.api.LoginRequest
 import com.khanabook.lite.pos.data.remote.api.GoogleLoginRequest
@@ -250,20 +251,28 @@ class UserRepository(
         }
     }
 
-    suspend fun remoteUpdateMobileNumber(newPhone: String): Result<Unit> {
+    suspend fun requestMobileNumberUpdateOtp(newPhone: String): Result<Unit> {
         return try {
-            val request = UpdateMobileRequest(newPhone)
+            val request = UpdateMobileOtpRequest(newPhone)
+            val response = api.requestMobileNumberUpdateOtp(request)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(parseErrorMessage(response.errorBody()?.string(), "Failed to send OTP.")))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun confirmMobileNumberUpdate(newPhone: String, otp: String): Result<Unit> {
+        return try {
+            val request = UpdateMobileRequest(newPhone, otp)
             val response = api.updateMobileNumber(request)
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
-                val errorBody = response.errorBody()?.string()
-                val errorMessage = try {
-                    org.json.JSONObject(errorBody ?: "").getString("error")
-                } catch (e: Exception) {
-                    "Failed to update mobile number."
-                }
-                Result.failure(Exception(errorMessage))
+                Result.failure(Exception(parseErrorMessage(response.errorBody()?.string(), "Failed to update mobile number.")))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -304,5 +313,13 @@ class UserRepository(
             ExistingWorkPolicy.KEEP,
             syncWorkRequest
         )
+    }
+
+    private fun parseErrorMessage(errorBody: String?, fallback: String): String {
+        return try {
+            org.json.JSONObject(errorBody ?: "").getString("error")
+        } catch (e: Exception) {
+            fallback
+        }
     }
 }
