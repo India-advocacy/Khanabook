@@ -1,6 +1,7 @@
 package com.khanabook.saas.sync.service;
 
 import com.khanabook.saas.debug.DebugNDJSONLogger;
+import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
@@ -104,13 +105,16 @@ public class GenericSyncService {
 				List<T> crossDeviceRecords = repository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(1L));
 
 				for (T record : crossDeviceRecords) {
-					boolean matchFound = false;
-					if (record instanceof User existingUser && firstRecord instanceof User incomingUser) {
-						if (existingUser.getEmail() != null
-								&& existingUser.getEmail().equalsIgnoreCase(incomingUser.getEmail())) {
-							matchFound = true;
-						}
-					} else {
+						boolean matchFound = false;
+						if (record instanceof User existingUser && firstRecord instanceof User incomingUser) {
+							if (existingUser.getLoginId() != null && incomingUser.getLoginId() != null
+									&& existingUser.getLoginId().equalsIgnoreCase(incomingUser.getLoginId())) {
+								matchFound = true;
+							} else if (existingUser.getEmail() != null
+									&& existingUser.getEmail().equalsIgnoreCase(incomingUser.getEmail())) {
+								matchFound = true;
+							}
+						} else {
 						matchFound = true;
 					}
 
@@ -179,28 +183,44 @@ public class GenericSyncService {
 					if (existingRecord != null) {
 						if (incomingRecord.getUpdatedAt() > existingRecord.getUpdatedAt()) {
 
-							if (incomingRecord instanceof User user && existingRecord instanceof User existingUser) {
-								if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
-									user.setPasswordHash(existingUser.getPasswordHash());
-								}
-								// Data Overwrite Protection: Don't overwrite email with null/empty from app
-								if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
-									user.setEmail(existingUser.getEmail());
-								} else if (existingUser.getEmail() != null && existingUser.getEmail().contains("@") && !user.getEmail().contains("@")) {
-									// Safety: If existing record has a real email, and incoming looks like a phone number, protect the email
-									user.setEmail(existingUser.getEmail());
-								}
+								if (incomingRecord instanceof User user && existingRecord instanceof User existingUser) {
+									if (user.getPasswordHash() == null || user.getPasswordHash().isEmpty()) {
+										user.setPasswordHash(existingUser.getPasswordHash());
+									}
+									if (user.getLoginId() == null || user.getLoginId().trim().isEmpty()) {
+										user.setLoginId(existingUser.getLoginId());
+									}
+									if (user.getAuthProvider() == null) {
+										user.setAuthProvider(existingUser.getAuthProvider() != null ? existingUser.getAuthProvider()
+												: AuthProvider.PHONE);
+									}
+									// Data Overwrite Protection: Don't overwrite email with null/empty from app
+									if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
+										user.setEmail(existingUser.getEmail());
+									} else if ((existingUser.getAuthProvider() == AuthProvider.GOOGLE)
+											&& existingUser.getEmail() != null
+											&& !existingUser.getEmail().equalsIgnoreCase(user.getEmail())) {
+										// Preserve Google-linked identity when a synced mobile/profile payload carries a phone number.
+										user.setEmail(existingUser.getEmail());
+									}
 								
 								if (user.getGoogleEmail() == null || user.getGoogleEmail().trim().isEmpty()) {
 									user.setGoogleEmail(existingUser.getGoogleEmail());
 								}
 
 								// Prevent duplicate email/phone numbers from crashing the batch sync
-								if (repository instanceof com.khanabook.saas.repository.UserRepository) {
-									com.khanabook.saas.repository.UserRepository userRepo = (com.khanabook.saas.repository.UserRepository) repository;
-									
-									if (existingUser.getEmail() != null && user.getEmail() != null && !existingUser.getEmail().equalsIgnoreCase(user.getEmail())) {
-										if (userRepo.existsByEmail(user.getEmail())) {
+									if (repository instanceof com.khanabook.saas.repository.UserRepository) {
+										com.khanabook.saas.repository.UserRepository userRepo = (com.khanabook.saas.repository.UserRepository) repository;
+
+										if (existingUser.getLoginId() != null && user.getLoginId() != null
+												&& !existingUser.getLoginId().equalsIgnoreCase(user.getLoginId())) {
+											if (userRepo.existsByLoginId(user.getLoginId())) {
+												throw new RuntimeException("Sync rejected: Login identity already exists for another user");
+											}
+										}
+										
+										if (existingUser.getEmail() != null && user.getEmail() != null && !existingUser.getEmail().equalsIgnoreCase(user.getEmail())) {
+											if (userRepo.existsByEmail(user.getEmail())) {
 											throw new RuntimeException("Sync rejected: Email/Phone already exists for another user");
 										}
 									}

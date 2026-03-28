@@ -1,5 +1,6 @@
 package com.khanabook.saas.service.impl;
 
+import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
@@ -59,6 +60,14 @@ public class UserServiceImpl implements UserService {
 	}
 
 	private void ensureMobileNumberAvailable(Long tenantId, String newMobileNumber) {
+		Optional<User> existingUserByLoginId = repository.findByLoginId(newMobileNumber);
+		if (existingUserByLoginId.isPresent()) {
+			User existingUser = existingUserByLoginId.get();
+			if (!existingUser.getRestaurantId().equals(tenantId)) {
+				throw new IllegalArgumentException("This number is already related to another shop.");
+			}
+		}
+
 		Optional<User> existingUserByEmail = repository.findByEmail(newMobileNumber);
 		if (existingUserByEmail.isPresent()) {
 			User existingUser = existingUserByEmail.get();
@@ -87,10 +96,6 @@ public class UserServiceImpl implements UserService {
 
 	private void updatePrimaryMobileNumber(Long tenantId, User currentUser, String newMobileNumber) {
 		long now = System.currentTimeMillis();
-
-		if (currentUser.getEmail() != null && !currentUser.getEmail().contains("@")) {
-			currentUser.setEmail(newMobileNumber);
-		}
 
 		currentUser.setWhatsappNumber(newMobileNumber);
 		currentUser.setUpdatedAt(now);

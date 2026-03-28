@@ -3,6 +3,7 @@ package com.khanabook.saas.service.impl;
 import com.khanabook.saas.controller.AuthController.AuthResponse;
 import com.khanabook.saas.controller.AuthController.LoginRequest;
 import com.khanabook.saas.controller.AuthController.SignupRequest;
+import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.entity.UserRole;
@@ -43,7 +44,8 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public AuthResponse login(LoginRequest request) {
-		User user = userRepository.findByEmail(request.getPhoneNumber())
+		User user = userRepository.findByLoginId(request.getPhoneNumber())
+				.or(() -> userRepository.findByEmail(request.getPhoneNumber()))
 				.or(() -> userRepository.findByWhatsappNumber(request.getPhoneNumber()))
 				.orElseThrow(() -> new IllegalArgumentException("Invalid phone number or password"));
 
@@ -55,16 +57,19 @@ public class AuthServiceImpl implements AuthService {
 			throw new IllegalArgumentException("Account is disabled. Contact your administrator.");
 		}
 
+		backfillLoginIdIfMissing(user);
+
 		log.info("User logged in: restaurantId={}", user.getRestaurantId());
-		String token = jwtUtility.generateToken(user.getEmail(), user.getRestaurantId(), user.getRole().name());
-		return new AuthResponse(token, user.getRestaurantId(), user.getName(), user.getEmail(),
+		String token = jwtUtility.generateToken(getLoginIdentifier(user), user.getRestaurantId(), user.getRole().name());
+		return new AuthResponse(token, user.getRestaurantId(), user.getName(), getLoginIdentifier(user),
 				user.getWhatsappNumber(), user.getRole().name());
 	}
 
 	@Override
 	@Transactional
 	public AuthResponse signup(SignupRequest request) {
-		if (userRepository.findByEmail(request.getPhoneNumber()).isPresent()) {
+		if (userRepository.findByLoginId(request.getPhoneNumber()).isPresent()
+				|| userRepository.findByEmail(request.getPhoneNumber()).isPresent()) {
 			throw new IllegalArgumentException("An account with this phone number already exists.");
 		}
 
@@ -85,6 +90,8 @@ public class AuthServiceImpl implements AuthService {
 		User user = new User();
 		user.setName(request.getName());
 		user.setEmail(request.getPhoneNumber());
+		user.setLoginId(request.getPhoneNumber());
+		user.setAuthProvider(AuthProvider.PHONE);
 		user.setWhatsappNumber(request.getPhoneNumber());
 		user.setPasswordHash(hashedPassword);
 		user.setRestaurantId(newRestaurantId);
@@ -98,9 +105,9 @@ public class AuthServiceImpl implements AuthService {
 		userRepository.save(user);
 
 		log.info("New user signed up: restaurantId={}", newRestaurantId);
-		String token = jwtUtility.generateToken(user.getEmail(), newRestaurantId, user.getRole().name());
-		return new AuthResponse(token, newRestaurantId, user.getName(), user.getEmail(), user.getWhatsappNumber(),
-				user.getRole().name());
+		String token = jwtUtility.generateToken(getLoginIdentifier(user), newRestaurantId, user.getRole().name());
+		return new AuthResponse(token, newRestaurantId, user.getName(), getLoginIdentifier(user), user.getWhatsappNumber(),
+					user.getRole().name());
 	}
 
 	@Override
@@ -119,21 +126,26 @@ public class AuthServiceImpl implements AuthService {
 				String name = (String) payload.get("name");
 
 				// 1. Try finding by primary identifier (phone/email) OR by linked google email
-				return userRepository.findByEmail(email)
+				return userRepository.findByLoginId(email)
+						.or(() -> userRepository.findByEmail(email))
 						.or(() -> userRepository.findByGoogleEmail(email))
 						.map(user -> {
 							if (!Boolean.TRUE.equals(user.getIsActive())) {
 								throw new IllegalArgumentException("Account is disabled. Contact your administrator.");
 							}
-							// If they logged in with Google but googleEmail wasn't set, link it now
+							// Upgrade older records to explicit Google ownership when linked.
 							if (user.getGoogleEmail() == null) {
 								user.setGoogleEmail(email);
-								user.setUpdatedAt(System.currentTimeMillis());
-								userRepository.save(user);
 							}
-							String token = jwtUtility.generateToken(user.getEmail(), user.getRestaurantId(),
+							if (user.getLoginId() == null || user.getLoginId().isBlank()) {
+								user.setLoginId(email);
+							}
+							user.setAuthProvider(AuthProvider.GOOGLE);
+							user.setUpdatedAt(System.currentTimeMillis());
+							userRepository.save(user);
+							String token = jwtUtility.generateToken(getLoginIdentifier(user), user.getRestaurantId(),
 									user.getRole().name());
-							return new AuthResponse(token, user.getRestaurantId(), user.getName(), user.getEmail(),
+							return new AuthResponse(token, user.getRestaurantId(), user.getName(), getLoginIdentifier(user),
 									user.getWhatsappNumber(), user.getRole().name());
 						}).orElseGet(() -> {
 
@@ -149,11 +161,13 @@ public class AuthServiceImpl implements AuthService {
 					profile.setCreatedAt(System.currentTimeMillis());
 					restaurantProfileRepository.save(profile);
 
-					User user = new User();
-					user.setName(name != null ? name : "Google User");
-					user.setEmail(email);
-					user.setGoogleEmail(email);
-					user.setWhatsappNumber(null);
+						User user = new User();
+						user.setName(name != null ? name : "Google User");
+						user.setEmail(email);
+						user.setLoginId(email);
+						user.setGoogleEmail(email);
+						user.setAuthProvider(AuthProvider.GOOGLE);
+						user.setWhatsappNumber(null);
 					user.setPasswordHash("GOOGLE_AUTH");
 					user.setRestaurantId(newRestaurantId);
 					user.setDeviceId(request.getDeviceId());
@@ -165,10 +179,10 @@ public class AuthServiceImpl implements AuthService {
 					user.setCreatedAt(System.currentTimeMillis());
 					userRepository.save(user);
 
-					String token = jwtUtility.generateToken(user.getEmail(), newRestaurantId, user.getRole().name());
-					return new AuthResponse(token, newRestaurantId, user.getName(), user.getEmail(),
-							user.getWhatsappNumber(), user.getRole().name());
-				});
+						String token = jwtUtility.generateToken(getLoginIdentifier(user), newRestaurantId, user.getRole().name());
+						return new AuthResponse(token, newRestaurantId, user.getName(), getLoginIdentifier(user),
+								user.getWhatsappNumber(), user.getRole().name());
+					});
 			} else {
 				throw new IllegalArgumentException("Invalid Google ID token.");
 			}
@@ -210,7 +224,30 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	private java.util.Optional<User> findUserByLoginId(String phoneNumber) {
-		return userRepository.findByEmail(phoneNumber)
+		return userRepository.findByLoginId(phoneNumber)
+				.or(() -> userRepository.findByEmail(phoneNumber))
 				.or(() -> userRepository.findByWhatsappNumber(phoneNumber));
+	}
+
+	private void backfillLoginIdIfMissing(User user) {
+		if (user.getLoginId() != null && !user.getLoginId().isBlank()) {
+			return;
+		}
+
+		if (user.getAuthProvider() == AuthProvider.GOOGLE && user.getGoogleEmail() != null
+				&& !user.getGoogleEmail().isBlank()) {
+			user.setLoginId(user.getGoogleEmail());
+		} else {
+			user.setLoginId(user.getEmail());
+		}
+		user.setUpdatedAt(System.currentTimeMillis());
+		userRepository.save(user);
+	}
+
+	private String getLoginIdentifier(User user) {
+		if (user.getLoginId() != null && !user.getLoginId().isBlank()) {
+			return user.getLoginId();
+		}
+		return user.getEmail();
 	}
 }

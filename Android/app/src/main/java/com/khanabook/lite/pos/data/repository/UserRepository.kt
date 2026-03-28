@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-private const val KEY_USER_EMAIL = "logged_in_user_email"
+private const val KEY_USER_LOGIN_ID = "logged_in_user_login_id"
 
 class UserRepository(
         private val userDao: UserDao,
@@ -55,7 +55,7 @@ class UserRepository(
             if (localUser == null) {
                 localUser = UserEntity(
                     name = response.userName,
-                    email = response.userEmail ?: loginId, // Use explicit email if available
+                    email = loginId,
                     whatsappNumber = response.whatsappNumber ?: phoneNumber,
                     restaurantId = response.restaurantId,
                     role = response.role ?: "OWNER",
@@ -69,7 +69,7 @@ class UserRepository(
             } else {
                 localUser = localUser.copy(
                     name = response.userName,
-                    email = response.userEmail ?: localUser.email, // Preserve email
+                    email = loginId,
                     whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
                     restaurantId = response.restaurantId,
                     role = response.role ?: "OWNER",
@@ -170,7 +170,7 @@ class UserRepository(
             } else {
                 localUser = localUser.copy(
                     name = response.userName,
-                    email = response.userEmail ?: localUser.email,
+                    email = loginId,
                     whatsappNumber = response.whatsappNumber ?: localUser.whatsappNumber,
                     restaurantId = response.restaurantId,
                     role = response.role ?: "OWNER",
@@ -188,17 +188,17 @@ class UserRepository(
     }
 
     suspend fun loadPersistedUser() {
-        val email = prefs.getString(KEY_USER_EMAIL, null)
+        val loginId = prefs.getString(KEY_USER_LOGIN_ID, null)
         val activeUserId = sessionManager.getActiveUserId()
 
         if (activeUserId != null) {
             val user = userDao.getUserById(activeUserId)
             _currentUser.value = user
             if (user != null) {
-                prefs.edit().putString(KEY_USER_EMAIL, user.email).apply()
+                prefs.edit().putString(KEY_USER_LOGIN_ID, user.email).apply()
             }
-        } else if (email != null) {
-            val user = userDao.getUserByEmail(email)
+        } else if (loginId != null) {
+            val user = userDao.getUserByEmail(loginId)
             _currentUser.value = user
             user?.let { sessionManager.saveActiveUserId(it.id); sessionManager.saveActiveUserRole(it.role) }
         }
@@ -207,12 +207,12 @@ class UserRepository(
     fun setCurrentUser(user: UserEntity?) {
         _currentUser.value = user
         if (user != null) {
-            prefs.edit().putString(KEY_USER_EMAIL, user.email).apply()
+            prefs.edit().putString(KEY_USER_LOGIN_ID, user.email).apply()
             sessionManager.saveActiveUserId(user.id)
             sessionManager.saveActiveUserRole(user.role)
             triggerBackgroundSync()
         } else {
-            prefs.edit().remove(KEY_USER_EMAIL).apply()
+            prefs.edit().remove(KEY_USER_LOGIN_ID).apply()
             sessionManager.clearLocalUserSession()
         }
     }
@@ -284,8 +284,8 @@ class UserRepository(
         triggerBackgroundSync()
     }
 
-    suspend fun updateAccountDetails(userId: Long, newEmail: String, newPhone: String) {
-        userDao.updateAccountDetails(userId, newEmail, newPhone, System.currentTimeMillis())
+    suspend fun updateAccountDetails(userId: Long, loginId: String, newPhone: String) {
+        userDao.updateAccountDetails(userId, loginId, newPhone, System.currentTimeMillis())
         triggerBackgroundSync()
     }
 

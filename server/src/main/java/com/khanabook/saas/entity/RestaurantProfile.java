@@ -11,7 +11,7 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "restaurantprofiles", uniqueConstraints = {
-		@UniqueConstraint(columnNames = { "restaurant_id", "device_id", "local_id" }) }, indexes = {
+		@UniqueConstraint(name = "restaurantprofiles_restaurant_id_device_id_local_id_key", columnNames = { "restaurant_id", "device_id", "local_id" }) }, indexes = {
 				@Index(name = "idx_restaurantprofiles_tenant_updated", columnList = "restaurant_id, updated_at"),
 				@Index(name = "idx_restaurantprofiles_device", columnList = "restaurant_id, device_id, local_id") })
 @Getter
