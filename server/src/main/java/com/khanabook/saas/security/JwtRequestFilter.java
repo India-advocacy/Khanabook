@@ -2,6 +2,8 @@ package com.khanabook.saas.security;
 
 import com.khanabook.saas.debug.DebugNDJSONLogger;
 import com.khanabook.saas.utility.JwtUtility;
+import com.khanabook.saas.entity.User;
+import com.khanabook.saas.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +27,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 	private static final Logger logger = LoggerFactory.getLogger(JwtRequestFilter.class);
 
 	private final JwtUtility jwtUtility;
+	private final UserRepository userRepository;
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -46,28 +49,33 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 				if (!tokenExpired) {
 					Long restaurantId = jwtUtility.extractRestaurantId(jwt);
 					String username = jwtUtility.extractUsername(jwt);
-					String role = jwtUtility.extractRole(jwt);
 					jwtExtractOk = true;
 					restaurantIdPresent = restaurantId;
 
 					if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-						if (restaurantId != null) {
-							TenantContext.setCurrentTenant(restaurantId);
-							tenantSet = true;
-						}
+						User user = userRepository.findByLoginId(username)
+								.or(() -> userRepository.findByEmail(username))
+								.or(() -> userRepository.findByWhatsappNumber(username))
+								.orElse(null);
 
-						if (role != null) {
+						if (user != null && Boolean.TRUE.equals(user.getIsActive())) {
+							if (restaurantId != null) {
+								TenantContext.setCurrentTenant(restaurantId);
+								tenantSet = true;
+							}
+
+							String role = user.getRole().name();
 							TenantContext.setCurrentRole(role);
+
+							org.springframework.security.core.authority.SimpleGrantedAuthority authority = new org.springframework.security.core.authority.SimpleGrantedAuthority(
+									"ROLE_" + role);
+
+							UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+									username, null, java.util.Collections.singletonList(authority));
+							authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+							SecurityContextHolder.getContext().setAuthentication(authToken);
 						}
-
-						org.springframework.security.core.authority.SimpleGrantedAuthority authority = new org.springframework.security.core.authority.SimpleGrantedAuthority(
-								"ROLE_" + (role != null ? role : "OWNER"));
-
-						UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-								username, null, java.util.Collections.singletonList(authority));
-						authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-						SecurityContextHolder.getContext().setAuthentication(authToken);
 					}
 				}
 			} catch (Exception e) {

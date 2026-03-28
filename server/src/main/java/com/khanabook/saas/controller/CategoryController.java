@@ -14,6 +14,7 @@ import com.khanabook.saas.entity.Category;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.CategoryService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
+import com.khanabook.saas.sync.dto.payload.*;
 
 import lombok.RequiredArgsConstructor;
 
@@ -24,13 +25,12 @@ public class CategoryController {
 	private final CategoryService service;
 
 	@PostMapping("/push")
-	public ResponseEntity<PushSyncResponse> push(@RequestBody List<Category> payload) {
-
-		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
+	public ResponseEntity<PushSyncResponse> push(@RequestBody List<CategoryDTO> payload) {
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, Category.class)));
 	}
 
 	@GetMapping("/pull")
-	public ResponseEntity<List<Category>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
-		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	public ResponseEntity<List<CategoryDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
+		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId), CategoryDTO.class));
 	}
 }

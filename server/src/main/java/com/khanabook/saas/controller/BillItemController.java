@@ -3,6 +3,7 @@ package com.khanabook.saas.controller;
 import com.khanabook.saas.entity.BillItem;
 import com.khanabook.saas.service.BillItemService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
+import com.khanabook.saas.sync.dto.payload.*;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,14 +20,14 @@ public class BillItemController {
 	private final BillItemService service;
 
 	@PostMapping("/push")
-	public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillItem> payload) {
+	public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillItemDTO> payload) {
 		log.info("Received bill items push for {} items for Tenant: {}", payload.size(),
 				TenantContext.getCurrentTenant());
-		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, BillItem.class)));
 	}
 
 	@GetMapping("/pull")
-	public ResponseEntity<List<BillItem>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
-		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	public ResponseEntity<List<BillItemDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
+		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId), BillItemDTO.class));
 	}
 }

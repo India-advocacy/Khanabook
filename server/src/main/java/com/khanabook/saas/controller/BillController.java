@@ -3,6 +3,7 @@ package com.khanabook.saas.controller;
 import com.khanabook.saas.entity.Bill;
 import com.khanabook.saas.service.BillService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
+import com.khanabook.saas.sync.dto.payload.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,13 +17,12 @@ public class BillController {
 	private final BillService service;
 
 	@PostMapping("/push")
-	public ResponseEntity<PushSyncResponse> push(@RequestBody List<Bill> payload) {
-
-		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
+	public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillDTO> payload) {
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, Bill.class)));
 	}
 
 	@GetMapping("/pull")
-	public ResponseEntity<List<Bill>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
-		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	public ResponseEntity<List<BillDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
+		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId), BillDTO.class));
 	}
 }

@@ -1,19 +1,17 @@
 package com.khanabook.saas.controller;
 
 import com.khanabook.saas.debug.DebugNDJSONLogger;
+import com.khanabook.saas.sync.dto.payload.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.khanabook.saas.entity.*;
 import com.khanabook.saas.security.TenantContext;
 import com.khanabook.saas.service.*;
 
 import lombok.RequiredArgsConstructor;
-import lombok.Data;
-import java.util.List;
 
 @RestController
 @RequestMapping("/sync/master")
@@ -32,7 +30,7 @@ public class MasterSyncController {
 
 	@org.springframework.transaction.annotation.Transactional(readOnly = true)
 	@GetMapping("/pull")
-	public ResponseEntity<MasterSyncResponse> pullMasterSync(@RequestParam Long lastSyncTimestamp,
+	public ResponseEntity<MasterSyncResponseDTO> pullMasterSync(@RequestParam Long lastSyncTimestamp,
 			@RequestParam String deviceId, @RequestParam(required = false) Long restaurantId) {
 
 		Long tenantId = TenantContext.getCurrentTenant();
@@ -44,17 +42,17 @@ public class MasterSyncController {
 
 		long currentServerTime = System.currentTimeMillis();
 
-		MasterSyncResponse response = new MasterSyncResponse();
+		MasterSyncResponseDTO response = new MasterSyncResponseDTO();
 		response.setServerTimestamp(currentServerTime);
-		response.setProfiles(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId));
-		response.setUsers(userService.pullData(tenantId, lastSyncTimestamp, deviceId));
-		response.setCategories(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId));
-		response.setMenuItems(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId));
-		response.setItemVariants(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId));
-		response.setStockLogs(stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId));
-		response.setBills(billService.pullData(tenantId, lastSyncTimestamp, deviceId));
-		response.setBillItems(billItemService.pullData(tenantId, lastSyncTimestamp, deviceId));
-		response.setBillPayments(billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId));
+		response.setProfiles(SyncMapper.mapList(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId), RestaurantProfileDTO.class));
+		response.setUsers(SyncMapper.mapList(userService.pullData(tenantId, lastSyncTimestamp, deviceId), UserDTO.class));
+		response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId), CategoryDTO.class));
+		response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId), MenuItemDTO.class));
+		response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId), ItemVariantDTO.class));
+		response.setStockLogs(SyncMapper.mapList(stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId), StockLogDTO.class));
+		response.setBills(SyncMapper.mapList(billService.pullData(tenantId, lastSyncTimestamp, deviceId), BillDTO.class));
+		response.setBillItems(SyncMapper.mapList(billItemService.pullData(tenantId, lastSyncTimestamp, deviceId), BillItemDTO.class));
+		response.setBillPayments(SyncMapper.mapList(billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId), BillPaymentDTO.class));
 
 		int profilesCount = response.getProfiles() == null ? 0 : response.getProfiles().size();
 		int usersCount = response.getUsers() == null ? 0 : response.getUsers().size();
@@ -96,19 +94,5 @@ public class MasterSyncController {
 	@GetMapping("/admin/test")
 	public ResponseEntity<String> adminTest() {
 		return ResponseEntity.ok("ADMIN_OK");
-	}
-
-	@Data
-	public static class MasterSyncResponse {
-		private Long serverTimestamp;
-		private List<RestaurantProfile> profiles;
-		private List<User> users;
-		private List<Category> categories;
-		private List<MenuItem> menuItems;
-		private List<ItemVariant> itemVariants;
-		private List<StockLog> stockLogs;
-		private List<Bill> bills;
-		private List<BillItem> billItems;
-		private List<BillPayment> billPayments;
 	}
 }

@@ -3,6 +3,7 @@ package com.khanabook.saas.controller;
 import com.khanabook.saas.entity.User;
 import com.khanabook.saas.service.UserService;
 import com.khanabook.saas.sync.dto.PushSyncResponse;
+import com.khanabook.saas.sync.dto.payload.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,14 +19,13 @@ public class UserController {
 	private final UserService service;
 
 	@PostMapping("/push")
-	public ResponseEntity<PushSyncResponse> push(@RequestBody List<User> payload) {
-
-		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), payload));
+	public ResponseEntity<PushSyncResponse> push(@RequestBody List<UserDTO> payload) {
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, User.class)));
 	}
 
 	@GetMapping("/pull")
-	public ResponseEntity<List<User>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
-		return ResponseEntity.ok(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId));
+	public ResponseEntity<List<UserDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
+		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId), UserDTO.class));
 	}
 
 	@PostMapping("/update-mobile")
