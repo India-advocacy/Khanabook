@@ -438,15 +438,18 @@ fun ReviewScannedItemsSheet(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.6f))
-                .windowInsetsPadding(WindowInsets.safeDrawing),
-            contentAlignment = Alignment.Center
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.BottomCenter
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.92f)
+                    .fillMaxHeight(0.95f)
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                     .background(DarkBrown1)
+                    .clickable(enabled = false) { }
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+                    .statusBarsPadding()
             ) {
 
                 Box(
@@ -793,8 +796,7 @@ fun ReviewScannedItemsSheet(
 
                 Surface(
                     color = DarkBrown2,
-                    border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f)),
-                    modifier = Modifier.navigationBarsPadding()
+                    border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.3f))
                 ) {
                     Row(
                         modifier = Modifier
