@@ -101,7 +101,8 @@ data class RestaurantProfileEntity(
     @ColumnInfo(name = "show_branding", defaultValue = "1")
     val showBranding: Boolean = true,
     @ColumnInfo(name = "mask_customer_phone", defaultValue = "1")
-    val maskCustomerPhone: Boolean = true
+    val maskCustomerPhone: Boolean = true,
+    @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null
 )
 
 

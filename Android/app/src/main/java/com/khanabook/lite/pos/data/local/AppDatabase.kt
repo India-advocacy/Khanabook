@@ -20,7 +20,7 @@ import com.khanabook.lite.pos.data.local.entity.*
                         BillPaymentEntity::class,
                         StockLogEntity::class
                 ],
-        version = 27,
+        version = 28,
         exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -33,6 +33,22 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "khanabook_lite_db"
+
+        val MIGRATION_27_28 = object : Migration(27, 28) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                val tables = arrayOf(
+                    "users", "restaurant_profile", "categories", "menu_items",
+                    "item_variants", "bills", "bill_items", "bill_payments", "stock_logs"
+                )
+                for (table in tables) {
+                    try {
+                        db.execSQL("ALTER TABLE `$table` ADD COLUMN `server_id` INTEGER DEFAULT NULL")
+                    } catch (e: Exception) {
+                        // Already exists or table missing
+                    }
+                }
+            }
+        }
 
         
         val MIGRATION_17_18 = object : Migration(17, 18) {

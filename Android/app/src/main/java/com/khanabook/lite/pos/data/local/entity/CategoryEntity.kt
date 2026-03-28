@@ -26,7 +26,8 @@ data class CategoryEntity(
     @ColumnInfo(name = "is_synced", defaultValue = "0") val isSynced: Boolean = false,
     @ColumnInfo(name = "updated_at", defaultValue = "0") val updatedAt: Long = System.currentTimeMillis()
 ,
-    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false
+    @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
+    @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null
 )
 
 
