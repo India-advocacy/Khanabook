@@ -231,14 +231,14 @@ fun CustomerInfoStep(onNext: (String, String) -> Unit, onBack: () -> Unit, hideH
         val showPhoneError = whatsapp.isNotEmpty() && !ValidationUtils.isValidPhone(whatsapp)
         OutlinedTextField(
                 value = whatsapp,
-                onValueChange = { if (it.length <= 10) whatsapp = it },
+                onValueChange = { whatsapp = it.filter { ch -> ch.isDigit() }.take(10) },
                 label = { Text("Customer WhatsApp Number *") },
                 modifier = Modifier.fillMaxWidth(),
                 colors = menuTextFieldColors(),
                 leadingIcon = { Icon(Icons.Default.Phone, null, tint = VegGreen) },
                 isError = showPhoneError,
                 supportingText = {
-                    if (showPhoneError) Text("Enter a valid 10-digit number", color = DangerRed)
+                    if (showPhoneError) Text("Enter 10-digit number", color = DangerRed)
                 },
                 keyboardOptions =
                         androidx.compose.foundation.text.KeyboardOptions(
@@ -1217,4 +1217,3 @@ fun RowScope.StepConnector(isCompleted: Boolean) {
             .background(color)
     )
 }
-

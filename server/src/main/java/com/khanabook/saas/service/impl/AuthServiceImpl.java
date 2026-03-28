@@ -68,10 +68,8 @@ public class AuthServiceImpl implements AuthService {
 	@Override
 	@Transactional
 	public AuthResponse signup(SignupRequest request) {
-		if (userRepository.findByLoginId(request.getPhoneNumber()).isPresent()
-				|| userRepository.findByEmail(request.getPhoneNumber()).isPresent()) {
-			throw new IllegalArgumentException("An account with this phone number already exists.");
-		}
+		ensurePhoneNumberAvailableForSignup(request.getPhoneNumber());
+		passwordResetOtpService.validateSignupOtpOrThrow(request.getPhoneNumber(), request.getOtp());
 
 		Long newRestaurantId = Math.abs(UUID.randomUUID().getMostSignificantBits());
 
@@ -107,7 +105,14 @@ public class AuthServiceImpl implements AuthService {
 		log.info("New user signed up: restaurantId={}", newRestaurantId);
 		String token = jwtUtility.generateToken(getLoginIdentifier(user), newRestaurantId, user.getRole().name());
 		return new AuthResponse(token, newRestaurantId, user.getName(), getLoginIdentifier(user), user.getWhatsappNumber(),
-					user.getRole().name());
+						user.getRole().name());
+	}
+
+	@Override
+	@Transactional
+	public void requestSignupOtp(String phoneNumber) {
+		ensurePhoneNumberAvailableForSignup(phoneNumber);
+		passwordResetOtpService.issueSignupOtp(phoneNumber);
 	}
 
 	@Override
@@ -227,6 +232,12 @@ public class AuthServiceImpl implements AuthService {
 		return userRepository.findByLoginId(phoneNumber)
 				.or(() -> userRepository.findByEmail(phoneNumber))
 				.or(() -> userRepository.findByWhatsappNumber(phoneNumber));
+	}
+
+	private void ensurePhoneNumberAvailableForSignup(String phoneNumber) {
+		if (findUserByLoginId(phoneNumber).isPresent()) {
+			throw new IllegalArgumentException("This number is already registered.");
+		}
 	}
 
 	private void backfillLoginIdIfMissing(User user) {

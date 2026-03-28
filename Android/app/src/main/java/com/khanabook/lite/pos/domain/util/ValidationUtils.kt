@@ -3,7 +3,7 @@ package com.khanabook.lite.pos.domain.util
 object ValidationUtils {
     
     fun isValidPhone(phone: String): Boolean {
-        return phone.matches(Regex("^\\+?[1-9]\\d{6,19}$"))
+        return phone.matches(Regex("^\\d{10}$"))
     }
 
     fun isValidEmail(email: String): Boolean {
@@ -41,5 +41,4 @@ object ValidationUtils {
         return value in 0.0..100.0
     }
 }
-
 

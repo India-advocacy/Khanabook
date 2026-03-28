@@ -18,6 +18,7 @@ import com.khanabook.lite.pos.data.remote.dto.UpdateMobileRequest
 import com.khanabook.lite.pos.data.remote.api.LoginRequest
 import com.khanabook.lite.pos.data.remote.api.GoogleLoginRequest
 import com.khanabook.lite.pos.data.remote.api.SignupRequest
+import com.khanabook.lite.pos.data.remote.api.SignupOtpRequest
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -86,10 +87,10 @@ class UserRepository(
         }
     }
 
-    suspend fun remoteSignup(name: String, phoneNumber: String, passwordPlain: String): Result<UserEntity> {
+    suspend fun remoteSignup(name: String, phoneNumber: String, otp: String, passwordPlain: String): Result<UserEntity> {
         return try {
             val deviceId = sessionManager.getDeviceId()
-            val request = SignupRequest(phoneNumber, name, passwordPlain, deviceId)
+            val request = SignupRequest(phoneNumber, name, passwordPlain, otp, deviceId)
             
             val response = api.signup(request)
             val loginId = response.loginId?.takeIf { it.isNotBlank() } ?: phoneNumber
@@ -236,6 +237,10 @@ class UserRepository(
 
     suspend fun requestPasswordResetOtp(phoneNumber: String) {
         api.requestPasswordResetOtp(PasswordResetOtpRequest(phoneNumber))
+    }
+
+    suspend fun requestSignupOtp(phoneNumber: String) {
+        api.requestSignupOtp(SignupOtpRequest(phoneNumber))
     }
 
     suspend fun remoteResetPassword(phoneNumber: String, otp: String, newPasswordPlain: String) {

@@ -12,9 +12,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@Validated
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
@@ -53,6 +55,12 @@ public class AuthController {
 		return ResponseEntity.ok(authService.signup(request));
 	}
 
+	@PostMapping("/signup/request")
+	public ResponseEntity<Void> requestSignupOtp(@Valid @RequestBody SignupOtpRequest request) {
+		authService.requestSignupOtp(request.getPhoneNumber());
+		return ResponseEntity.ok().build();
+	}
+
 	@PostMapping("/google")
 	public ResponseEntity<AuthResponse> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
 		DebugNDJSONLogger.log(
@@ -68,7 +76,10 @@ public class AuthController {
 	}
 
 	@GetMapping("/check-user")
-	public ResponseEntity<Boolean> checkUser(@RequestParam String phoneNumber) {
+	public ResponseEntity<Boolean> checkUser(
+			@RequestParam
+			@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
+			String phoneNumber) {
 		DebugNDJSONLogger.log(
 				"pre-debug",
 				"H2_SILENT_REAUTH_VIA_AUTH_ENDPOINT",
@@ -116,8 +127,18 @@ public class AuthController {
 	@NoArgsConstructor
 	public static class PasswordResetOtpRequest {
 		@NotBlank(message = "Phone number is required")
-		@Pattern(regexp = "^\\+?[1-9]\\d{6,19}$", message = "Phone number must be valid format")
-		@Size(max = 20)
+		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
+		@Size(min = 10, max = 10)
+		private String phoneNumber;
+	}
+
+	@Data
+	@AllArgsConstructor
+	@NoArgsConstructor
+	public static class SignupOtpRequest {
+		@NotBlank(message = "Phone number is required")
+		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
+		@Size(min = 10, max = 10)
 		private String phoneNumber;
 	}
 
@@ -126,6 +147,8 @@ public class AuthController {
 	@NoArgsConstructor
 	public static class ResetPasswordRequest {
 		@NotBlank(message = "Phone number is required")
+		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
+		@Size(min = 10, max = 10)
 		private String phoneNumber;
 		@NotBlank(message = "OTP is required")
 		@Pattern(regexp = "^\\d{6}$", message = "OTP must be 6 digits")
@@ -140,8 +163,8 @@ public class AuthController {
 	@NoArgsConstructor
 	public static class LoginRequest {
 		@NotBlank(message = "Phone number is required")
-		@Pattern(regexp = "^\\+?[1-9]\\d{6,19}$", message = "Phone number must be valid format")
-		@Size(max = 20)
+		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
+		@Size(min = 10, max = 10)
 		@JsonAlias("email")
 		private String phoneNumber;
 
@@ -167,8 +190,8 @@ public class AuthController {
 	@NoArgsConstructor
 	public static class SignupRequest {
 		@NotBlank(message = "Phone number is required")
-		@Pattern(regexp = "^\\+?[1-9]\\d{6,19}$", message = "Phone number must be valid format")
-		@Size(max = 20)
+		@Pattern(regexp = "^\\d{10}$", message = "Phone number must be exactly 10 digits")
+		@Size(min = 10, max = 10)
 		@JsonAlias("email")
 		private String phoneNumber;
 
@@ -179,6 +202,10 @@ public class AuthController {
 		@NotBlank(message = "Password is required")
 		@Size(min = 6, max = 128, message = "Password must be between 6 and 128 characters")
 		private String password;
+
+		@NotBlank(message = "OTP is required")
+		@Pattern(regexp = "^\\d{6}$", message = "OTP must be 6 digits")
+		private String otp;
 
 		@Size(max = 128)
 		private String deviceId;

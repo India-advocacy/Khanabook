@@ -64,8 +64,6 @@ fun SignUpScreen(
 
     var otpSent by remember { mutableStateOf(false) }
     var otpTimer by remember { mutableIntStateOf(120) }
-    var isOtpVerified by remember { mutableStateOf(false) }
-
     val signUpStatus by viewModel.signUpStatus.collectAsState()
     val loginStatus by viewModel.loginStatus.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -187,7 +185,9 @@ fun SignUpScreen(
                     
                     OutlinedTextField(
                             value = phoneNumber,
-                            onValueChange = { phoneNumber = it },
+                            onValueChange = {
+                                phoneNumber = it.filter { ch -> ch.isDigit() }.take(10)
+                            },
                             placeholder = {
                                 Text("WhatsApp Number", color = TextGold.copy(alpha = 0.5f))
                             },
@@ -207,7 +207,7 @@ fun SignUpScreen(
                             isError = phoneNumber.isNotEmpty() && !isPhoneValid,
                             supportingText = {
                                 if (phoneNumber.isNotEmpty() && !isPhoneValid)
-                                        Text("Enter valid phone number", color = DangerRed)
+                                        Text("Enter 10-digit number", color = DangerRed)
                             },
                             trailingIcon = {
                                 if (!otpSent || otpTimer == 0) {
@@ -241,9 +241,7 @@ fun SignUpScreen(
                                 value = otp,
                                 onValueChange = {
                                     if (it.length <= 6) {
-                                        otp = it
-                                        if (it.length == 6) isOtpVerified = viewModel.verifyOtp(it)
-                                        else isOtpVerified = false
+                                        otp = it.filter { ch -> ch.isDigit() }
                                     }
                                 },
                                 placeholder = {
@@ -263,24 +261,13 @@ fun SignUpScreen(
                                 colors = outlinedTextFieldColors(),
                                 singleLine = true,
                                 enabled = !isLoading,
-                                isError = otp.length == 6 && !isOtpVerified,
-                                supportingText = {
-                                    if (otp.length == 6 && !isOtpVerified)
-                                            Text("Invalid OTP code", color = DangerRed)
-                                },
+                                isError = false,
                                 trailingIcon = {
-                                    if (otpTimer > 0 && !isOtpVerified) {
+                                    if (otpTimer > 0) {
                                         Text(
                                                 text = formatTime(otpTimer),
                                                 color = TextLight,
                                                 fontSize = 14.sp,
-                                                modifier = Modifier.padding(end = 16.dp)
-                                        )
-                                    } else if (isOtpVerified) {
-                                        Icon(
-                                                Icons.Default.Lock,
-                                                contentDescription = "Verified",
-                                                tint = SuccessGreen,
                                                 modifier = Modifier.padding(end = 16.dp)
                                         )
                                     }
@@ -387,12 +374,12 @@ fun SignUpScreen(
                                 isPhoneValid &&
                                 isPasswordValid &&
                                 passwordsMatch &&
-                                isOtpVerified && !isLoading
+                                otp.length == 6 && !isLoading
 
                 Button(
                         onClick = {
                             if (isFormValid) {
-                                viewModel.signUp(shopName, phoneNumber, newPassword)
+                                viewModel.signUp(shopName, phoneNumber, otp, newPassword)
                             }
                         },
                         modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -481,4 +468,3 @@ private fun outlinedTextFieldColors() =
                 focusedTextColor = TextLight,
                 unfocusedTextColor = TextLight
         )
-

@@ -15,7 +15,12 @@ data class SignupRequest(
     val phoneNumber: String,
     val name: String,
     val password: String,
+    val otp: String,
     val deviceId: String
+)
+
+data class SignupOtpRequest(
+    val phoneNumber: String
 )
 
 data class AuthResponse(

@@ -19,6 +19,7 @@ public abstract class BaseIntegrationTest {
 
         registry.add("JWT_SECRET",       () -> "integration-test-secret-64-chars-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
         registry.add("GOOGLE_CLIENT_ID", () -> "test-google-client-id");
+        registry.add("whatsapp.meta.fixed-otp", () -> "123456");
 
         registry.add("spring.flyway.enabled",             () -> "false");
         registry.add("spring.jpa.hibernate.ddl-auto",    () -> "create-drop");

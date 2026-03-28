@@ -466,16 +466,14 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             ParchmentTextField(
                 value = whatsapp,
                 onValueChange = {
-                    if (it.length <= 10) {
-                        whatsapp = it
-                        if (it != (profile?.whatsappNumber ?: "")) {
-                            otpSent = false
-                            isOtpVerified = false
-                            otpValue = ""
-                        } else {
-                            // Reverted to original number — treat as verified
-                            isOtpVerified = true
-                        }
+                    whatsapp = it.filter { ch -> ch.isDigit() }.take(10)
+                    if (whatsapp != (profile?.whatsappNumber ?: "")) {
+                        otpSent = false
+                        isOtpVerified = false
+                        otpValue = ""
+                    } else {
+                        // Reverted to original number — treat as verified
+                        isOtpVerified = true
                     }
                 },
                 label = "Whatsapp Number",
@@ -1022,4 +1020,3 @@ private fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: Strin
 private fun loadBitmap(path: String): Bitmap? {
     return try { BitmapFactory.decodeFile(path) } catch (_: Exception) { null }
 }
-

@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.khanabook.lite.pos.R
+import com.khanabook.lite.pos.domain.util.ValidationUtils
 import com.khanabook.lite.pos.ui.theme.*
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 import kotlinx.coroutines.delay
@@ -50,6 +51,7 @@ fun LoginScreen(
 
     val loginStatus by viewModel.loginStatus.collectAsState()
     val isLoading = loginStatus is AuthViewModel.LoginResult.Loading
+    val isPhoneValid = ValidationUtils.isValidPhone(phone)
     val context = LocalContext.current
 
     LaunchedEffect(loginStatus) {
@@ -100,7 +102,7 @@ fun LoginScreen(
             
             TextField(
                     value = phone,
-                    onValueChange = { phone = it },
+                    onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
                     placeholder = { Text("Phone Number", color = Color.Gray) },
                     leadingIcon = {
                         Icon(
@@ -124,7 +126,12 @@ fun LoginScreen(
                             ),
                     textStyle = LocalTextStyle.current.copy(color = TextLight),
                     singleLine = true,
-                    isError = phone.isBlank() && loginStatus is AuthViewModel.LoginResult.Error
+                    isError = (phone.isNotEmpty() && !isPhoneValid) || (phone.isBlank() && loginStatus is AuthViewModel.LoginResult.Error),
+                    supportingText = {
+                        if (phone.isNotEmpty() && !isPhoneValid) {
+                            Text("Enter 10-digit number", color = ErrorPink)
+                        }
+                    }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -198,7 +205,7 @@ fun LoginScreen(
 
             
             val isLoading = loginStatus is AuthViewModel.LoginResult.Loading
-            val isLoginEnabled = phone.isNotBlank() && password.isNotBlank() && !isLoading
+            val isLoginEnabled = isPhoneValid && password.isNotBlank() && !isLoading
             Button(
                     onClick = { if (isLoginEnabled) viewModel.login(phone, password) },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
@@ -340,6 +347,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
     var showConfirmPassword by remember { mutableStateOf(false) }
     var step by remember { mutableIntStateOf(1) }
     var resendTimer by remember { mutableIntStateOf(0) }
+    val isPhoneValid = ValidationUtils.isValidPhone(phone)
 
     val resetStatus by viewModel.resetPasswordStatus.collectAsState()
 
@@ -396,7 +404,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         Spacer(modifier = Modifier.height(16.dp))
                         OutlinedTextField(
                                 value = phone,
-                                onValueChange = { phone = it },
+                                onValueChange = { phone = it.filter { ch -> ch.isDigit() }.take(10) },
                                 label = { Text("WhatsApp Number") },
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = loginTextFieldColors(),
@@ -404,6 +412,12 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                                         KeyboardOptions(keyboardType = KeyboardType.Phone),
                                 leadingIcon = {
                                     Icon(Icons.Default.Phone, null, tint = PrimaryGold)
+                                },
+                                isError = phone.isNotEmpty() && !isPhoneValid,
+                                supportingText = {
+                                    if (phone.isNotEmpty() && !isPhoneValid) {
+                                        Text("Enter 10-digit number", color = Color.Red, fontSize = 12.sp)
+                                    }
                                 }
                         )
                     }
@@ -507,7 +521,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         onClick = {
                             when (step) {
                                 1 -> {
-                                    if (phone.isNotBlank()) {
+                                    if (isPhoneValid) {
                                         viewModel.sendOtp(phone, "reset")
                                         resendTimer = 60
                                     }
@@ -533,7 +547,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         shape = RoundedCornerShape(8.dp),
                         enabled =
                                 when (step) {
-                                    1 -> phone.isNotBlank()
+                                    1 -> isPhoneValid
                                     2 -> otp.length == 6
                                     3 -> newPassword.isNotBlank() && newPassword == confirmPassword
                                     else -> false

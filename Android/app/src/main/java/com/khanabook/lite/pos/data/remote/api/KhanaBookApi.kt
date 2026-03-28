@@ -17,6 +17,9 @@ interface KhanaBookApi {
         @POST("api/v1/auth/signup")
         suspend fun signup(@Body request: SignupRequest): AuthResponse
 
+        @POST("api/v1/auth/signup/request")
+        suspend fun requestSignupOtp(@Body request: SignupOtpRequest)
+
         @POST("api/v1/auth/google")
         suspend fun loginWithGoogle(@Body request: GoogleLoginRequest): AuthResponse
 

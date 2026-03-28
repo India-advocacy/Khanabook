@@ -10,11 +10,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.khanabook.lite.pos.BuildConfig
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.data.local.entity.RestaurantProfileEntity
 import com.khanabook.lite.pos.data.local.entity.UserEntity
-import com.khanabook.lite.pos.data.remote.*
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.AuthManager
@@ -39,7 +37,6 @@ class AuthViewModel
 @Inject
 constructor(
         private val userRepository: UserRepository,
-        private val whatsAppApiService: WhatsAppApiService,
         private val restaurantRepository: RestaurantRepository,
         private val syncManager: SyncManager,
         private val sessionManager: com.khanabook.lite.pos.domain.manager.SessionManager,
@@ -68,8 +65,6 @@ constructor(
 
     private val _otpVerificationStatus = MutableStateFlow<OtpVerificationResult?>(null)
     val otpVerificationStatus: StateFlow<OtpVerificationResult?> = _otpVerificationStatus
-
-    private var generatedOtp: String? = null
 
     
     
@@ -173,6 +168,17 @@ constructor(
 
     fun sendOtp(phoneNumber: String, purpose: String = "signup") {
         viewModelScope.launch {
+            if (purpose == "signup") {
+                try {
+                    userRepository.requestSignupOtp(phoneNumber)
+                    _signUpStatus.value = SignUpResult.OtpSent
+                } catch (e: Exception) {
+                    _signUpStatus.value =
+                        SignUpResult.Error(e.message ?: "Failed to send OTP. Please try again.")
+                }
+                return@launch
+            }
+
             if (purpose == "reset") {
                 try {
                     userRepository.requestPasswordResetOtp(phoneNumber)
@@ -194,111 +200,7 @@ constructor(
                 }
                 return@launch
             }
-
-            
-            val otp = (100000..999999).random().toString()
-            generatedOtp = otp
-            
-            
-
-            try {
-                
-                val formattedPhone = phoneNumber
-
-                if (BuildConfig.META_ACCESS_TOKEN.isEmpty() || BuildConfig.WHATSAPP_PHONE_NUMBER_ID.isEmpty()) {
-                    Log.d(TAG, "Meta API tokens not configured. Simulating OTP send. OTP is: $otp")
-                    when (purpose) {
-                        "reset" -> _resetPasswordStatus.value = ResetPasswordResult.OtpSent
-                        "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.OtpSent
-                        else -> _signUpStatus.value = SignUpResult.OtpSent
-                    }
-                    return@launch
-                }
-
-                val request =
-                        WhatsAppRequest(
-                                to = formattedPhone,
-                                template =
-                                        WhatsAppTemplate(
-                                                name = BuildConfig.WHATSAPP_OTP_TEMPLATE_NAME,
-                                                language = Language(),
-                                                components =
-                                                        listOf(
-                                                                Component(
-                                                                        type = "body",
-                                                                        parameters =
-                                                                                listOf(
-                                                                                        Parameter(
-                                                                                                text =
-                                                                                                        otp
-                                                                                        ) 
-                                                                                        
-                                                                                        )
-                                                                ),
-                                                                Component(
-                                                                        type = "button",
-                                                                        sub_type = "url",
-                                                                        index = "0",
-                                                                        parameters =
-                                                                                listOf(
-                                                                                        Parameter(
-                                                                                                text =
-                                                                                                        otp
-                                                                                        ) 
-                                                                                        
-                                                                                        
-                                                                                        
-                                                                                        
-                                                                                        )
-                                                                )
-                                                        )
-                                        )
-                        )
-
-                val response =
-                        whatsAppApiService.sendOtp(
-                                phoneNumberId = BuildConfig.WHATSAPP_PHONE_NUMBER_ID,
-                                token = "Bearer ${BuildConfig.META_ACCESS_TOKEN}",
-                                request = request
-                        )
-
-                if (response.isSuccessful) {
-                    
-                    when (purpose) {
-                        "reset" -> _resetPasswordStatus.value = ResetPasswordResult.OtpSent
-                        "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.OtpSent
-                        else -> _signUpStatus.value = SignUpResult.OtpSent
-                    }
-                } else {
-                    val apiError = response.errorBody()?.string() ?: "Unknown error"
-                    Log.e(TAG, "WhatsApp API Error: $apiError")
-                    generatedOtp = null 
-                    val errorMessage = "Failed to send OTP. Please try again."
-                    when (purpose) {
-                        "reset" -> _resetPasswordStatus.value = ResetPasswordResult.Error(errorMessage)
-                        "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.Error(errorMessage)
-                        else -> _signUpStatus.value = SignUpResult.Error(errorMessage)
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "OTP Send Exception: ${e.message}")
-                generatedOtp = null
-                val errorMessage = "Network error. Failed to send OTP."
-                when (purpose) {
-                    "reset" -> _resetPasswordStatus.value = ResetPasswordResult.Error(errorMessage)
-                    "update_whatsapp" -> _otpVerificationStatus.value = OtpVerificationResult.Error(errorMessage)
-                    else -> _signUpStatus.value = SignUpResult.Error(errorMessage)
-                }
-            }
         }
-    }
-
-    fun verifyOtp(enteredOtp: String): Boolean {
-        val valid = enteredOtp.isNotBlank() && enteredOtp == generatedOtp
-        if (valid) {
-            generatedOtp = null 
-        }
-        return valid
     }
 
     fun confirmMobileNumberUpdate(phoneNumber: String, otp: String) {
@@ -313,12 +215,12 @@ constructor(
         }
     }
 
-    fun signUp(name: String, phoneNumber: String, password: String) {
+    fun signUp(name: String, phoneNumber: String, otp: String, password: String) {
         viewModelScope.launch {
             _signUpStatus.value = SignUpResult.Loading
             try {
 
-                val result = userRepository.remoteSignup(name, phoneNumber, password)                
+                val result = userRepository.remoteSignup(name, phoneNumber, otp, password)
                 result.onSuccess {
                     
                     val currentProfile = restaurantRepository.getProfile()
@@ -380,7 +282,6 @@ constructor(
 
     fun logout() {
         userRepository.setCurrentUser(null)
-        generatedOtp = null
         failedLoginAttempts = 0
         lockoutUntilMs = 0L
         _loginStatus.value = null

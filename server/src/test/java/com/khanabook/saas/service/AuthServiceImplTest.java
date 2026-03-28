@@ -6,6 +6,7 @@ import com.khanabook.saas.entity.User;
 import com.khanabook.saas.entity.UserRole;
 import com.khanabook.saas.repository.RestaurantProfileRepository;
 import com.khanabook.saas.repository.UserRepository;
+import com.khanabook.saas.service.PasswordResetOtpService;
 import com.khanabook.saas.service.impl.AuthServiceImpl;
 import com.khanabook.saas.utility.JwtUtility;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ class AuthServiceImplTest {
     @Mock private RestaurantProfileRepository restaurantProfileRepository;
     @Mock private JwtUtility jwtUtility;
     @Mock private PasswordEncoder passwordEncoder;
+    @Mock private PasswordResetOtpService passwordResetOtpService;
 
     @InjectMocks
     private AuthServiceImpl authService;
@@ -54,12 +56,12 @@ class AuthServiceImplTest {
 
     @Test
     void login_success() {
-        User user = activeUser("+919876543210", "hashed", 100L);
-        when(userRepository.findByEmail("+919876543210")).thenReturn(Optional.of(user));
+        User user = activeUser("9876543210", "hashed", 100L);
+        when(userRepository.findByLoginId("9876543210")).thenReturn(Optional.of(user));
         when(passwordEncoder.matches("pass123", "hashed")).thenReturn(true);
         when(jwtUtility.generateToken(anyString(), anyLong(), anyString())).thenReturn("jwt-token");
 
-        AuthResponse resp = authService.login(loginRequest("+919876543210", "pass123"));
+        AuthResponse resp = authService.login(loginRequest("9876543210", "pass123"));
 
         assertThat(resp.getToken()).isEqualTo("jwt-token");
         assertThat(resp.getRestaurantId()).isEqualTo(100L);
@@ -67,11 +69,13 @@ class AuthServiceImplTest {
 
     @Test
     void signup_newUser_createsProfileAndUser() {
-        when(userRepository.findByEmail("+919876543210")).thenReturn(Optional.empty());
+        when(userRepository.findByLoginId("9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("9876543210")).thenReturn(Optional.empty());
+        when(userRepository.findByWhatsappNumber("9876543210")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("pass123")).thenReturn("bcrypt-hash");
         when(jwtUtility.generateToken(anyString(), anyLong(), anyString())).thenReturn("signup-token");
 
-        SignupRequest req = new SignupRequest("+919876543210", "Nandha", "pass123", "DEVICE_A");
+        SignupRequest req = new SignupRequest("9876543210", "Nandha", "pass123", "123456", "DEVICE_A");
         AuthResponse resp = authService.signup(req);
 
         assertThat(resp.getToken()).isEqualTo("signup-token");
@@ -90,12 +94,14 @@ class AuthServiceImplTest {
 
     @Test
     void signup_restaurantIdIsUuidBased_notSequential() {
+        when(userRepository.findByLoginId(anyString())).thenReturn(Optional.empty());
         when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(userRepository.findByWhatsappNumber(anyString())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("hash");
         when(jwtUtility.generateToken(anyString(), anyLong(), anyString())).thenReturn("t");
 
-        AuthResponse r1 = authService.signup(new SignupRequest("+911111111111", "A", "p", "D1"));
-        AuthResponse r2 = authService.signup(new SignupRequest("+912222222222", "B", "p", "D2"));
+        AuthResponse r1 = authService.signup(new SignupRequest("1111111111", "A", "p", "123456", "D1"));
+        AuthResponse r2 = authService.signup(new SignupRequest("2222222222", "B", "p", "123456", "D2"));
 
         assertThat(r1.getRestaurantId()).isNotEqualTo(r2.getRestaurantId());
     }
