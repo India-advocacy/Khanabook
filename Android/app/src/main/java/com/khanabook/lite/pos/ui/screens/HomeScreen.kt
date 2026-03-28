@@ -53,6 +53,7 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBackground)
+            .systemBarsPadding()
     ) {
         Column(
             modifier = Modifier

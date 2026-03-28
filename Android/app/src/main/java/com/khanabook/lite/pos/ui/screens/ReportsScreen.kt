@@ -70,6 +70,7 @@ fun ReportsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, Color.Black)))
+            .systemBarsPadding()
     ) {
         Column(
             modifier = Modifier

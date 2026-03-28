@@ -136,6 +136,7 @@ fun OrdersScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(colors = listOf(DarkBrown1, DarkBrown2)))
+            .systemBarsPadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
