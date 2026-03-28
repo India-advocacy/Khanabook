@@ -180,6 +180,20 @@ constructor(
             }
 
             if (purpose == "reset") {
+                _resetPasswordStatus.value = ResetPasswordResult.Loading
+                val userExists = try {
+                    userRepository.checkUserExistsRemotely(phoneNumber)
+                } catch (e: Exception) {
+                    _resetPasswordStatus.value =
+                        ResetPasswordResult.Error("Unable to verify account. Check your connection.")
+                    return@launch
+                }
+
+                if (!userExists) {
+                    _resetPasswordStatus.value = ResetPasswordResult.Error("No account found with this number.")
+                    return@launch
+                }
+
                 try {
                     userRepository.requestPasswordResetOtp(phoneNumber)
                     _resetPasswordStatus.value = ResetPasswordResult.OtpSent
@@ -444,6 +458,7 @@ constructor(
     }
 
     sealed class ResetPasswordResult {
+        object Loading : ResetPasswordResult()
         object Success : ResetPasswordResult()
         
         object OtpSent : ResetPasswordResult()

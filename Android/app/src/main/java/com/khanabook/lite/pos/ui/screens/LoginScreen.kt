@@ -350,6 +350,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
     val isPhoneValid = ValidationUtils.isValidPhone(phone)
 
     val resetStatus by viewModel.resetPasswordStatus.collectAsState()
+    val isResetLoading = resetStatus is AuthViewModel.ResetPasswordResult.Loading
 
     LaunchedEffect(resendTimer) {
         if (resendTimer > 0) {
@@ -360,7 +361,10 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
 
     LaunchedEffect(resetStatus) {
         when (resetStatus) {
-            is AuthViewModel.ResetPasswordResult.OtpSent -> step = 2
+            is AuthViewModel.ResetPasswordResult.OtpSent -> {
+                step = 2
+                resendTimer = 60
+            }
             is AuthViewModel.ResetPasswordResult.Success -> {
                 android.widget.Toast.makeText(
                                 context,
@@ -521,9 +525,8 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         onClick = {
                             when (step) {
                                 1 -> {
-                                    if (isPhoneValid) {
+                                    if (isPhoneValid && !isResetLoading) {
                                         viewModel.sendOtp(phone, "reset")
-                                        resendTimer = 60
                                     }
                                 }
                                 2 -> {
@@ -547,40 +550,47 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
                         shape = RoundedCornerShape(8.dp),
                         enabled =
                                 when (step) {
-                                    1 -> isPhoneValid
+                                    1 -> isPhoneValid && !isResetLoading
                                     2 -> otp.length == 6
                                     3 -> newPassword.isNotBlank() && newPassword == confirmPassword
                                     else -> false
                                 }
 
                 ) {
-                    Text(
-                            text =
-                                    when (step) {
-                                        1 -> "Send OTP"
-                                        2 -> "Verify OTP"
-                                        3 -> "Reset Password"
-                                        else -> ""
-                                    },
-                            fontWeight = FontWeight.Bold
-                    )
+                    if (step == 1 && isResetLoading) {
+                        CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = PrimaryGold,
+                                strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                                text =
+                                        when (step) {
+                                            1 -> "Send OTP"
+                                            2 -> "Verify OTP"
+                                            3 -> "Reset Password"
+                                            else -> ""
+                                        },
+                                fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
                 if (step == 2) {
                     TextButton(
                             onClick = {
-                                if (resendTimer == 0) {
+                                if (resendTimer == 0 && !isResetLoading) {
                                     viewModel.sendOtp(phone, "reset")
-                                    resendTimer = 60
                                 }
                             },
-                            enabled = resendTimer == 0
+                            enabled = resendTimer == 0 && !isResetLoading
                     ) {
                         Text(
                                 text =
                                         if (resendTimer > 0) "Resend OTP in ${resendTimer}s"
                                         else "Resend OTP",
-                                color = if (resendTimer > 0) Color.Gray else PrimaryGold
+                                color = if (resendTimer > 0 || isResetLoading) Color.Gray else PrimaryGold
                         )
                     }
                 }

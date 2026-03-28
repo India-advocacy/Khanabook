@@ -13,7 +13,8 @@ import lombok.Setter;
 @Table(name = "restaurantprofiles", uniqueConstraints = {
 		@UniqueConstraint(name = "restaurantprofiles_restaurant_id_device_id_local_id_key", columnNames = { "restaurant_id", "device_id", "local_id" }) }, indexes = {
 				@Index(name = "idx_restaurantprofiles_tenant_updated", columnList = "restaurant_id, updated_at"),
-				@Index(name = "idx_restaurantprofiles_device", columnList = "restaurant_id, device_id, local_id") })
+				@Index(name = "idx_restaurantprofiles_device", columnList = "restaurant_id, device_id, local_id"),
+				@Index(name = "idx_restaurantprofiles_whatsapp_number", columnList = "whatsapp_number") })
 @Getter
 @Setter
 public class RestaurantProfile extends BaseSyncEntity {

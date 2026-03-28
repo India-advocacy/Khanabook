@@ -249,11 +249,7 @@ class UserRepository(
     }
 
     suspend fun checkUserExistsRemotely(phoneNumber: String): Boolean {
-        return try {
-            api.checkUser(phoneNumber)
-        } catch (e: Exception) {
-            false
-        }
+        return api.checkUser(phoneNumber)
     }
 
     suspend fun requestMobileNumberUpdateOtp(newPhone: String): Result<Unit> {
