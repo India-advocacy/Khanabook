@@ -104,7 +104,7 @@ class ReportsViewModel @Inject constructor(
 
     fun setCustomDateRange(from: Long, to: Long) {
         _timeFilter.value = "Custom"
-        loadReports(from, to)
+        loadReports(from, normalizeEndOfDay(to))
     }
 
     fun loadReports(from: Long, to: Long) {
@@ -117,6 +117,16 @@ class ReportsViewModel @Inject constructor(
             _orderDetailsTable.value = reportGenerator.getOrderDetailsTable(from, to)
             _isLoading.value = false
         }
+    }
+
+    private fun normalizeEndOfDay(timestamp: Long): Long {
+        val cal = Calendar.getInstance()
+        cal.timeInMillis = timestamp
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
+        cal.set(Calendar.MILLISECOND, 999)
+        return cal.timeInMillis
     }
 
     fun updateOrderStatus(billId: Long, newStatus: String) {
@@ -141,5 +151,3 @@ class ReportsViewModel @Inject constructor(
         return reportGenerator.getOrderDetail(billId)
     }
 }
-
-
