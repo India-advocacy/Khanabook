@@ -438,18 +438,17 @@ fun ReviewScannedItemsSheet(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.6f))
-                .clickable { onDismiss() },
+                .clickable { onDismiss() }
+                .statusBarsPadding(),
             contentAlignment = Alignment.BottomCenter
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.95f)
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                     .background(DarkBrown1)
                     .clickable(enabled = false) { }
-                    .navigationBarsPadding()
-                    .imePadding()
+                    .safeDrawingPadding()
             ) {
 
                 Box(
