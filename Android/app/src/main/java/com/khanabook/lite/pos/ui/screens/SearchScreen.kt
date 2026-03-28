@@ -96,6 +96,7 @@ fun SearchScreen(
                 .padding(padding)
                 .fillMaxSize()
                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
+                .imePadding()
                 .padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
             Column(modifier = Modifier.wrapContentHeight()) {

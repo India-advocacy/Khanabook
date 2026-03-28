@@ -76,11 +76,12 @@ fun LoginScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(DarkBackground)) {
+    Box(modifier = Modifier.fillMaxSize().background(DarkBackground).imePadding()) {
         Column(
                 modifier =
                         Modifier.fillMaxSize()
                                 .verticalScroll(rememberScrollState())
+                                .imePadding()
                                 .padding(horizontal = 24.dp, vertical = 40.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -380,7 +381,7 @@ fun ForgotPasswordDialog(viewModel: AuthViewModel, onDismiss: () -> Unit) {
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier.fillMaxWidth().imePadding().padding(16.dp),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = DarkBrown1)
         ) {

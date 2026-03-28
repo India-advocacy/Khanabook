@@ -120,6 +120,7 @@ fun SignUpScreen(
                 modifier =
                         Modifier.fillMaxSize()
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, Color.Black)))
+                                .imePadding()
                                 .padding(padding)
         ) {
             Column(

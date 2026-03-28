@@ -81,6 +81,7 @@ fun CallCustomerScreen(
                         Modifier.padding(padding)
                                 .fillMaxSize()
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
+                                .imePadding()
                                 .padding(24.dp)
         ) {
             TabRow(
