@@ -22,11 +22,9 @@ jobs:
             git reset --hard origin/main
             
             cd server
-            mvn clean install -DskipTests
+            mvn clean package -DskipTests
             
-            pkill -f "spring-boot:run" || true
-            pkill -f "saas-backend" || true
-            nohup mvn spring-boot:run > /tmp/kbook_server.log 2>&1 &
-            sleep 10
-            tail -n 20 /tmp/kbook_server.log
+            sudo systemctl restart khanabook
+            sleep 5
+            sudo systemctl status khanabook --no-pager
           EOF
