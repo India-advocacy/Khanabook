@@ -14,3 +14,15 @@
 
 # Java class files (just in case another directory sneaks them in)
 *.class
+
+# Android local/generated files
+/Android/*.log
+/Android/local.properties
+/Android/.gradle/
+/Android/.kotlin/
+/Android/build/
+
+# Editor temp files
+*.swp
+*.swo
+*~
