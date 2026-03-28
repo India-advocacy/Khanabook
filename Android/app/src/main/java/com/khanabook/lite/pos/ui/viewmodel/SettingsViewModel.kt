@@ -125,6 +125,39 @@ class SettingsViewModel @Inject constructor(
     private val _saveProfileSuccess = MutableStateFlow(false)
     val saveProfileSuccess: StateFlow<Boolean> = _saveProfileSuccess.asStateFlow()
 
+    private val _isUserChecking = MutableStateFlow(false)
+    val isUserChecking: StateFlow<Boolean> = _isUserChecking.asStateFlow()
+
+    private val _userExistsError = MutableStateFlow<String?>(null)
+    val userExistsError: StateFlow<String?> = _userExistsError.asStateFlow()
+
+    fun checkUserExists(phoneNumber: String, currentPhoneNumber: String) {
+        if (phoneNumber.length != 10 || phoneNumber == currentPhoneNumber) {
+            _userExistsError.value = null
+            return
+        }
+        
+        viewModelScope.launch {
+            _isUserChecking.value = true
+            _userExistsError.value = null
+            try {
+                val exists = userRepository.checkUserExistsRemotely(phoneNumber)
+                if (exists) {
+                    _userExistsError.value = "An account with this number already exists."
+                }
+            } catch (e: Exception) {
+                // Log and ignore to not block user on network error
+            } finally {
+                _isUserChecking.value = false
+            }
+        }
+    }
+
+    fun clearUserCheck() {
+        _userExistsError.value = null
+        _isUserChecking.value = false
+    }
+
     fun clearSaveProfileState() {
         _saveProfileError.value = null
         _saveProfileSuccess.value = false

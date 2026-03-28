@@ -323,6 +323,8 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
     val saveProfileLoading by viewModel.saveProfileLoading.collectAsState()
     val saveProfileError by viewModel.saveProfileError.collectAsState()
     val saveProfileSuccess by viewModel.saveProfileSuccess.collectAsState()
+    val isUserChecking by viewModel.isUserChecking.collectAsStateWithLifecycle()
+    val userExistsError by viewModel.userExistsError.collectAsStateWithLifecycle()
 
     // Dirty flag: true when any field differs from the saved profile snapshot.
     val isDirty = remember(name, address, whatsapp, email, consent, reviewUrl, logoPath, profile) {
@@ -385,6 +387,13 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             logoPath = it.logoPath
             consent = it.emailInvoiceConsent
             reviewUrl = it.reviewUrl ?: ""
+        }
+    }
+
+    // Clear user check error if phone changes
+    LaunchedEffect(whatsapp) {
+        if (whatsapp.length < 10) {
+            viewModel.clearUserCheck()
         }
     }
 
@@ -466,30 +475,41 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
             ParchmentTextField(
                 value = whatsapp,
                 onValueChange = {
-                    whatsapp = it.filter { ch -> ch.isDigit() }.take(10)
-                    if (whatsapp != (profile?.whatsappNumber ?: "")) {
+                    val filtered = it.filter { ch -> ch.isDigit() }.take(10)
+                    whatsapp = filtered
+                    if (filtered != (profile?.whatsappNumber ?: "")) {
                         otpSent = false
                         isOtpVerified = false
                         otpValue = ""
+                        if (filtered.length == 10) {
+                            viewModel.checkUserExists(filtered, profile?.whatsappNumber ?: "")
+                        }
                     } else {
                         // Reverted to original number — treat as verified
                         isOtpVerified = true
+                        viewModel.clearUserCheck()
                     }
                 },
                 label = "Whatsapp Number",
-                isError = whatsapp.isNotEmpty() && !isPhoneValid,
-                supportingText = if (whatsapp.isNotEmpty() && !isPhoneValid) "Enter 10-digit number" else null,
+                isError = (whatsapp.isNotEmpty() && !isPhoneValid) || userExistsError != null,
+                supportingText = if (userExistsError != null) userExistsError else if (whatsapp.isNotEmpty() && !isPhoneValid) "Enter 10-digit number" else null,
                 trailingIcon = {
-                    if (numberChanged && (!otpSent || otpTimer == 0)) {
+                    if (isUserChecking) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = PrimaryGold
+                        )
+                    } else if (numberChanged && (!otpSent || otpTimer == 0)) {
                         Button(
                             onClick = {
-                                if (isPhoneValid) authViewModel.sendOtp(whatsapp, "update_whatsapp")
+                                if (isPhoneValid && userExistsError == null) authViewModel.sendOtp(whatsapp, "update_whatsapp")
                             },
                             modifier = Modifier.padding(end = 4.dp).height(36.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold),
                             shape = RoundedCornerShape(20.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp),
-                            enabled = isPhoneValid
+                            enabled = isPhoneValid && !isUserChecking && userExistsError == null
                         ) {
                             Text("Send OTP", color = DarkBrown1, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
