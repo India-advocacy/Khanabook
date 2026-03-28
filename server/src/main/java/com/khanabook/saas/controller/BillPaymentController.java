@@ -18,7 +18,7 @@ public class BillPaymentController {
 
     @PostMapping("/push")
     public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillPaymentDTO> payload) {
-        return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, BillPayment.class)));
+        return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapToEntityList(payload, BillPayment.class)));
     }
 
     @GetMapping("/pull")

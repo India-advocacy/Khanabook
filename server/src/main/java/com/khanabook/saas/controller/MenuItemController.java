@@ -18,7 +18,7 @@ public class MenuItemController {
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<MenuItemDTO> payload) {
-		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, MenuItem.class)));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapToEntityList(payload, MenuItem.class)));
 	}
 
 	@GetMapping("/pull")

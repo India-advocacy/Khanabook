@@ -26,7 +26,7 @@ public class CategoryController {
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<CategoryDTO> payload) {
-		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, Category.class)));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapToEntityList(payload, Category.class)));
 	}
 
 	@GetMapping("/pull")

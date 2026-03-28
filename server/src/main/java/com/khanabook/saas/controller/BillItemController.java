@@ -23,7 +23,7 @@ public class BillItemController {
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<BillItemDTO> payload) {
 		log.info("Received bill items push for {} items for Tenant: {}", payload.size(),
 				TenantContext.getCurrentTenant());
-		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, BillItem.class)));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapToEntityList(payload, BillItem.class)));
 	}
 
 	@GetMapping("/pull")

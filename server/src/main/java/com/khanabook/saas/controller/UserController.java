@@ -20,7 +20,7 @@ public class UserController {
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<UserDTO> payload) {
-		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, User.class)));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapToEntityList(payload, User.class)));
 	}
 
 	@GetMapping("/pull")

@@ -18,7 +18,7 @@ public class ItemVariantController {
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<ItemVariantDTO> payload) {
-		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, ItemVariant.class)));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapToEntityList(payload, ItemVariant.class)));
 	}
 
 	@GetMapping("/pull")

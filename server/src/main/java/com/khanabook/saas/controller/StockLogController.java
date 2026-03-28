@@ -18,7 +18,7 @@ public class StockLogController {
 
 	@PostMapping("/push")
 	public ResponseEntity<PushSyncResponse> push(@RequestBody List<StockLogDTO> payload) {
-		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapList(payload, StockLog.class)));
+		return ResponseEntity.ok(service.pushData(TenantContext.getCurrentTenant(), SyncMapper.mapToEntityList(payload, StockLog.class)));
 	}
 
 	@GetMapping("/pull")
