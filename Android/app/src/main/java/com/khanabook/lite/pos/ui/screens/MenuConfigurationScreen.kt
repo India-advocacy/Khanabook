@@ -448,7 +448,8 @@ fun ReviewScannedItemsSheet(
                     .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                     .background(DarkBrown1)
                     .clickable(enabled = false) { }
-                    .safeDrawingPadding()
+                    .navigationBarsPadding()
+                    .imePadding()
             ) {
 
                 Box(
