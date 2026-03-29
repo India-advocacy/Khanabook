@@ -178,7 +178,8 @@ class MasterSyncProcessor @Inject constructor(
                         isDeleted = remoteProfile.isDeleted ?: false,
                         showBranding = remoteProfile.showBranding ?: true,
                         maskCustomerPhone = remoteProfile.maskCustomerPhone ?: true,
-                        serverId = remoteProfile.serverId
+                        serverId = remoteProfile.serverId,
+                        serverUpdatedAt = remoteProfile.serverUpdatedAt ?: 0L
                     )
                 }
             )
@@ -201,7 +202,8 @@ class MasterSyncProcessor @Inject constructor(
                         restaurantId = remoteUser.restaurantId ?: 0L,
                         deviceId = remoteUser.deviceId.orFallback(""),
                         isSynced = true,
-                        serverId = remoteUser.serverId
+                        serverId = remoteUser.serverId,
+                        serverUpdatedAt = remoteUser.serverUpdatedAt ?: 0L
                     )
                 }
             )
@@ -221,7 +223,8 @@ class MasterSyncProcessor @Inject constructor(
                         isSynced = true,
                         updatedAt = remoteCategory.updatedAt,
                         isDeleted = remoteCategory.isDeleted ?: false,
-                        serverId = remoteCategory.serverId
+                        serverId = remoteCategory.serverId,
+                        serverUpdatedAt = remoteCategory.serverUpdatedAt ?: 0L
                     )
                 }
             )
@@ -246,7 +249,8 @@ class MasterSyncProcessor @Inject constructor(
                         isSynced = true,
                         updatedAt = remoteMenuItem.updatedAt,
                         isDeleted = remoteMenuItem.isDeleted ?: false,
-                        serverId = remoteMenuItem.serverId
+                        serverId = remoteMenuItem.serverId,
+                        serverUpdatedAt = remoteMenuItem.serverUpdatedAt ?: 0L
                     )
                 }
             )
@@ -269,7 +273,8 @@ class MasterSyncProcessor @Inject constructor(
                         isSynced = true,
                         updatedAt = remoteVariant.updatedAt,
                         isDeleted = remoteVariant.isDeleted ?: false,
-                        serverId = remoteVariant.serverId
+                        serverId = remoteVariant.serverId,
+                        serverUpdatedAt = remoteVariant.serverUpdatedAt ?: 0L
                     )
                 }
             )
@@ -290,7 +295,8 @@ class MasterSyncProcessor @Inject constructor(
                         isSynced = true,
                         updatedAt = remoteStockLog.updatedAt,
                         isDeleted = remoteStockLog.isDeleted ?: false,
-                        serverId = remoteStockLog.serverId
+                        serverId = remoteStockLog.serverId,
+                        serverUpdatedAt = remoteStockLog.serverUpdatedAt ?: 0L
                     )
                 }
             )
@@ -326,7 +332,8 @@ class MasterSyncProcessor @Inject constructor(
                         isSynced = true,
                         updatedAt = remoteBill.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteBill.isDeleted ?: false,
-                        serverId = remoteBill.serverId
+                        serverId = remoteBill.serverId,
+                        serverUpdatedAt = remoteBill.serverUpdatedAt ?: 0L
                     )
                 }
             )
@@ -351,7 +358,8 @@ class MasterSyncProcessor @Inject constructor(
                         isSynced = true,
                         updatedAt = remoteBillItem.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteBillItem.isDeleted ?: false,
-                        serverId = remoteBillItem.serverId
+                        serverId = remoteBillItem.serverId,
+                        serverUpdatedAt = remoteBillItem.serverUpdatedAt ?: 0L
                     )
                 }
             )
@@ -370,7 +378,8 @@ class MasterSyncProcessor @Inject constructor(
                         isSynced = true,
                         updatedAt = remoteBillPayment.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteBillPayment.isDeleted ?: false,
-                        serverId = remoteBillPayment.serverId
+                        serverId = remoteBillPayment.serverId,
+                        serverUpdatedAt = remoteBillPayment.serverUpdatedAt ?: 0L
                     )
                 }
             )

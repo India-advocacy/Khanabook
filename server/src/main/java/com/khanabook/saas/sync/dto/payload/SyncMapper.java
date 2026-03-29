@@ -22,11 +22,13 @@ public class SyncMapper {
                 CategoryDTO dto = (CategoryDTO) target;
                 dto.setId(source.getId());
                 dto.setLocalId(source.getLocalId());
+                dto.setServerUpdatedAt(source.getServerUpdatedAt());
             } else if (target instanceof MenuItemDTO) {
                 MenuItemDTO dto = (MenuItemDTO) target;
                 MenuItem entity = (MenuItem) source;
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setCategoryId(entity.getCategoryId());
                 dto.setServerCategoryId(entity.getServerCategoryId());
             } else if (target instanceof ItemVariantDTO) {
@@ -34,17 +36,20 @@ public class SyncMapper {
                 ItemVariant entity = (ItemVariant) source;
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setMenuItemId(entity.getMenuItemId());
                 dto.setServerMenuItemId(entity.getServerMenuItemId());
             } else if (target instanceof BillDTO) {
                 BillDTO dto = (BillDTO) target;
                 dto.setId(source.getId());
                 dto.setLocalId(source.getLocalId());
+                dto.setServerUpdatedAt(source.getServerUpdatedAt());
             } else if (target instanceof BillItemDTO) {
                 BillItemDTO dto = (BillItemDTO) target;
                 BillItem entity = (BillItem) source;
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setBillId(entity.getBillId());
                 dto.setMenuItemId(entity.getMenuItemId());
                 dto.setVariantId(entity.getVariantId());
@@ -56,6 +61,7 @@ public class SyncMapper {
                 BillPayment entity = (BillPayment) source;
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setBillId(entity.getBillId());
                 dto.setServerBillId(entity.getServerBillId());
             } else if (target instanceof StockLogDTO) {
@@ -63,6 +69,7 @@ public class SyncMapper {
                 StockLog entity = (StockLog) source;
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setMenuItemId(entity.getMenuItemId());
                 dto.setVariantId(entity.getVariantId());
                 dto.setServerMenuItemId(entity.getServerMenuItemId());
@@ -71,10 +78,12 @@ public class SyncMapper {
                 RestaurantProfileDTO dto = (RestaurantProfileDTO) target;
                 dto.setId(source.getId());
                 dto.setLocalId(source.getLocalId());
+                dto.setServerUpdatedAt(source.getServerUpdatedAt());
             } else if (target instanceof UserDTO) {
                 UserDTO dto = (UserDTO) target;
                 dto.setId(source.getId());
                 dto.setLocalId(source.getLocalId());
+                dto.setServerUpdatedAt(source.getServerUpdatedAt());
             }
 
             return target;
@@ -102,11 +111,13 @@ public class SyncMapper {
                 CategoryDTO dto = (CategoryDTO) source;
                 target.setId(dto.getId());
                 target.setLocalId(dto.getLocalId());
+                target.setServerUpdatedAt(dto.getServerUpdatedAt());
             } else if (source instanceof MenuItemDTO) {
                 MenuItem entity = (MenuItem) target;
                 MenuItemDTO dto = (MenuItemDTO) source;
                 entity.setId(dto.getId());
                 entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setCategoryId(dto.getCategoryId());
                 entity.setServerCategoryId(dto.getServerCategoryId());
             } else if (source instanceof ItemVariantDTO) {
@@ -114,17 +125,20 @@ public class SyncMapper {
                 ItemVariantDTO dto = (ItemVariantDTO) source;
                 entity.setId(dto.getId());
                 entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setMenuItemId(dto.getMenuItemId());
                 entity.setServerMenuItemId(dto.getServerMenuItemId());
             } else if (source instanceof BillDTO) {
                 BillDTO dto = (BillDTO) source;
                 target.setId(dto.getId());
                 target.setLocalId(dto.getLocalId());
+                target.setServerUpdatedAt(dto.getServerUpdatedAt());
             } else if (source instanceof BillItemDTO) {
                 BillItem entity = (BillItem) target;
                 BillItemDTO dto = (BillItemDTO) source;
                 entity.setId(dto.getId());
                 entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setBillId(dto.getBillId());
                 entity.setMenuItemId(dto.getMenuItemId());
                 entity.setVariantId(dto.getVariantId());
@@ -136,6 +150,7 @@ public class SyncMapper {
                 BillPaymentDTO dto = (BillPaymentDTO) source;
                 entity.setId(dto.getId());
                 entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setBillId(dto.getBillId());
                 entity.setServerBillId(dto.getServerBillId());
             } else if (source instanceof StockLogDTO) {
@@ -143,6 +158,7 @@ public class SyncMapper {
                 StockLogDTO dto = (StockLogDTO) source;
                 entity.setId(dto.getId());
                 entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setMenuItemId(dto.getMenuItemId());
                 entity.setVariantId(dto.getVariantId());
                 entity.setServerMenuItemId(dto.getServerMenuItemId());
@@ -151,10 +167,12 @@ public class SyncMapper {
                 RestaurantProfileDTO dto = (RestaurantProfileDTO) source;
                 target.setId(dto.getId());
                 target.setLocalId(dto.getLocalId());
+                target.setServerUpdatedAt(dto.getServerUpdatedAt());
             } else if (source instanceof UserDTO) {
                 UserDTO dto = (UserDTO) source;
                 target.setId(dto.getId());
                 target.setLocalId(dto.getLocalId());
+                target.setServerUpdatedAt(dto.getServerUpdatedAt());
             }
 
             return target;
