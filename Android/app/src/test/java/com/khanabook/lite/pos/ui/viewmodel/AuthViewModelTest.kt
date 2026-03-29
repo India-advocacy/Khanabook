@@ -1,12 +1,11 @@
 package com.khanabook.lite.pos.ui.viewmodel
 
 import com.khanabook.lite.pos.data.local.entity.UserEntity
-import com.khanabook.lite.pos.data.remote.WhatsAppApiService
 import com.khanabook.lite.pos.data.repository.RestaurantRepository
 import com.khanabook.lite.pos.data.repository.UserRepository
 import com.khanabook.lite.pos.domain.manager.AuthManager
-import com.khanabook.lite.pos.domain.manager.SessionManager
 import com.khanabook.lite.pos.domain.manager.SyncManager
+import com.khanabook.lite.pos.domain.manager.SessionManager
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -25,13 +24,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest {
 
     private lateinit var viewModel: AuthViewModel
     private val userRepository: UserRepository = mockk(relaxed = true)
-    private val whatsAppApiService: WhatsAppApiService = mockk(relaxed = true)
     private val restaurantRepository: RestaurantRepository = mockk(relaxed = true)
     private val syncManager: SyncManager = mockk(relaxed = true)
     private val sessionManager: SessionManager = mockk(relaxed = true)
@@ -49,7 +49,6 @@ class AuthViewModelTest {
 
         viewModel = AuthViewModel(
             userRepository,
-            whatsAppApiService,
             restaurantRepository,
             syncManager,
             sessionManager,
@@ -64,11 +63,9 @@ class AuthViewModelTest {
     }
 
     @Test
-    fun `login returns Success via local fallback when remote login fails and credentials are correct`() = runTest {
+    fun `login returns Success when remote login succeeds`() = runTest {
         val email = "9150677849"
         val password = "owner123"
-        val hashedPassword = "\$2a\$12\$SomeBcryptHash.Fake"
-        val localHash = "computed-local-hash"
 
         val fakeUser = UserEntity(
             id = 1,
@@ -79,52 +76,55 @@ class AuthViewModelTest {
             isActive = true
         )
 
-        coEvery { authManager.hashPassword(password) } returns localHash
-        coEvery { userRepository.remoteLogin(email, password) } returns Result.failure(Exception("Network Error"))
-        coEvery { userRepository.getUserByEmail(email) } returns fakeUser
-        coEvery { authManager.verifyPassword(password, hashedPassword) } returns true
+        coEvery { userRepository.remoteLogin(email, password) } returns Result.success(fakeUser)
+        coEvery { sessionManager.saveLastSyncTimestamp(any()) } returns Unit
+        coEvery { sessionManager.setInitialSyncCompleted(any()) } returns Unit
+        coEvery { syncManager.performMasterPull() } returns Result.success(Unit)
 
         viewModel.login(email, password)
         advanceUntilIdle()
 
         val result = viewModel.loginStatus.value
-        assertTrue("Expected login to succeed via local fallback", result is AuthViewModel.LoginResult.Success)
-        coVerify(exactly = 1) { userRepository.setCurrentUser(fakeUser) }
+        assertTrue("Expected login to succeed", result is AuthViewModel.LoginResult.Success)
 
         val successResult = result as AuthViewModel.LoginResult.Success
         assertEquals(fakeUser.email, successResult.user.email)
     }
 
     @Test
-    fun `login returns Error when remote fails and local credentials do not match`() = runTest {
+    fun `login returns Error when remote login fails with 401`() = runTest {
         val email = "9150677849"
-        val wrongPassword = "wrongPassword123"
-        val hashedPassword = "\$2a\$12\$SomeBcryptHash.Fake"
-        val localHash = "computed-local-hash"
+        val password = "wrongPassword"
 
-        val fakeUser = UserEntity(
-            id = 1,
-            name = "Owner",
-            email = email,
-            restaurantId = 1,
-            deviceId = "device",
-            isActive = true
-        )
+        val mockResponse = Response.error<Any>(401, okhttp3.ResponseBody.create(null, ""))
+        val httpException = HttpException(mockResponse)
+        coEvery { userRepository.remoteLogin(email, password) } returns Result.failure(httpException)
 
-        coEvery { authManager.hashPassword(wrongPassword) } returns localHash
-        coEvery { userRepository.remoteLogin(email, wrongPassword) } returns Result.failure(Exception("Network Error"))
-        coEvery { userRepository.getUserByEmail(email) } returns fakeUser
-        coEvery { authManager.verifyPassword(wrongPassword, hashedPassword) } returns false
-
-        viewModel.login(email, wrongPassword)
+        viewModel.login(email, password)
         advanceUntilIdle()
 
         val result = viewModel.loginStatus.value
-        assertTrue("Expected login to fail", result is AuthViewModel.LoginResult.Error)
+        assertTrue("Expected login to fail with INCORRECT_PASSWORD", result is AuthViewModel.LoginResult.Error)
 
         val errorResult = result as AuthViewModel.LoginResult.Error
         assertEquals(AuthViewModel.LoginErrorCode.INCORRECT_PASSWORD, errorResult.code)
-        assertTrue(errorResult.message.startsWith("Incorrect password."))
-        assertTrue(errorResult.message.contains("attempt(s) remaining"))
+    }
+
+    @Test
+    fun `login returns Error when remote login fails with network error and user not found locally`() = runTest {
+        val email = "9150677849"
+        val password = "owner123"
+
+        coEvery { userRepository.remoteLogin(email, password) } returns Result.failure(java.io.IOException("Network error"))
+        coEvery { userRepository.getUserByEmail(email) } returns null
+
+        viewModel.login(email, password)
+        advanceUntilIdle()
+
+        val result = viewModel.loginStatus.value
+        assertTrue("Expected login to fail with ACCOUNT_NOT_FOUND", result is AuthViewModel.LoginResult.Error)
+
+        val errorResult = result as AuthViewModel.LoginResult.Error
+        assertEquals(AuthViewModel.LoginErrorCode.ACCOUNT_NOT_FOUND, errorResult.code)
     }
 }

@@ -2,6 +2,7 @@ package com.khanabook.lite.pos.ui.screens
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,10 +25,12 @@ import androidx.activity.compose.BackHandler
 
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.navigation.NavController
 
 @Composable
 fun MainScreen(
     initialTab: Int = 0,
+    navController: NavController,
     onNewBill: () -> Unit,
     onSearchBill: () -> Unit,
     onOrderStatus: () -> Unit,
@@ -70,6 +73,7 @@ fun MainScreen(
                 "Orders" -> OrdersScreen(onBack = backToHome)
                 "Settings" -> SettingsScreen(
                     onBack = backToHome,
+                    navController = navController,
                     onScanClick = onScanClick,
                     menuViewModel = menuViewModel
                 )
@@ -84,7 +88,10 @@ fun AppBottomBar(
     currentSelectedIndex: Int,
     onTabSelected: (Int) -> Unit
 ) {
-    NavigationBar(containerColor = DarkBrown1) {
+    NavigationBar(
+        containerColor = DarkBrown1,
+        modifier = Modifier.navigationBarsPadding()
+    ) {
         visibleTabs.forEachIndexed { index, item ->
             NavigationBarItem(
                 selected = currentSelectedIndex == index,

@@ -57,18 +57,18 @@ fun NewBillScreen(
         modifier: Modifier = Modifier,
         billingViewModel: BillingViewModel = hiltViewModel(),
         menuViewModel: MenuViewModel = hiltViewModel(),
+        settingsViewModel: SettingsViewModel = hiltViewModel(),
         navController: androidx.navigation.NavController? = null
 ) {
     var step by remember { mutableIntStateOf(1) }
     val cartItems by billingViewModel.cartItems.collectAsStateWithLifecycle()
 
     // Intercept system back gesture to navigate through steps
-    androidx.activity.compose.BackHandler(enabled = step > 1 && step < 6) {
+    androidx.activity.compose.BackHandler(enabled = step > 1) {
         when (step) {
             2 -> step = 1
             3 -> step = 2
-            5 -> step = 3 // Failed -> back to payment
-            else -> { /* step 4 success: use Done button */ }
+            else -> onBack() // step 4 (success) and step 5 (failed): exit screen
         }
     }
 
@@ -139,6 +139,7 @@ fun NewBillScreen(
                 3 ->
                         PaymentStep(
                                 billingViewModel,
+                                settingsViewModel,
                                 onBackToMenu = { step = 2 },
                                 onComplete = { step = 4 },
                                 onFailed = { step = 5 }
@@ -146,7 +147,7 @@ fun NewBillScreen(
                 4 ->
                         SuccessStep(
                                 billingViewModel,
-                                settingsViewModel = hiltViewModel(),
+                                settingsViewModel,
                                 onDone = onBack
                         )
                 5 ->
@@ -582,10 +583,9 @@ fun QuantitySelector(quantity: Int, onAdd: () -> Unit, onRemove: () -> Unit) {
 }
 
 @Composable
-fun PaymentStep(viewModel: BillingViewModel, onBackToMenu: () -> Unit, onComplete: () -> Unit, onFailed: () -> Unit = {}) {
+fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewModel, onBackToMenu: () -> Unit, onComplete: () -> Unit, onFailed: () -> Unit = {}) {
     val summary by viewModel.billSummary.collectAsState()
-    val settingsVM: SettingsViewModel = hiltViewModel()
-    val profile by settingsVM.profile.collectAsState()
+    val profile by settingsViewModel.profile.collectAsState()
     val enabledModes =
             remember(profile) {
                 profile?.let { PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)

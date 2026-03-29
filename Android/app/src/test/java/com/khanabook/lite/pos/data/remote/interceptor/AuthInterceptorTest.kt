@@ -36,8 +36,7 @@ class AuthInterceptorTest {
 
     @Test
     fun `intercept - when token is valid - adds Authorization header`() {
-        
-        val validToken = "valid.jwt.token"
+        val validToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
         every { sessionManager.getAuthToken() } returns validToken
         
         val request = Request.Builder().url("https://api.khanabook.com/api/v1/bills").build()

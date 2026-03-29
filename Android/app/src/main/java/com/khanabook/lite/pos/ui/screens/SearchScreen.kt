@@ -125,8 +125,6 @@ fun SearchScreen(
                         onValueChange = { 
                             if (it.isEmpty() || it.all { char -> char.isDigit() }) {
                                 dailyId = it
-                            } else {
-                                android.widget.Toast.makeText(context, "Please enter a valid number", android.widget.Toast.LENGTH_SHORT).show()
                             }
                         },
                         label = { Text("Daily Order ID", color = TextGold) },

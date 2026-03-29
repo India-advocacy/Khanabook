@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -16,8 +17,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.khanabook.lite.pos.R
 import com.khanabook.lite.pos.domain.manager.SessionManager
-import com.khanabook.lite.pos.domain.util.ConnectionStatus
-import com.khanabook.lite.pos.domain.util.NetworkMonitor
 import com.khanabook.lite.pos.ui.screens.*
 import com.khanabook.lite.pos.ui.theme.KhanaBookLiteTheme
 import com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
@@ -31,15 +30,11 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var sessionManager: SessionManager
     private var lastBackPressTime: Long = 0
 
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        // This is triggered when the user intentionally leaves the app (Home gesture, Home button, Recents)
-        // Useful for detecting if the user swiped to Home or switched apps.
-        android.util.Log.d("MainActivity", "User leaving app - intentionally navigated away (Home/Recents gesture)")
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Enable edge-to-edge for better gesture navigation support
+        enableEdgeToEdge()
 
         setContent {
             KhanaBookLiteTheme {
@@ -47,91 +42,81 @@ class MainActivity : ComponentActivity() {
                 val authViewModel: AuthViewModel = hiltViewModel()
                 val menuViewModel: MenuViewModel = hiltViewModel()
                 val currentUser by authViewModel.currentUser.collectAsState()
-                val networkMonitor = remember { NetworkMonitor(this) }
-                val connectionStatus by networkMonitor.status.collectAsState(initial = null)
                 val context = this
 
-                // Handle Double Back Press to Exit
+                // Root back handling (Double Back to Exit from Home)
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = currentBackStackEntry?.destination?.route
                 
-                // Root back handling (Double Back to Background)
-                // This will be overridden by nested BackHandlers in MainScreen and sub-screens
-                if (currentRoute?.startsWith("main/") == true) {
-                    androidx.activity.compose.BackHandler {
-                        // Root double-back-to-background logic.
-                        // Nested BackHandlers (like in MainScreen) take precedence.
-                        val currentTime = System.currentTimeMillis()
-                        if (currentTime - lastBackPressTime < 2000) {
-                            moveTaskToBack(true)
-                        } else {
-                            Toast.makeText(context, context.getString(R.string.press_back_again_to_exit), Toast.LENGTH_SHORT).show()
-                            lastBackPressTime = currentTime
-                        }
-                    }
-                }
-
-                // Network Status Monitoring
-                var lastStatus by remember { mutableStateOf<ConnectionStatus?>(null) }
-                LaunchedEffect(connectionStatus) {
-                    if (lastStatus != null && connectionStatus != null && lastStatus != connectionStatus) {
-                        val message = if (connectionStatus == ConnectionStatus.Available) {
-                            context.getString(R.string.back_online)
-                        } else {
-                            context.getString(R.string.offline_working_locally)
-                        }
-                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                    }
-                    if (connectionStatus != null) {
-                        lastStatus = connectionStatus
+                // Only intercept back if we are on the Home screen or root MainScreen
+                // This ensures system gestures work for sub-screens
+                val isAtRoot = currentRoute == "main/{tab}" || currentRoute == "main/0"
+                
+                androidx.activity.compose.BackHandler(enabled = isAtRoot) {
+                    val currentTime = System.currentTimeMillis()
+                    if (currentTime - lastBackPressTime < 2000) {
+                        finish() 
+                    } else {
+                        Toast.makeText(context, context.getString(R.string.press_back_again_to_exit), Toast.LENGTH_SHORT).show()
+                        lastBackPressTime = currentTime
                     }
                 }
 
                 // Authentication Observer
                 LaunchedEffect(currentUser) {
-                    val currentRoute = navController.currentDestination?.route
-                    if (currentUser == null && currentRoute != "splash") {
+                    val dest = navController.currentDestination?.route
+                    if (currentUser == null && dest != null && dest != "login" && dest != "splash" && dest != "signup") {
                         navController.navigate("login") { 
                             popUpTo(0) { inclusive = true } 
                         }
                     }
                 }
 
-                val startDestination = "splash"
-
                 NavHost(
                     navController = navController, 
-                    startDestination = startDestination,
-                    enterTransition = { fadeIn(animationSpec = tween(400)) + slideInHorizontally(initialOffsetX = { 300 }, animationSpec = tween(400)) },
-                    exitTransition = { fadeOut(animationSpec = tween(400)) + slideOutHorizontally(targetOffsetX = { -300 }, animationSpec = tween(400)) },
-                    popEnterTransition = { fadeIn(animationSpec = tween(400)) + slideInHorizontally(initialOffsetX = { -300 }, animationSpec = tween(400)) },
-                    popExitTransition = { fadeOut(animationSpec = tween(400)) + slideOutHorizontally(targetOffsetX = { 300 }, animationSpec = tween(400)) }
+                    startDestination = "splash",
+                    enterTransition = { 
+                        fadeIn(tween(400)) + slideInHorizontally(
+                            initialOffsetX = { fullWidth -> fullWidth }, 
+                            animationSpec = tween(400)
+                        ) 
+                    },
+                    exitTransition = { 
+                        fadeOut(tween(400)) + slideOutHorizontally(
+                            targetOffsetX = { fullWidth -> -fullWidth }, 
+                            animationSpec = tween(400)
+                        ) 
+                    },
+                    popEnterTransition = { 
+                        fadeIn(tween(400)) + slideInHorizontally(
+                            initialOffsetX = { fullWidth -> -fullWidth }, 
+                            animationSpec = tween(400)
+                        ) 
+                    },
+                    popExitTransition = { 
+                        fadeOut(tween(400)) + slideOutHorizontally(
+                            targetOffsetX = { fullWidth -> fullWidth },
+                            animationSpec = tween(400)
+                        ) 
+                    }
                 ) {
                     composable("splash") {
                         SplashScreen(
                             onNavigateToLogin = {
-                                navController.navigate("login") {
-                                    popUpTo("splash") { inclusive = true }
-                                }
+                                navController.navigate("login") { popUpTo("splash") { inclusive = true } }
                             },
                             onNavigateToMain = {
-                                navController.navigate("main/0") {
-                                    popUpTo("splash") { inclusive = true }
-                                }
+                                navController.navigate("main/0") { popUpTo("splash") { inclusive = true } }
                             },
                             onNavigateToInitialSync = {
-                                navController.navigate("initial_sync") {
-                                    popUpTo("splash") { inclusive = true }
-                                }
+                                navController.navigate("initial_sync") { popUpTo("splash") { inclusive = true } }
                             }
                         )
                     }
                     composable("initial_sync") {
                         InitialSyncScreen(
                             onSyncCompleteNavigateToMain = {
-                                navController.navigate("main/0") {
-                                    popUpTo("initial_sync") { inclusive = true }
-                                }
+                                navController.navigate("main/0") { popUpTo("initial_sync") { inclusive = true } }
                             }
                         )
                     }
@@ -139,13 +124,9 @@ class MainActivity : ComponentActivity() {
                         LoginScreen(
                             onLoginSuccess = {
                                 if (sessionManager.isInitialSyncCompleted()) {
-                                    navController.navigate("main/0") {
-                                        popUpTo("login") { inclusive = true }
-                                    }
+                                    navController.navigate("main/0") { popUpTo("login") { inclusive = true } }
                                 } else {
-                                    navController.navigate("initial_sync") {
-                                        popUpTo("login") { inclusive = true }
-                                    }
+                                    navController.navigate("initial_sync") { popUpTo("login") { inclusive = true } }
                                 }
                             },
                             onSignUpClick = { navController.navigate("signup") }
@@ -155,13 +136,9 @@ class MainActivity : ComponentActivity() {
                         SignUpScreen(
                             onSignUpSuccess = {
                                 if (sessionManager.isInitialSyncCompleted()) {
-                                    navController.navigate("main/0") {
-                                        popUpTo("signup") { inclusive = true }
-                                    }
+                                    navController.navigate("main/0") { popUpTo("signup") { inclusive = true } }
                                 } else {
-                                    navController.navigate("initial_sync") {
-                                        popUpTo("signup") { inclusive = true }
-                                    }
+                                    navController.navigate("initial_sync") { popUpTo("signup") { inclusive = true } }
                                 }
                             },
                             onLoginClick = { navController.popBackStack() }
@@ -171,15 +148,14 @@ class MainActivity : ComponentActivity() {
                         val selectedTab = backStackEntry.arguments?.getString("tab")?.toIntOrNull() ?: 0
                         MainScreen(
                             initialTab = selectedTab,
+                            navController = navController,
                             onNewBill = { navController.navigate("new_bill") },
                             onSearchBill = { navController.navigate("search_bill") },
                             onOrderStatus = { navController.navigate("order_status") },
                             onCallCustomer = { navController.navigate("call_customer") },
                             menuViewModel = menuViewModel,
                             onScanClick = { categoryName ->
-                                navController.currentBackStackEntry
-                                    ?.savedStateHandle
-                                    ?.set("ocr_category_name", categoryName)
+                                navController.currentBackStackEntry?.savedStateHandle?.set("ocr_category_name", categoryName)
                                 navController.navigate("ocr_scanner/menu_config")
                             }
                         )

@@ -70,7 +70,6 @@ fun ReportsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2, Color.Black)))
-            .systemBarsPadding()
     ) {
         Column(
             modifier = Modifier
@@ -222,7 +221,7 @@ fun ReportsScreen(
             
             
             if (reportType == "Payment") {
-                PaymentLevelView(paymentBreakdown)
+                PaymentLevelView(paymentBreakdown, settingsViewModel)
             } else {
                 Column(modifier = Modifier.weight(1f)) {
                     OrderLevelView(orderLevelRows) { billId ->
@@ -301,9 +300,8 @@ fun ReportTypeToggle(label: String, isSelected: Boolean, onClick: () -> Unit, mo
 }
 
 @Composable
-fun PaymentLevelView(breakdown: Map<String, String>) {
-    val settingsVM: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel = hiltViewModel()
-    val profile by settingsVM.profile.collectAsState()
+fun PaymentLevelView(breakdown: Map<String, String>, settingsViewModel: com.khanabook.lite.pos.ui.viewmodel.SettingsViewModel) {
+    val profile by settingsViewModel.profile.collectAsState()
     
     val enabledModes = profile?.let { com.khanabook.lite.pos.domain.manager.PaymentModeManager.getEnabledModes(it) } ?: listOf(PaymentMode.CASH)
     
@@ -625,7 +623,9 @@ fun OrderDetailsDialog(
                                 .heightIn(min = 40.dp, max = 200.dp) 
                         ) {
                             LazyColumn(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 200.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 items(items) { item ->
@@ -707,7 +707,9 @@ fun formatDate(date: String): String {
     
     
     return try {
-        val parts = date.split(" ")[0].split("-")
+        val datePart = date.split(" ").getOrNull(0) ?: return date
+        val parts = datePart.split("-")
+        if (parts.size != 3) return date
         "${parts[2]}/${parts[1]}/${parts[0]}"
     } catch (e: Exception) {
         date

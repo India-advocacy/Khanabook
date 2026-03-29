@@ -28,12 +28,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -96,8 +98,14 @@ fun OcrScannerScreen(
         }
     }
 
-    // PDF import is handled via the separate "Upload PDF" path in MenuConfigurationScreen.
-    // No PDF launcher or icon is needed here.
+    // PDF Launcher restored
+    val pdfLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            viewModel.extractTextFromPdf(context, it)
+        }
+    }
 
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -123,7 +131,6 @@ fun OcrScannerScreen(
             uri?.let {
                 errorMessage = null
                 capturedBitmap = null
-                
                 
                 try {
                     val bitmap = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
@@ -173,7 +180,7 @@ fun OcrScannerScreen(
                     }
                 },
                 actions = {
-                    // Gallery icon — available in both Camera Scan and Barcode Scan modes
+                    // Gallery icon
                     IconButton(
                         onClick = {
                             errorMessage = null
@@ -186,8 +193,22 @@ fun OcrScannerScreen(
                             tint = PrimaryGold
                         )
                     }
-                    // PDF import is a separate flow accessed from Menu Configuration.
-                    // It is intentionally NOT shown here to keep Camera Scan clean.
+                    
+                    // PDF icon restored (available only in Menu Scan mode)
+                    if (!returnBarcode) {
+                        IconButton(
+                            onClick = { 
+                                errorMessage = null
+                                pdfLauncher.launch("application/pdf") 
+                            }
+                        ) {
+                            Icon(
+                                Icons.Default.PictureAsPdf,
+                                contentDescription = "Upload PDF",
+                                tint = PrimaryGold
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBrown1)
             )
@@ -332,7 +353,7 @@ private fun ScanControls(
     onRetake: () -> Unit
 ) {
     Box(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp).navigationBarsPadding(),
         contentAlignment = Alignment.BottomCenter
     ) {
         Card(

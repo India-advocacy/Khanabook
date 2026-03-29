@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
@@ -82,6 +83,7 @@ fun CallCustomerScreen(
                                 .fillMaxSize()
                                 .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
                                 .imePadding()
+                                .navigationBarsPadding()
                                 .padding(24.dp)
         ) {
             TabRow(

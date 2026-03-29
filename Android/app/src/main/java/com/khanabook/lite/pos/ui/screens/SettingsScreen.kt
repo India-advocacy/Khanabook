@@ -32,7 +32,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableIntStateOf
@@ -50,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.*
 import com.khanabook.lite.pos.data.local.relation.MenuWithVariants
 import com.khanabook.lite.pos.domain.manager.BluetoothPrinterManager
@@ -70,10 +70,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
+    navController: NavController,
     onScanClick: (String?) -> Unit = {},
     menuViewModel: MenuViewModel,
     viewModel: SettingsViewModel = hiltViewModel(),
-    authViewModel: AuthViewModel = hiltViewModel()
+    authViewModel: AuthViewModel = hiltViewModel(),
+    logoutViewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel = hiltViewModel()
 ) {
     val profile by viewModel.profile.collectAsStateWithLifecycle()
     val currentUser by authViewModel.currentUser.collectAsStateWithLifecycle()
@@ -81,16 +83,21 @@ fun SettingsScreen(
     val configuration = LocalConfiguration.current
     val isWideScreen = configuration.screenWidthDp >= 600
 
-    // Intercept back gesture when in a sub-section
-    androidx.activity.compose.BackHandler(enabled = section != "menu") {
-        section = "menu"
+    // Improved default gesture support:
+    // If we are in a sub-section, swiping back returns to the main Settings list.
+    // If we are already in the main Settings list, swiping back returns to the Home tab.
+    BackHandler {
+        if (section != "menu") {
+            section = "menu"
+        } else {
+            onBack()
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(listOf(DarkBrown1, DarkBrown2)))
-            .systemBarsPadding()
             .imePadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -174,54 +181,7 @@ fun SettingsScreen(
                                 colors = CardDefaults.cardColors(containerColor = CardBG),
                                 border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
                             ) {
-                                val ctx = LocalContext.current
-                                val logoutViewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel = hiltViewModel()
-                                val logoutState by logoutViewModel.logoutState.collectAsStateWithLifecycle()
-
-                                LaunchedEffect(logoutState) {
-                                    if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.LoggedOut) {
-                                        Toast.makeText(ctx, "Logged out successfully", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-
-                                if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData) {
-                                    val count = (logoutState as com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData).count
-                                    AlertDialog(
-                                        onDismissRequest = { logoutViewModel.cancelLogout() },
-                                        title = { Text("Offline Data Warning", color = Color.Red) },
-                                        text = { Text("You have $count unsynced bills. Logging out will delete them. Proceed?") },
-                                        confirmButton = {
-                                            TextButton(onClick = { logoutViewModel.forceLogoutDespiteWarning() }) {
-                                                Text("Logout Anyway", color = Color.Red, fontWeight = FontWeight.Bold)
-                                            }
-                                        },
-                                        dismissButton = {
-                                            TextButton(onClick = { logoutViewModel.cancelLogout() }) { Text("Cancel") }
-                                        }
-                                    )
-                                }
-
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Text("Account Session", color = TextLight, fontSize = 16.sp, fontWeight = FontWeight.Medium)
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                                    ) {
-                                        Button(
-                                            onClick = { logoutViewModel.initiateLogout() },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
-                                            shape = RoundedCornerShape(8.dp)
-                                        ) {
-                                            Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(18.dp))
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text("Sign Out", fontSize = 14.sp)
-                                        }
-                                    }
-                                }
+                                LogoutSection(logoutViewModel)
                             }
                             Spacer(modifier = Modifier.height(32.dp))
                         }
@@ -231,8 +191,7 @@ fun SettingsScreen(
                     }
                     "menu_config" -> {
                         MenuConfigurationScreen(
-                            onBack = { section = "menu" },
-                            onScanClick = onScanClick,
+                            navController = navController,
                             viewModel = menuViewModel
                         )
                     }
@@ -312,6 +271,7 @@ fun ConfigCard(content: @Composable ColumnScope.() -> Unit) {
 @Composable
 private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: SettingsViewModel, authViewModel: AuthViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
+    val isCompactWidth = LocalConfiguration.current.screenWidthDp < 400
     var name by remember { mutableStateOf(profile?.shopName ?: "") }
     var address by remember { mutableStateOf(profile?.shopAddress ?: "") }
     var whatsapp by remember { mutableStateOf(profile?.whatsappNumber ?: "") }
@@ -338,7 +298,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
         logoPath != profile?.logoPath
     }
 
-    // Back-navigation guard
+    // Back-navigation guard: triggers on both arrow click and swipe gesture
     var showUnsavedDialog by remember { mutableStateOf(false) }
     BackHandler(enabled = isDirty && !saveProfileLoading) {
         showUnsavedDialog = true
@@ -442,28 +402,56 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
+            .padding(16.dp)
+    ) {
         ConfigCard {
             Text("Shop Profile", color = PrimaryGold, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Box(modifier = Modifier.size(100.dp).background(Color.White).border(1.dp, Color.LightGray), contentAlignment = Alignment.Center) {
-                    if (!logoPath.isNullOrBlank()) {
-                        AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(logoPath)
-                                .setParameter("refresh", logoUpdateTrigger)
-                                .crossfade(true)
-                                .diskCachePolicy(CachePolicy.DISABLED)
-                                .build(),
-                            contentDescription = "Logo",
-                            modifier = Modifier.fillMaxSize().padding(4.dp)
-                        )
-                    } else {
-                        Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+            if (isCompactWidth) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Box(modifier = Modifier.size(100.dp).background(Color.White).border(1.dp, Color.LightGray), contentAlignment = Alignment.Center) {
+                        if (!logoPath.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(logoPath)
+                                    .setParameter("refresh", logoUpdateTrigger)
+                                    .crossfade(true)
+                                    .diskCachePolicy(CachePolicy.DISABLED)
+                                    .build(),
+                                contentDescription = "Logo",
+                                modifier = Modifier.fillMaxSize().padding(4.dp)
+                            )
+                        } else {
+                            Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                        }
                     }
+                    OutlinedButton(onClick = { logoLauncher.launch("image/*") }, border = BorderStroke(1.dp, PrimaryGold), shape = RoundedCornerShape(20.dp)) { Text("Change Logo", color = PrimaryGold) }
                 }
-                OutlinedButton(onClick = { logoLauncher.launch("image/*") }, border = BorderStroke(1.dp, PrimaryGold), shape = RoundedCornerShape(20.dp)) { Text("Change Logo", color = PrimaryGold) }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Box(modifier = Modifier.size(100.dp).background(Color.White).border(1.dp, Color.LightGray), contentAlignment = Alignment.Center) {
+                        if (!logoPath.isNullOrBlank()) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(logoPath)
+                                    .setParameter("refresh", logoUpdateTrigger)
+                                    .crossfade(true)
+                                    .diskCachePolicy(CachePolicy.DISABLED)
+                                    .build(),
+                                contentDescription = "Logo",
+                                modifier = Modifier.fillMaxSize().padding(4.dp)
+                            )
+                        } else {
+                            Icon(Icons.Default.Storefront, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                        }
+                    }
+                    OutlinedButton(onClick = { logoLauncher.launch("image/*") }, border = BorderStroke(1.dp, PrimaryGold), shape = RoundedCornerShape(20.dp)) { Text("Change Logo", color = PrimaryGold) }
+                }
             }
             Spacer(modifier = Modifier.height(24.dp))
             ParchmentTextField(value = name, onValueChange = { name = it }, label = "Shop Name")
@@ -637,6 +625,7 @@ private fun ShopConfigView(profile: RestaurantProfileEntity?, viewModel: Setting
 @Composable
 private fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (RestaurantProfileEntity) -> Unit, onBack: () -> Unit) {
     val context = LocalContext.current
+    val isCompactWidth = LocalConfiguration.current.screenWidthDp < 400
     var currency by remember { mutableStateOf(profile?.currency ?: "INR") }
     var upiSupported by remember { mutableStateOf(profile?.upiEnabled ?: false) }
     var upiHandle by remember { mutableStateOf(profile?.upiHandle ?: "") }
@@ -672,7 +661,13 @@ private fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
         }
     }
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
+            .padding(16.dp)
+    ) {
         ConfigCard {
             ParchmentTextField(value = currency, onValueChange = { currency = it }, label = "Currency *")
             Spacer(modifier = Modifier.height(24.dp))
@@ -689,24 +684,46 @@ private fun PaymentConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
             }
             if (upiSupported) {
                 Spacer(modifier = Modifier.height(20.dp))
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Box(modifier = Modifier.size(100.dp).background(Color.White).border(1.dp, Color.LightGray).padding(4.dp), contentAlignment = Alignment.Center) {
-                        if (!qrPath.isNullOrBlank()) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(qrPath)
-                                    .setParameter("refresh", qrUpdateTrigger)
-                                    .crossfade(true)
-                                    .diskCachePolicy(CachePolicy.DISABLED)
-                                    .build(),
-                                contentDescription = "QR Code",
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        } else {
-                            Icon(Icons.Default.QrCode, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                if (isCompactWidth) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Box(modifier = Modifier.size(100.dp).background(Color.White).border(1.dp, Color.LightGray).padding(4.dp), contentAlignment = Alignment.Center) {
+                            if (!qrPath.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(qrPath)
+                                        .setParameter("refresh", qrUpdateTrigger)
+                                        .crossfade(true)
+                                        .diskCachePolicy(CachePolicy.DISABLED)
+                                        .build(),
+                                    contentDescription = "QR Code",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Icon(Icons.Default.QrCode, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                            }
                         }
+                        OutlinedButton(onClick = { qrLauncher.launch("image/*") }, border = BorderStroke(1.dp, PrimaryGold), shape = RoundedCornerShape(20.dp)) { Text("Upload QR Code", color = PrimaryGold) }
                     }
-                    OutlinedButton(onClick = { qrLauncher.launch("image/*") }, border = BorderStroke(1.dp, PrimaryGold), shape = RoundedCornerShape(20.dp)) { Text("Upload QR Code", color = PrimaryGold) }
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Box(modifier = Modifier.size(100.dp).background(Color.White).border(1.dp, Color.LightGray).padding(4.dp), contentAlignment = Alignment.Center) {
+                            if (!qrPath.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(LocalContext.current)
+                                        .data(qrPath)
+                                        .setParameter("refresh", qrUpdateTrigger)
+                                        .crossfade(true)
+                                        .diskCachePolicy(CachePolicy.DISABLED)
+                                        .build(),
+                                    contentDescription = "QR Code",
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Icon(Icons.Default.QrCode, null, tint = Color.LightGray, modifier = Modifier.size(48.dp))
+                            }
+                        }
+                        OutlinedButton(onClick = { qrLauncher.launch("image/*") }, border = BorderStroke(1.dp, PrimaryGold), shape = RoundedCornerShape(20.dp)) { Text("Upload QR Code", color = PrimaryGold) }
+                    }
                 }
                 Spacer(modifier = Modifier.height(20.dp))
                 ParchmentTextField(value = upiHandle, onValueChange = { upiHandle = it }, label = "UPI Handle")
@@ -815,7 +832,13 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
         btConnectResult?.let { Toast.makeText(context, if (it) "Printer Connected!" else "Connection Failed", Toast.LENGTH_SHORT).show(); if (it) showBtSheet = false; viewModel.clearBtConnectResult() }
     }
 
-    Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
+            .padding(16.dp)
+    ) {
         ConfigCard {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text("Bluetooth Printer", color = TextGold, fontWeight = FontWeight.Medium)
@@ -913,7 +936,14 @@ private fun PrinterConfigView(profile: RestaurantProfileEntity?, onSave: (Restau
 
     if (showBtSheet) {
         ModalBottomSheet(onDismissRequest = { viewModel.stopBluetoothScan(); showBtSheet = false }, sheetState = sheetState, containerColor = DarkBrownSheet) {
-            Column(modifier = Modifier.fillMaxWidth().padding(20.dp).padding(bottom = 32.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(20.dp)
+                    .padding(bottom = 32.dp)
+            ) {
                 Text("Select Printer", color = PrimaryGold, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 if (btIsScanning) CircularProgressIndicator(color = PrimaryGold, modifier = Modifier.padding(16.dp))
                 LazyColumn(modifier = Modifier.heightIn(max = 300.dp)) {
@@ -990,7 +1020,13 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
     val isGstValid = !gstEnabled || (gstNumber.isNotBlank() && ValidationUtils.isValidTaxPercentage(gstPct))
     val isSaveEnabled = isFssaiValid && isGstValid
 
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .imePadding()
+            .padding(16.dp)
+    ) {
         ConfigCard {
             ParchmentTextField(value = country, onValueChange = { country = it }, label = "Country")
             Spacer(modifier = Modifier.height(16.dp))
@@ -1040,4 +1076,55 @@ private fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: Strin
 
 private fun loadBitmap(path: String): Bitmap? {
     return try { BitmapFactory.decodeFile(path) } catch (_: Exception) { null }
+}
+
+@Composable
+fun LogoutSection(viewModel: com.khanabook.lite.pos.ui.viewmodel.LogoutViewModel) {
+    val context = LocalContext.current
+    val logoutState by viewModel.logoutState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(logoutState) {
+        if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.LoggedOut) {
+            Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    if (logoutState is com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData) {
+        val count = (logoutState as com.khanabook.lite.pos.ui.viewmodel.LogoutState.WarningOfflineData).count
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelLogout() },
+            title = { Text("Offline Data Warning", color = Color.Red) },
+            text = { Text("You have $count unsynced bills. Logging out will delete them. Proceed?") },
+            confirmButton = {
+                TextButton(onClick = { viewModel.forceLogoutDespiteWarning() }) {
+                    Text("Logout Anyway", color = Color.Red, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelLogout() }) { Text("Cancel") }
+            }
+        )
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text("Account Session", color = TextLight, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Button(
+                onClick = { viewModel.initiateLogout() },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = DangerRed),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Sign Out", fontSize = 14.sp)
+            }
+        }
+    }
 }

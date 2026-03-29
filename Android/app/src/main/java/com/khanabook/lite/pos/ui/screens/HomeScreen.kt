@@ -41,7 +41,8 @@ fun HomeScreen(
     onSearchBill: () -> Unit,
     onOrderStatus: () -> Unit,
     onCallCustomer: () -> Unit,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
 ) {
     val stats by viewModel.todayStats.collectAsState()
     val connectionStatus by viewModel.connectionStatus.collectAsState()
@@ -53,7 +54,6 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBackground)
-            .systemBarsPadding()
     ) {
         Column(
             modifier = Modifier
@@ -74,7 +74,7 @@ fun HomeScreen(
                     fontWeight = FontWeight.Bold
                 )
                 
-                SyncStatusHeader(connectionStatus, unsyncedCount)
+                SyncStatusHeader(connectionStatus, unsyncedCount, authViewModel)
             }
 
 
@@ -230,15 +230,16 @@ fun HomeScreen(
 @Composable
 fun SyncStatusHeader(
     connectionStatus: com.khanabook.lite.pos.domain.util.ConnectionStatus,
-    unsyncedCount: Int
+    unsyncedCount: Int,
+    authViewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel
 ) {
     val isOnline = connectionStatus == com.khanabook.lite.pos.domain.util.ConnectionStatus.Available
     
-    val viewModel: com.khanabook.lite.pos.ui.viewmodel.AuthViewModel = hiltViewModel()
-    val currentUser by viewModel.currentUser.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
     val isSessionValid = currentUser != null
+    val shouldShowSync = isOnline && isSessionValid && unsyncedCount > 0
     
-    // Animation for the rotating icon
+    // Animation for the rotating icon (only when syncing)
     val infiniteTransition = rememberInfiniteTransition(label = "sync_rotation")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -250,7 +251,7 @@ fun SyncStatusHeader(
         label = "rotation"
     )
 
-    // Pulse animation for the "Syncing" background
+    // Pulse animation for the "Syncing" background (only when syncing)
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.1f,
         targetValue = 0.3f,
@@ -301,8 +302,8 @@ fun SyncStatusHeader(
                 modifier = Modifier
                     .size(18.dp)
                     .then(
-                        if (unsyncedCount > 0 && isOnline && isSessionValid) 
-                            Modifier.rotate(rotation) 
+                        if (shouldShowSync)
+                            Modifier.rotate(rotation)
                         else Modifier
                     )
             )
@@ -314,18 +315,11 @@ fun SyncStatusHeader(
                 targetState = when {
                     !isOnline -> "Offline"
                     !isSessionValid -> "Auth Required"
-                    unsyncedCount > 0 -> "$unsyncedCount" // Show just the number for the "countdown" feel
+                    unsyncedCount > 0 -> "$unsyncedCount"
                     else -> "Cloud Synced"
                 },
                 transitionSpec = {
-                    if (unsyncedCount > 0) {
-                        // Slide up and fade in when the number changes (countdown feel)
-                        (slideInVertically { height -> height } + fadeIn()).togetherWith(
-                            slideOutVertically { height -> -height } + fadeOut()
-                        )
-                    } else {
-                        fadeIn(animationSpec = tween(500)) togetherWith fadeOut(animationSpec = tween(500))
-                    }
+                    fadeIn(animationSpec = tween(300)) togetherWith fadeOut(animationSpec = tween(300))
                 },
                 label = "sync_text"
             ) { targetText ->

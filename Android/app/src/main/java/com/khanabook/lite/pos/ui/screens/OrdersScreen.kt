@@ -136,7 +136,6 @@ fun OrdersScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.verticalGradient(colors = listOf(DarkBrown1, DarkBrown2)))
-            .systemBarsPadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -172,7 +171,7 @@ fun OrdersScreen(
 
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f).padding(horizontal = 4.dp),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(allRows) { row ->
                     OrderTableRow(
@@ -236,6 +235,8 @@ fun OrderFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit, mod
     }
 }
 
+private const val TABLE_TOTAL_WEIGHT = 9.2f
+
 @Composable
 fun TableHeader() {
     Row(
@@ -245,14 +246,13 @@ fun TableHeader() {
             .padding(vertical = 12.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        HeaderCell("D.No", 1f)
-        HeaderCell("L.No", 1.2f)
-        HeaderCell("Current\nStatus", 1.5f)
-        HeaderCell("Amount", 1.3f)
-        HeaderCell("Mode", 1.2f)
-        HeaderCell("Status", 1.5f)
-        HeaderCell("Date", 1.5f)
-        // HeaderCell("Share", 0.8f)
+        HeaderCell("D.No", 1f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("L.No", 1.2f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Current\nStatus", 1.5f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Amount", 1.3f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Mode", 1.2f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Status", 1.5f / TABLE_TOTAL_WEIGHT)
+        HeaderCell("Date", 1.5f / TABLE_TOTAL_WEIGHT)
     }
 }
 
@@ -288,12 +288,12 @@ fun OrderTableRow(
             .padding(vertical = 12.dp, horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TableCell(row.dailyNo, 1f)
-        TableCell(row.lifetimeNo.toString(), 1.2f)
-        TableCell(row.currentStatus, 1.5f, fontSize = 10.sp)
-        TableCell(CurrencyUtils.formatPrice(row.salesAmount), 1.3f, fontWeight = FontWeight.Bold)
+        TableCell(row.dailyNo, 1f / TABLE_TOTAL_WEIGHT)
+        TableCell(row.lifetimeNo.toString(), 1.2f / TABLE_TOTAL_WEIGHT)
+        TableCell(row.currentStatus, 1.5f / TABLE_TOTAL_WEIGHT, fontSize = 10.sp)
+        TableCell(CurrencyUtils.formatPrice(row.salesAmount), 1.3f / TABLE_TOTAL_WEIGHT, fontWeight = FontWeight.Bold)
         
-        Box(modifier = Modifier.weight(1.2f), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.weight(1.2f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
             val color = getPayModeColor(row.payMode)
             Surface(
                 onClick = { payModeExpanded = true },
@@ -376,7 +376,7 @@ fun OrderTableRow(
             }
         }
 
-        TableCell(DateUtils.formatDisplayDate(row.salesDate), 1.5f, fontSize = 9.sp)
+        TableCell(DateUtils.formatDisplayDate(row.salesDate), 1.5f / TABLE_TOTAL_WEIGHT, fontSize = 9.sp)
 
         /*
         Box(modifier = Modifier.weight(0.8f), contentAlignment = Alignment.Center) {
