@@ -182,6 +182,9 @@ public class GenericSyncService {
 
 					incomingRecord.setRestaurantId(targetTenantId);
 					incomingRecord.setServerUpdatedAt(serverTime);
+					if (incomingRecord.getIsDeleted() == null) {
+						incomingRecord.setIsDeleted(false);
+					}
 
 					if (incomingRecord.getCreatedAt() == null) {
 						incomingRecord.setCreatedAt(
