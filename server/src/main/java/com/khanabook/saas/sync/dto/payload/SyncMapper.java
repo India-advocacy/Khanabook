@@ -3,45 +3,42 @@ package com.khanabook.saas.sync.dto.payload;
 import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.entity.*;
 import org.springframework.beans.BeanUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 public class SyncMapper {
+    private static final Logger log = LoggerFactory.getLogger(SyncMapper.class);
 
-    /**
-     * Maps Entity -> DTO (for Pull responses)
-     */
     public static <S extends BaseSyncEntity, T> T map(S source, Class<T> targetClass) {
         if (source == null) return null;
         try {
             T target = targetClass.getDeclaredConstructor().newInstance();
             BeanUtils.copyProperties(source, target);
             
-            // Explicitly map all core sync fields and relational IDs
-            if (target instanceof CategoryDTO dto) {
-                dto.setId(source.getId());
-                dto.setLocalId(source.getLocalId());
-                dto.setServerUpdatedAt(source.getServerUpdatedAt());
-            } else if (target instanceof MenuItemDTO dto) {
-                MenuItem entity = (MenuItem) source;
+            if (source instanceof Category entity && target instanceof CategoryDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+            } else if (source instanceof MenuItem entity && target instanceof MenuItemDTO dto) {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setCategoryId(entity.getCategoryId());
                 dto.setServerCategoryId(entity.getServerCategoryId());
-            } else if (target instanceof ItemVariantDTO dto) {
-                ItemVariant entity = (ItemVariant) source;
+            } else if (source instanceof ItemVariant entity && target instanceof ItemVariantDTO dto) {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setMenuItemId(entity.getMenuItemId());
                 dto.setServerMenuItemId(entity.getServerMenuItemId());
-            } else if (target instanceof BillDTO dto) {
-                dto.setId(source.getId());
-                dto.setLocalId(source.getLocalId());
-                dto.setServerUpdatedAt(source.getServerUpdatedAt());
-            } else if (target instanceof BillItemDTO dto) {
-                BillItem entity = (BillItem) source;
+            } else if (source instanceof Bill entity && target instanceof BillDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+            } else if (source instanceof BillItem entity && target instanceof BillItemDTO dto) {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
@@ -51,30 +48,28 @@ public class SyncMapper {
                 dto.setServerMenuItemId(entity.getServerMenuItemId());
                 dto.setVariantId(entity.getVariantId());
                 dto.setServerVariantId(entity.getServerVariantId());
-            } else if (target instanceof BillPaymentDTO dto) {
-                BillPayment entity = (BillPayment) source;
+            } else if (source instanceof BillPayment entity && target instanceof BillPaymentDTO dto) {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setBillId(entity.getBillId());
                 dto.setServerBillId(entity.getServerBillId());
-            } else if (target instanceof StockLogDTO dto) {
-                StockLog entity = (StockLog) source;
+            } else if (source instanceof StockLog entity && target instanceof StockLogDTO dto) {
                 dto.setId(entity.getId());
                 dto.setLocalId(entity.getLocalId());
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setMenuItemId(entity.getMenuItemId());
-                dto.setServerMenuItemId(entity.getServerMenuItemId());
                 dto.setVariantId(entity.getVariantId());
+                dto.setServerMenuItemId(entity.getServerMenuItemId());
                 dto.setServerVariantId(entity.getServerVariantId());
-            } else if (target instanceof RestaurantProfileDTO dto) {
-                dto.setId(source.getId());
-                dto.setLocalId(source.getLocalId());
-                dto.setServerUpdatedAt(source.getServerUpdatedAt());
-            } else if (target instanceof UserDTO dto) {
-                dto.setId(source.getId());
-                dto.setLocalId(source.getLocalId());
-                dto.setServerUpdatedAt(source.getServerUpdatedAt());
+            } else if (source instanceof RestaurantProfile entity && target instanceof RestaurantProfileDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
+            } else if (source instanceof User entity && target instanceof UserDTO dto) {
+                dto.setId(entity.getId());
+                dto.setLocalId(entity.getLocalId());
+                dto.setServerUpdatedAt(entity.getServerUpdatedAt());
             }
 
             return target;
@@ -84,24 +79,37 @@ public class SyncMapper {
     }
 
     public static <S extends BaseSyncEntity, T> List<T> mapList(List<S> sourceList, Class<T> targetClass) {
-        if (sourceList == null) return null;
-        return sourceList.stream().map(source -> map(source, targetClass)).collect(Collectors.toList());
+        if (sourceList == null) return new ArrayList<>();
+        List<T> result = new ArrayList<>();
+        for (S source : sourceList) {
+            result.add(map(source, targetClass));
+        }
+        return result;
     }
 
-    /**
-     * Maps DTO -> Entity (for Push requests)
-     */
+    @SuppressWarnings("unchecked")
     public static <S, T extends BaseSyncEntity> T mapToEntity(S source, Class<T> targetClass) {
         if (source == null) return null;
         try {
-            T target = targetClass.getDeclaredConstructor().newInstance();
+            T target;
+            if (targetClass.equals(Category.class)) target = (T) new Category();
+            else if (targetClass.equals(MenuItem.class)) target = (T) new MenuItem();
+            else if (targetClass.equals(ItemVariant.class)) target = (T) new ItemVariant();
+            else if (targetClass.equals(Bill.class)) target = (T) new Bill();
+            else if (targetClass.equals(BillItem.class)) target = (T) new BillItem();
+            else if (targetClass.equals(BillPayment.class)) target = (T) new BillPayment();
+            else if (targetClass.equals(StockLog.class)) target = (T) new StockLog();
+            else if (targetClass.equals(RestaurantProfile.class)) target = (T) new RestaurantProfile();
+            else if (targetClass.equals(User.class)) target = (T) new User();
+            else target = targetClass.getDeclaredConstructor().newInstance();
+
             BeanUtils.copyProperties(source, target);
 
-            // Explicitly map all core sync fields and relational IDs back to entity
             if (source instanceof CategoryDTO dto) {
-                target.setId(dto.getId());
-                target.setLocalId(dto.getLocalId());
-                target.setServerUpdatedAt(dto.getServerUpdatedAt());
+                Category entity = (Category) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
             } else if (source instanceof MenuItemDTO dto) {
                 MenuItem entity = (MenuItem) target;
                 entity.setId(dto.getId());
@@ -117,9 +125,10 @@ public class SyncMapper {
                 entity.setMenuItemId(dto.getMenuItemId());
                 entity.setServerMenuItemId(dto.getServerMenuItemId());
             } else if (source instanceof BillDTO dto) {
-                target.setId(dto.getId());
-                target.setLocalId(dto.getLocalId());
-                target.setServerUpdatedAt(dto.getServerUpdatedAt());
+                Bill entity = (Bill) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
             } else if (source instanceof BillItemDTO dto) {
                 BillItem entity = (BillItem) target;
                 entity.setId(dto.getId());
@@ -144,27 +153,42 @@ public class SyncMapper {
                 entity.setLocalId(dto.getLocalId());
                 entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setMenuItemId(dto.getMenuItemId());
-                entity.setServerMenuItemId(dto.getServerMenuItemId());
                 entity.setVariantId(dto.getVariantId());
+                entity.setServerMenuItemId(dto.getServerMenuItemId());
                 entity.setServerVariantId(dto.getServerVariantId());
             } else if (source instanceof RestaurantProfileDTO dto) {
-                target.setId(dto.getId());
-                target.setLocalId(dto.getLocalId());
-                target.setServerUpdatedAt(dto.getServerUpdatedAt());
+                RestaurantProfile entity = (RestaurantProfile) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
             } else if (source instanceof UserDTO dto) {
-                target.setId(dto.getId());
-                target.setLocalId(dto.getLocalId());
-                target.setServerUpdatedAt(dto.getServerUpdatedAt());
+                User entity = (User) target;
+                entity.setId(dto.getId());
+                entity.setLocalId(dto.getLocalId());
+                entity.setServerUpdatedAt(dto.getServerUpdatedAt());
             }
 
             return target;
         } catch (Exception e) {
+            log.error("Failed to map DTO to Entity: {} - Class: {}", e.getMessage(), source.getClass().getName());
             throw new RuntimeException("Failed to map DTO to Entity", e);
         }
     }
 
     public static <S, T extends BaseSyncEntity> List<T> mapToEntityList(List<S> sourceList, Class<T> targetClass) {
-        if (sourceList == null) return null;
-        return sourceList.stream().map(source -> mapToEntity(source, targetClass)).collect(Collectors.toList());
+        if (sourceList == null) {
+            log.warn("mapToEntityList called with NULL sourceList");
+            return new ArrayList<>();
+        }
+        log.info("mapToEntityList mapping {} items to {}", sourceList.size(), targetClass.getSimpleName());
+        List<T> result = new ArrayList<>();
+        for (S source : sourceList) {
+            T mapped = mapToEntity(source, targetClass);
+            if (mapped != null) {
+                result.add(mapped);
+            }
+        }
+        log.info("mapToEntityList mapped {} items successfully", result.size());
+        return result;
     }
 }

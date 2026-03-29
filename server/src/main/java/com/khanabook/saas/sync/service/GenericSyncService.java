@@ -35,6 +35,10 @@ public class GenericSyncService {
 	public <T extends BaseSyncEntity> PushSyncResponse handlePushSync(Long tenantId, List<T> payload,
 			SyncRepository<T, Long> repository) {
 
+		if (payload != null) {
+			log.info("Starting handlePushSync for {} items of type {}", payload.size(), repository.getClass().getSimpleName());
+		}
+
 		if (payload != null && payload.size() > 500) {
 			throw new IllegalArgumentException("Push payload exceeds maximum size of 500 items");
 		}
@@ -144,6 +148,7 @@ public class GenericSyncService {
 
 			for (T incomingRecord : devicePayload) {
 				try {
+					log.info("Processing push record: localId={}, type={}", incomingRecord.getLocalId(), incomingRecord.getClass().getSimpleName());
 					if (incomingRecord.getLocalId() == null) {
 						if (singletonStylePayload) {
 							incomingRecord.setLocalId(1L);
@@ -268,7 +273,8 @@ public class GenericSyncService {
 						successfulLocalIds.add(incomingRecord.getLocalId());
 					}
 				} catch (Exception e) {
-					log.error("Sync Error for device {}: {}", incomingRecord.getDeviceId(), e.getMessage());
+					log.error("Sync Error for record class {}: {}", incomingRecord.getClass().getSimpleName(), e.getMessage());
+					e.printStackTrace();
 					DebugNDJSONLogger.log(
 							"pre-debug",
 							"H4_PUSH_MERGE_ENGINE",
@@ -310,43 +316,88 @@ public class GenericSyncService {
 	}
 
 	private void resolveRelationalIds(BaseSyncEntity record, Long tenantId, String deviceId) {
-		if (record instanceof MenuItem menuItem) {
-			if (menuItem.getCategoryId() != null && menuItem.getServerCategoryId() == null) {
-				categoryRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, menuItem.getCategoryId())
-						.ifPresent(cat -> menuItem.setServerCategoryId(cat.getId()));
+		try {
+			if (record instanceof MenuItem menuItem) {
+				if (menuItem.getCategoryId() != null && menuItem.getServerCategoryId() == null) {
+					log.info("Resolving Category for MenuItem: localId={}, categoryId={}", menuItem.getLocalId(), menuItem.getCategoryId());
+					categoryRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, menuItem.getCategoryId())
+							.or(() -> categoryRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(menuItem.getCategoryId())).stream().findFirst())
+							.ifPresent(cat -> {
+								menuItem.setServerCategoryId(cat.getId());
+								log.info("Resolved Category: serverId={}", cat.getId());
+							});
+				}
+			} else if (record instanceof ItemVariant variant) {
+				if (variant.getMenuItemId() != null && variant.getServerMenuItemId() == null) {
+					log.info("Resolving MenuItem for ItemVariant: localId={}, menuItemId={}", variant.getLocalId(), variant.getMenuItemId());
+					menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, variant.getMenuItemId())
+							.or(() -> menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(variant.getMenuItemId())).stream().findFirst())
+							.ifPresent(item -> {
+								variant.setServerMenuItemId(item.getId());
+								log.info("Resolved MenuItem: serverId={}", item.getId());
+							});
+				}
+			} else if (record instanceof BillItem billItem) {
+				log.info("Resolving for BillItem: localId={}, billId={}, menuItemId={}, variantId={}", 
+						billItem.getLocalId(), billItem.getBillId(), billItem.getMenuItemId(), billItem.getVariantId());
+				
+				if (billItem.getBillId() != null && billItem.getServerBillId() == null) {
+					billRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getBillId())
+							.or(() -> billRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(billItem.getBillId())).stream().findFirst())
+							.ifPresent(bill -> {
+								billItem.setServerBillId(bill.getId());
+								log.info("Resolved Bill: serverId={}", bill.getId());
+							});
+				}
+				if (billItem.getMenuItemId() != null && billItem.getServerMenuItemId() == null) {
+					menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getMenuItemId())
+							.or(() -> menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(billItem.getMenuItemId())).stream().findFirst())
+							.ifPresent(item -> {
+								billItem.setServerMenuItemId(item.getId());
+								log.info("Resolved MenuItem: serverId={}", item.getId());
+							});
+				}
+				if (billItem.getVariantId() != null && billItem.getServerVariantId() == null) {
+					itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getVariantId())
+							.or(() -> itemVariantRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(billItem.getVariantId())).stream().findFirst())
+							.ifPresent(v -> {
+								billItem.setServerVariantId(v.getId());
+								log.info("Resolved Variant: serverId={}", v.getId());
+							});
+				}
+			} else if (record instanceof BillPayment payment) {
+				if (payment.getBillId() != null && payment.getServerBillId() == null) {
+					log.info("Resolving Bill for BillPayment: localId={}, billId={}", payment.getLocalId(), payment.getBillId());
+					billRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, payment.getBillId())
+							.or(() -> billRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(payment.getBillId())).stream().findFirst())
+							.ifPresent(bill -> {
+								payment.setServerBillId(bill.getId());
+								log.info("Resolved Bill: serverId={}", bill.getId());
+							});
+				}
+			} else if (record instanceof StockLog logRecord) {
+				if (logRecord.getMenuItemId() != null && logRecord.getServerMenuItemId() == null) {
+					log.info("Resolving MenuItem for StockLog: localId={}, menuItemId={}", logRecord.getLocalId(), logRecord.getMenuItemId());
+					menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, logRecord.getMenuItemId())
+							.or(() -> menuItemRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(logRecord.getMenuItemId())).stream().findFirst())
+							.ifPresent(item -> {
+								logRecord.setServerMenuItemId(item.getId());
+								log.info("Resolved MenuItem: serverId={}", item.getId());
+							});
+				}
+				if (logRecord.getVariantId() != null && logRecord.getServerVariantId() == null) {
+					log.info("Resolving Variant for StockLog: localId={}, variantId={}", logRecord.getLocalId(), logRecord.getVariantId());
+					itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, logRecord.getVariantId())
+							.or(() -> itemVariantRepository.findByRestaurantIdAndLocalIdIn(tenantId, List.of(logRecord.getVariantId())).stream().findFirst())
+							.ifPresent(v -> {
+								logRecord.setServerVariantId(v.getId());
+								log.info("Resolved Variant: serverId={}", v.getId());
+							});
+				}
 			}
-		} else if (record instanceof ItemVariant variant) {
-			if (variant.getMenuItemId() != null && variant.getServerMenuItemId() == null) {
-				menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, variant.getMenuItemId())
-						.ifPresent(item -> variant.setServerMenuItemId(item.getId()));
-			}
-		} else if (record instanceof BillItem billItem) {
-			if (billItem.getBillId() != null && billItem.getServerBillId() == null) {
-				billRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getBillId())
-						.ifPresent(bill -> billItem.setServerBillId(bill.getId()));
-			}
-			if (billItem.getMenuItemId() != null && billItem.getServerMenuItemId() == null) {
-				menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getMenuItemId())
-						.ifPresent(item -> billItem.setServerMenuItemId(item.getId()));
-			}
-			if (billItem.getVariantId() != null && billItem.getServerVariantId() == null) {
-				itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getVariantId())
-						.ifPresent(v -> billItem.setServerVariantId(v.getId()));
-			}
-		} else if (record instanceof BillPayment payment) {
-			if (payment.getBillId() != null && payment.getServerBillId() == null) {
-				billRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, payment.getBillId())
-						.ifPresent(bill -> payment.setServerBillId(bill.getId()));
-			}
-		} else if (record instanceof StockLog log) {
-			if (log.getMenuItemId() != null && log.getServerMenuItemId() == null) {
-				menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, log.getMenuItemId())
-						.ifPresent(item -> log.setServerMenuItemId(item.getId()));
-			}
-			if (log.getVariantId() != null && log.getServerVariantId() == null) {
-				itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, log.getVariantId())
-						.ifPresent(v -> log.setServerVariantId(v.getId()));
-			}
+		} catch (Exception e) {
+			log.error("Resolution Failed: {}", e.getMessage());
+			e.printStackTrace();
 		}
 	}
 }
