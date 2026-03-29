@@ -192,6 +192,7 @@ fun SettingsScreen(
                     "menu_config" -> {
                         MenuConfigurationScreen(
                             navController = navController,
+                            onBackClick = { section = "menu" },
                             viewModel = menuViewModel
                         )
                     }

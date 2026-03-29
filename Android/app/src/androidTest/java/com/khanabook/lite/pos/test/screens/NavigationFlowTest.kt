@@ -2,31 +2,21 @@ package com.khanabook.lite.pos.test.screens
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import com.khanabook.lite.pos.MainActivity
 import com.khanabook.lite.pos.test.BaseTest
-import com.khanabook.lite.pos.test.api.MockApiServer
-import com.khanabook.lite.pos.test.robots.*
+import com.khanabook.lite.pos.test.robots.HomeRobot
+import com.khanabook.lite.pos.test.robots.LoginRobot
+import com.khanabook.lite.pos.test.robots.NewBillRobot
+import com.khanabook.lite.pos.test.robots.SettingsRobot
 import com.khanabook.lite.pos.test.util.TestData
-import dagger.hilt.android.testing.HiltAndroidInstrumentationTest
-import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 
-@HiltAndroidInstrumentationTest
-@RunWith(JUnit4::class)
 class NavigationFlowTest : BaseTest() {
 
     private lateinit var loginRobot: LoginRobot
     private lateinit var homeRobot: HomeRobot
     private lateinit var newBillRobot: NewBillRobot
-    private lateinit var checkoutRobot: CheckoutRobot
-    private lateinit var ordersRobot: OrdersRobot
     private lateinit var settingsRobot: SettingsRobot
-    private lateinit var menuConfigRobot: MenuConfigurationRobot
-    private lateinit var logoutRobot: LogoutRobot
 
     @Before
     override fun setUp() {
@@ -34,15 +24,11 @@ class NavigationFlowTest : BaseTest() {
         loginRobot = LoginRobot(composeTestRule)
         homeRobot = HomeRobot(composeTestRule)
         newBillRobot = NewBillRobot(composeTestRule)
-        checkoutRobot = CheckoutRobot(composeTestRule)
-        ordersRobot = OrdersRobot(composeTestRule)
         settingsRobot = SettingsRobot(composeTestRule)
-        menuConfigRobot = MenuConfigurationRobot(composeTestRule)
-        logoutRobot = LogoutRobot(composeTestRule)
     }
 
     @Test
-    fun TC-NAV-001_AuthFlow_LoginToMain() {
+    fun TC_NAV_001_AuthFlow_LoginToMain() {
         mockApiServer.enqueueLoginSuccess()
         
         loginRobot.submitLogin()
@@ -53,7 +39,7 @@ class NavigationFlowTest : BaseTest() {
     }
 
     @Test
-    fun TC-NAV-001_AuthFlow_SignUpToMain() {
+    fun TC_NAV_001_AuthFlow_SignUpToMain() {
         mockApiServer.enqueueSignupSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         
@@ -63,7 +49,7 @@ class NavigationFlowTest : BaseTest() {
     }
 
     @Test
-    fun TC-NAV-002_AuthFlow_ReturningUserSkipsInitialSync() {
+    fun TC_NAV_002_AuthFlow_ReturningUserSkipsInitialSync() {
         mockApiServer.enqueueLoginSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         
@@ -75,7 +61,7 @@ class NavigationFlowTest : BaseTest() {
     }
 
     @Test
-    fun TC-NAV-006_Navigation_BackToExit_HomeScreen() {
+    fun TC_NAV_006_Navigation_BackToExit_HomeScreen() {
         mockApiServer.enqueueLoginSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         
@@ -89,7 +75,7 @@ class NavigationFlowTest : BaseTest() {
     }
 
     @Test
-    fun TC-NAV-007_Navigation_AllTabsAccessible() {
+    fun TC_NAV_007_Navigation_AllTabsAccessible() {
         mockApiServer.enqueueLoginSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         
@@ -121,7 +107,7 @@ class NavigationFlowTest : BaseTest() {
     }
 
     @Test
-    fun TC-NAV-009_Navigation_SettingsToMenuConfiguration() {
+    fun TC_NAV_009_Navigation_SettingsToMenuConfiguration() {
         mockApiServer.enqueueLoginSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         
@@ -137,7 +123,7 @@ class NavigationFlowTest : BaseTest() {
     }
 
     @Test
-    fun TC-NAV-005_Navigation_RapidTabSwitching() {
+    fun TC_NAV_005_Navigation_RapidTabSwitching() {
         mockApiServer.enqueueLoginSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         
@@ -156,7 +142,7 @@ class NavigationFlowTest : BaseTest() {
     }
 
     @Test
-    fun TC-NAV-008_DeepLink_BillDeepLink() {
+    fun TC_NAV_008_DeepLink_BillDeepLink() {
         mockApiServer.enqueueLoginSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         mockApiServer.enqueueOrderDetail("ORD-123")
@@ -171,7 +157,7 @@ class NavigationFlowTest : BaseTest() {
     }
 
     @Test
-    fun TC-JOURNEY-002_MenuConfigurationFlow() {
+    fun TC_JOURNEY_002_MenuConfigurationFlow() {
         mockApiServer.enqueueLoginSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         
@@ -189,7 +175,7 @@ class NavigationFlowTest : BaseTest() {
     }
 
     @Test
-    fun TC-STATE-002_AppState_KillMidFlow_Resume() {
+    fun TC_STATE_002_AppState_KillMidFlow_Resume() {
         mockApiServer.enqueueLoginSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         
@@ -200,14 +186,13 @@ class NavigationFlowTest : BaseTest() {
         newBillRobot.addItemToCart(TestData.MenuItems.BURGER)
         newBillRobot.addItemToCart(TestData.MenuItems.PIZZA)
         
-        uiDevice.executeShellCommand("am force-stop com.khanabook.lite.pos")
+        forceStopApp()
         
-        val relaunchIntent = composeTestRule.activity.intent
-        composeTestRule.activity.startActivity(relaunchIntent)
+        restartApp()
     }
 
     @Test
-    fun TC-SEC-001_Logout_ClearsSession() {
+    fun TC_SEC_001_Logout_ClearsSession() {
         mockApiServer.enqueueLoginSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         

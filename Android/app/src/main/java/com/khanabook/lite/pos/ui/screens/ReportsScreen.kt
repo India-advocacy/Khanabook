@@ -626,32 +626,47 @@ fun OrderDetailsDialog(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(max = 200.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 items(items) { item ->
-                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                        Text("${item.itemName} x${item.quantity}", color = TextLight.copy(alpha = 0.9f), fontSize = 13.sp, modifier = Modifier.weight(1f))
-                                        Text("₹${CurrencyUtils.formatPrice(item.itemTotal)}", color = TextLight, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Text(
+                                            text = "${item.itemName} x${item.quantity}",
+                                            color = TextLight.copy(alpha = 0.9f),
+                                            fontSize = 13.sp,
+                                            modifier = Modifier.weight(1f).padding(end = 8.dp)
+                                        )
+                                        Text(
+                                            text = CurrencyUtils.formatPrice(item.itemTotal),
+                                            color = TextLight,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            textAlign = TextAlign.End
+                                        )
                                     }
                                 }
                             }
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     HorizontalDivider(color = BorderGold.copy(alpha = 0.3f), thickness = 0.5.dp)
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    DetailRow("Total Amount:", "₹${CurrencyUtils.formatPrice(bill.totalAmount)}", PrimaryGold, FontWeight.Bold)
+                    DetailRow("Total Amount:", CurrencyUtils.formatPrice(bill.totalAmount), PrimaryGold, FontWeight.Bold)
                     
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    val status = OrderStatus.fromDbValue(bill.orderStatus)
-                    val statusText = when(status) {
+                    val statusValue = OrderStatus.fromDbValue(bill.orderStatus)
+                    val statusText = when(statusValue) {
                         OrderStatus.DRAFT -> "Pending"
-                        else -> status.name.lowercase().replaceFirstChar { it.uppercase() }
+                        else -> statusValue.name.lowercase().replaceFirstChar { it.uppercase() }
                     }
-                    val statusColor = when(status) {
+                    val statusColor = when(statusValue) {
                         OrderStatus.COMPLETED -> VegGreen
                         OrderStatus.CANCELLED -> ZomatoRed
                         else -> TextGold
@@ -681,14 +696,14 @@ fun DetailRow(label: String, value: String, valueColor: Color = TextLight, fontW
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
         Text(
             text = label,
             color = TextGold,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.padding(end = 8.dp)
         )
         Text(
             text = value,

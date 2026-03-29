@@ -1,9 +1,9 @@
 package com.khanabook.lite.pos.test.robots
 
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.AndroidComposeUiTest
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 
-class SettingsRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
+class SettingsRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
 
     private val profileSectionMatcher = hasText("Profile", substring = true)
     private val menuSectionMatcher = hasText("Menu", substring = true)
@@ -83,7 +83,7 @@ class SettingsRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 }
 
-class MenuConfigurationRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
+class MenuConfigurationRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
 
     private val modeSelectionMatcher = hasText("Select Mode", substring = true)
     private val manualModeMatcher = hasText("Manual", substring = true)
@@ -129,9 +129,11 @@ class MenuConfigurationRobot(private val composeTestRule: AndroidComposeUiTest<*
     }
 
     fun waitForOcrProcessing(): MenuConfigurationRobot {
-        composeTestRule.waitUntil(timeoutMillis = 15000) {
+        composeTestRule.waitUntil(15000) {
             try {
-                composeTestRule.onNode(reviewItemsMatcher).fetchSemanticsNodes().isNotEmpty()
+                composeTestRule.onNode(reviewItemsMatcher, useUnmergedTree = true)
+                    .assertExists()
+                true
             } catch (e: Exception) {
                 false
             }
@@ -145,7 +147,7 @@ class MenuConfigurationRobot(private val composeTestRule: AndroidComposeUiTest<*
     }
 }
 
-class LogoutRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
+class LogoutRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
 
     private val confirmButtonMatcher = hasText("Confirm", substring = true).or(hasText("Logout"))
     private val cancelButtonMatcher = hasText("Cancel", substring = true)
@@ -167,8 +169,15 @@ class LogoutRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 
     fun assertLoginScreenShown(): LogoutRobot {
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
-            composeTestRule.onAllNodes(hasText("Login", substring = true)).fetchSemanticsNodes().isNotEmpty()
+        composeTestRule.waitUntil(5000) {
+            try {
+                composeTestRule.onAllNodes(hasText("Login", substring = true))
+                    .onFirst()
+                    .assertExists()
+                true
+            } catch (e: Exception) {
+                false
+            }
         }
         return this
     }

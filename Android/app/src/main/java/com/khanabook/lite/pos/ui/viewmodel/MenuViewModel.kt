@@ -65,6 +65,12 @@ class MenuViewModel @Inject constructor(
         }
     }
 
+    fun updateCategory(category: CategoryEntity) {
+        viewModelScope.launch {
+            categoryRepository.updateCategory(category)
+        }
+    }
+
     fun toggleCategory(id: Long, enabled: Boolean) {
         viewModelScope.launch {
             categoryRepository.toggleActive(id, enabled)

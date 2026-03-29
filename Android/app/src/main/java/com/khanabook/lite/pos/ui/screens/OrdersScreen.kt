@@ -332,7 +332,7 @@ fun OrderTableRow(
             }
         }
 
-        Box(modifier = Modifier.weight(1.5f), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.weight(1.5f / TABLE_TOTAL_WEIGHT), contentAlignment = Alignment.Center) {
             val statusColor = if (row.orderStatus == OrderStatus.COMPLETED) SuccessGreen else DangerRed
             Surface(
                 onClick = { statusExpanded = true },

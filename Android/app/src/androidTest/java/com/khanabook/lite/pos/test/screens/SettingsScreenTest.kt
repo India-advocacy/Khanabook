@@ -1,24 +1,16 @@
 package com.khanabook.lite.pos.test.screens
 
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.khanabook.lite.pos.test.BaseTest
-import com.khanabook.lite.pos.test.api.MockApiServer
-import com.khanabook.lite.pos.test.robots.*
-import com.khanabook.lite.pos.test.util.TestData
-import dagger.hilt.android.testing.HiltAndroidInstrumentationTest
+import com.khanabook.lite.pos.test.robots.HomeRobot
+import com.khanabook.lite.pos.test.robots.LoginRobot
+import com.khanabook.lite.pos.test.robots.SettingsRobot
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 
-@HiltAndroidInstrumentationTest
-@RunWith(JUnit4::class)
 class SettingsScreenTest : BaseTest() {
 
     private lateinit var homeRobot: HomeRobot
     private lateinit var settingsRobot: SettingsRobot
-    private lateinit var menuConfigRobot: MenuConfigurationRobot
-    private lateinit var logoutRobot: LogoutRobot
     private lateinit var loginRobot: LoginRobot
 
     @Before
@@ -26,8 +18,6 @@ class SettingsScreenTest : BaseTest() {
         super.setUp()
         homeRobot = HomeRobot(composeTestRule)
         settingsRobot = SettingsRobot(composeTestRule)
-        menuConfigRobot = MenuConfigurationRobot(composeTestRule)
-        logoutRobot = LogoutRobot(composeTestRule)
         loginRobot = LoginRobot(composeTestRule)
         
         mockApiServer.enqueueLoginSuccess()
@@ -39,12 +29,12 @@ class SettingsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-LAYOUT-012_SettingsScreen_LayoutValid() {
+    fun TC_LAYOUT_012_SettingsScreen_LayoutValid() {
         settingsRobot.assertSectionsVisible()
     }
 
     @Test
-    fun TC-NAV-009_SettingsScreen_NavigationToMenuConfig() {
+    fun TC_NAV_009_SettingsScreen_NavigationToMenuConfig() {
         settingsRobot
             .tapMenuSection()
             .tapMenuConfiguration()
@@ -52,7 +42,7 @@ class SettingsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-NAV-009_SettingsScreen_BackFromMenuConfig() {
+    fun TC_NAV_009_SettingsScreen_BackFromMenuConfig() {
         settingsRobot
             .tapMenuSection()
             .tapMenuConfiguration()
@@ -62,7 +52,7 @@ class SettingsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-SEC-001_SettingsScreen_LogoutFlow() {
+    fun TC_SEC_001_SettingsScreen_LogoutFlow() {
         settingsRobot
             .scrollToLogout()
             .tapLogout()
@@ -72,7 +62,7 @@ class SettingsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-SEC-001_SettingsScreen_Logout_CancelFlow() {
+    fun TC_SEC_001_SettingsScreen_Logout_CancelFlow() {
         settingsRobot
             .scrollToLogout()
             .tapLogout()
@@ -82,7 +72,7 @@ class SettingsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-OFFLINE-002_SettingsScreen_OfflineAccess() {
+    fun TC_OFFLINE_002_SettingsScreen_OfflineAccess() {
         disableNetwork()
         
         settingsRobot.assertSectionsVisible()

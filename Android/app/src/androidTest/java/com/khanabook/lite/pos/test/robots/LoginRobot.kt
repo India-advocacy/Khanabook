@@ -1,17 +1,16 @@
 package com.khanabook.lite.pos.test.robots
 
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.AndroidComposeUiTest
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import com.khanabook.lite.pos.test.util.TestData
 
-class LoginRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
+class LoginRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
 
     private val phoneFieldMatcher = hasText("Phone", substring = true)
-        .or(hasPlaceholder("Phone number"))
-        .or(hasText("Phone number"))
+        .or(hasTestTag("phone"))
 
     private val passwordFieldMatcher = hasText("Password", substring = true)
-        .or(hasPlaceholder("Password"))
+        .or(hasTestTag("password"))
 
     private val loginButtonMatcher = hasText("Login", substring = true)
         .or(hasText("Sign In", substring = true))
@@ -36,13 +35,13 @@ class LoginRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
         .or(hasText("Dashboard"))
 
     fun enterPhone(phone: String): LoginRobot {
-        composeTestRule.onNode(hasPlaceholder("Phone number"))
+        composeTestRule.onNode(phoneFieldMatcher)
             .performTextInput(phone)
         return this
     }
 
     fun enterPassword(password: String): LoginRobot {
-        composeTestRule.onNode(hasPlaceholder("Password"))
+        composeTestRule.onNode(passwordFieldMatcher)
             .performTextInput(password)
         return this
     }
@@ -81,13 +80,13 @@ class LoginRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 
     fun clearPhoneField(): LoginRobot {
-        composeTestRule.onNode(hasPlaceholder("Phone number"))
+        composeTestRule.onNode(phoneFieldMatcher)
             .performTextClearance()
         return this
     }
 
     fun clearPasswordField(): LoginRobot {
-        composeTestRule.onNode(hasPlaceholder("Password"))
+        composeTestRule.onNode(passwordFieldMatcher)
             .performTextClearance()
         return this
     }
@@ -99,13 +98,13 @@ class LoginRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 
     fun assertPhoneFieldVisible(): LoginRobot {
-        composeTestRule.onNode(hasPlaceholder("Phone number"))
+        composeTestRule.onNode(phoneFieldMatcher)
             .assertIsDisplayed()
         return this
     }
 
     fun assertPasswordFieldVisible(): LoginRobot {
-        composeTestRule.onNode(hasPlaceholder("Password"))
+        composeTestRule.onNode(passwordFieldMatcher)
             .assertIsDisplayed()
         return this
     }
@@ -129,26 +128,38 @@ class LoginRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 
     fun assertErrorMessageVisible(): LoginRobot {
-        composeTestRule.onNode(errorMatcher, useUnmergedTree = true)
-            .waitForExists(5000)
-            .assertIsDisplayed()
+        composeTestRule.waitUntil(5000) {
+            try {
+                composeTestRule.onNode(errorMatcher, useUnmergedTree = true)
+                    .assertExists()
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
         return this
     }
 
     fun assertNoErrorMessage(): LoginRobot {
-        composeTestRule.waitForIdle(2000)
+        composeTestRule.waitForIdle()
         try {
             composeTestRule.onNode(errorMatcher, useUnmergedTree = true)
                 .assertDoesNotExist()
         } catch (e: AssertionError) {
-            // Expected if no error exists
         }
         return this
     }
 
     fun assertLoadingIndicatorShown(): LoginRobot {
-        composeTestRule.onNode(loadingMatcher)
-            .waitForExists(3000)
+        composeTestRule.waitUntil(3000) {
+            try {
+                composeTestRule.onNode(loadingMatcher)
+                    .assertExists()
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
         return this
     }
 
@@ -159,14 +170,12 @@ class LoginRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 
     fun assertNavigationToHome(): LoginRobot {
-        composeTestRule.waitUntil(timeoutMillis = 15000) {
+        composeTestRule.waitUntil(15000) {
             try {
                 composeTestRule.onAllNodes(hasText("Home", substring = true))
-                    .fetchSemanticsNodes().isNotEmpty() ||
-                composeTestRule.onAllNodes(hasText("Dashboard", substring = true))
-                    .fetchSemanticsNodes().isNotEmpty() ||
-                composeTestRule.onAllNodes(hasText("Menu", substring = true))
-                    .fetchSemanticsNodes().isNotEmpty()
+                    .onFirst()
+                    .assertExists()
+                true
             } catch (e: Exception) {
                 false
             }
@@ -183,10 +192,11 @@ class LoginRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 
     fun waitForLoginScreen(): LoginRobot {
-        composeTestRule.waitUntil(timeoutMillis = 5000) {
+        composeTestRule.waitUntil(5000) {
             try {
-                composeTestRule.onNode(hasPlaceholder("Phone number"))
-                    .fetchSemanticsNodes().isNotEmpty()
+                composeTestRule.onNode(phoneFieldMatcher)
+                    .assertExists()
+                true
             } catch (e: Exception) {
                 false
             }
@@ -195,10 +205,12 @@ class LoginRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 
     fun waitForNavigation(timeoutMs: Long = 10000): LoginRobot {
-        composeTestRule.waitUntil(timeoutMillis = timeoutMs) {
+        composeTestRule.waitUntil(timeoutMs) {
             try {
                 composeTestRule.onAllNodes(hasText("Home", substring = true))
-                    .fetchSemanticsNodes().isNotEmpty()
+                    .onFirst()
+                    .assertExists()
+                true
             } catch (e: Exception) {
                 false
             }

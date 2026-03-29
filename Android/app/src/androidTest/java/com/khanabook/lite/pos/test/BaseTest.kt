@@ -1,22 +1,16 @@
 package com.khanabook.lite.pos.test
 
-import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.ActivityInfo
-import android.os.Bundle
-import androidx.compose.ui.test.junit4.AndroidComposeUiTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.uiautomator.UiDevice
-import com.khanabook.lite.pos.MainActivity
 import com.khanabook.lite.pos.test.api.MockApiServer
 import dagger.hilt.android.testing.HiltAndroidRule
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
-import java.io.File
 
 abstract class BaseTest {
 
@@ -24,7 +18,7 @@ abstract class BaseTest {
     val hiltRule = HiltAndroidRule(this)
 
     @get:Rule(order = 1)
-    val composeTestRule = createAndroidComposeRule<MainActivity>()
+    val composeTestRule = createAndroidComposeRule<com.khanabook.lite.pos.ui.MainActivity>()
 
     protected lateinit var mockApiServer: MockApiServer
     protected lateinit var uiDevice: UiDevice
@@ -33,8 +27,7 @@ abstract class BaseTest {
     open fun setUp() {
         hiltRule.inject()
         
-        mockApiServer = MockApiServer()
-        mockApiServer.start()
+        mockApiServer = MockApiServer.start()
         
         uiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
     }
@@ -84,16 +77,16 @@ abstract class BaseTest {
 
     protected fun restartApp() {
         forceStopApp()
-        val intent = Intent(ApplicationProvider.getApplicationContext(), MainActivity::class.java).apply {
+        val intent = Intent(ApplicationProvider.getApplicationContext(), com.khanabook.lite.pos.ui.MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         ApplicationProvider.getApplicationContext<android.app.Application>().startActivity(intent)
     }
 
     protected fun captureScreenshot(name: String) {
-        val screenshotsDir = File("/sdcard/screenshots")
+        val screenshotsDir = java.io.File("/sdcard/screenshots")
         screenshotsDir.mkdirs()
-        uiDevice.takeScreenshot(File(screenshotsDir, "${name}_${System.currentTimeMillis()}.png"))
+        uiDevice.takeScreenshot(java.io.File(screenshotsDir, "${name}_${System.currentTimeMillis()}.png"))
     }
 
     protected fun pressBackKey() {

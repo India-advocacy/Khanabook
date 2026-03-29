@@ -1,9 +1,9 @@
 package com.khanabook.lite.pos.test.robots
 
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.AndroidComposeUiTest
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 
-class ReportsRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
+class ReportsRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
 
     private val reportsTitleMatcher = hasText("Reports", substring = true).or(hasText("Analytics"))
     private val dateRangePickerMatcher = hasText("Date Range", substring = true)
@@ -74,9 +74,11 @@ class ReportsRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 
     fun waitForReportsToLoad(): ReportsRobot {
-        composeTestRule.waitUntil(timeoutMillis = 10000) {
+        composeTestRule.waitUntil(10000) {
             try {
-                composeTestRule.onNode(revenueChartMatcher).fetchSemanticsNodes().isNotEmpty()
+                composeTestRule.onNode(revenueChartMatcher, useUnmergedTree = true)
+                    .assertExists()
+                true
             } catch (e: Exception) {
                 false
             }

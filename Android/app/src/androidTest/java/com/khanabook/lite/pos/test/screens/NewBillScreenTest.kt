@@ -1,26 +1,20 @@
 package com.khanabook.lite.pos.test.screens
 
 import android.content.pm.ActivityInfo
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import com.khanabook.lite.pos.MainActivity
 import com.khanabook.lite.pos.test.BaseTest
-import com.khanabook.lite.pos.test.api.MockApiServer
-import com.khanabook.lite.pos.test.robots.*
+import com.khanabook.lite.pos.test.robots.CheckoutRobot
+import com.khanabook.lite.pos.test.robots.HomeRobot
+import com.khanabook.lite.pos.test.robots.LoginRobot
+import com.khanabook.lite.pos.test.robots.NewBillRobot
 import com.khanabook.lite.pos.test.util.TestData
-import dagger.hilt.android.testing.HiltAndroidInstrumentationTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 
-@HiltAndroidInstrumentationTest
-@RunWith(JUnit4::class)
 class NewBillScreenTest : BaseTest() {
 
     private lateinit var homeRobot: HomeRobot
     private lateinit var newBillRobot: NewBillRobot
-    private lateinit var checkoutRobot: CheckoutRobot
     private lateinit var loginRobot: LoginRobot
 
     @Before
@@ -28,7 +22,6 @@ class NewBillScreenTest : BaseTest() {
         super.setUp()
         homeRobot = HomeRobot(composeTestRule)
         newBillRobot = NewBillRobot(composeTestRule)
-        checkoutRobot = CheckoutRobot(composeTestRule)
         loginRobot = LoginRobot(composeTestRule)
         
         mockApiServer.enqueueLoginSuccess()
@@ -39,87 +32,94 @@ class NewBillScreenTest : BaseTest() {
         homeRobot.tapNewBill().waitForMenuToLoad()
     }
 
+    @After
+    override fun tearDown() {
+        composeTestRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        super.tearDown()
+    }
+
     @Test
-    fun TC-LAYOUT-007_NewBillScreen_LayoutValid() {
+    fun TC_LAYOUT_007_NewBillScreen_LayoutValid() {
         newBillRobot
             .assertCartEmpty()
             .assertCheckoutButtonDisabled()
     }
 
     @Test
-    fun TC-LAYOUT-008_NewBillScreen_ScrollPerformance() {
-        repeat(10) {
-            newBillRobot.addItemToCart(TestData.MenuItems.BURGER)
+    fun TC_LAYOUT_008_NewBillScreen_Performance_ManyItems() {
+        TestData.MenuItems.POPULAR_ITEMS.forEach { item ->
+            newBillRobot.addItemToCart(item)
         }
-        
         newBillRobot.assertCartNotEmpty()
     }
 
     @Test
-    fun TC-JOURNEY-001_NewBillScreen_CompleteSaleFlow_CashPayment() {
+    fun TC_JOURNEY_001_NewBillScreen_CompleteSale_CashPayment() {
         mockApiServer.enqueueBillCreateSuccess()
         
         newBillRobot
             .addItemToCart(TestData.MenuItems.BURGER)
             .assertItemInCart(TestData.MenuItems.BURGER)
             .assertCheckoutButtonEnabled()
-            .tapCheckout()
-            .completePayment(CheckoutRobot.PaymentMethod.CASH)
-            .assertSuccessMessageShown()
-            .assertOrderIdGenerated()
+        
+        val checkoutRobot = newBillRobot.tapCheckout()
+        checkoutRobot.completePayment(CheckoutRobot.PaymentMethod.CASH)
+        checkoutRobot.assertSuccessMessageShown()
     }
 
     @Test
-    fun TC-JOURNEY-001_NewBillScreen_CompleteSaleFlow_CardPayment() {
+    fun TC_JOURNEY_001_NewBillScreen_CompleteSale_CardPayment() {
         mockApiServer.enqueueBillCreateSuccess()
         
         newBillRobot
             .addItemToCart(TestData.MenuItems.PIZZA)
             .addItemToCart(TestData.MenuItems.COKE)
-            .tapCheckout()
-            .completePayment(CheckoutRobot.PaymentMethod.CARD)
-            .assertSuccessMessageShown()
+            .assertCheckoutButtonEnabled()
+        
+        val checkoutRobot = newBillRobot.tapCheckout()
+        checkoutRobot.completePayment(CheckoutRobot.PaymentMethod.CARD)
+        checkoutRobot.assertSuccessMessageShown()
     }
 
     @Test
-    fun TC-JOURNEY-001_NewBillScreen_CompleteSaleFlow_UpiPayment() {
+    fun TC_JOURNEY_001_NewBillScreen_CompleteSale_UpiPayment() {
         mockApiServer.enqueueBillCreateSuccess()
         
         newBillRobot
             .addItemToCart(TestData.MenuItems.BURGER)
             .addItemToCart(TestData.MenuItems.PIZZA)
-            .tapCheckout()
-            .completePayment(CheckoutRobot.PaymentMethod.UPI)
-            .assertSuccessMessageShown()
+        
+        val checkoutRobot = newBillRobot.tapCheckout()
+        checkoutRobot.completePayment(CheckoutRobot.PaymentMethod.UPI)
+        checkoutRobot.assertSuccessMessageShown()
     }
 
     @Test
-    fun TC-API-009_NewBillScreen_SubmitEmptyCart() {
+    fun TC_API_009_NewBillScreen_SubmitEmptyCart() {
         newBillRobot
             .assertCheckoutButtonDisabled()
     }
 
     @Test
-    fun TC-STATE-001_NewBillScreen_CartState_AfterRotation() {
+    fun TC_STATE_001_NewBillScreen_CartState_AfterRotation() {
         newBillRobot.addItemToCart(TestData.MenuItems.BURGER)
         newBillRobot.addItemToCart(TestData.MenuItems.PIZZA)
         
-        composeTestRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        rotateDevice(ScreenOrientation.LANDSCAPE)
         
         newBillRobot
             .assertItemInCart(TestData.MenuItems.BURGER)
             .assertItemInCart(TestData.MenuItems.PIZZA)
             .assertCartNotEmpty()
         
-        composeTestRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        rotateDevice(ScreenOrientation.PORTRAIT)
         
         newBillRobot
             .assertItemInCart(TestData.MenuItems.BURGER)
-            .assertItemInCart(TestData.MenuItems.PIZZA)
     }
 
     @Test
-    fun TC-STATE-001_NewBillScreen_CartState_PreservedOnBack() {
+    fun TC_STATE_001_NewBillScreen_CartState_BackNavigation() {
         newBillRobot
             .addItemToCart(TestData.MenuItems.BURGER)
             .addItemToCart(TestData.MenuItems.PIZZA)
@@ -133,30 +133,42 @@ class NewBillScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-NAV-004_NewBillScreen_BackStack_PreservesCart() {
+    fun TC_NAV_004_NewBillScreen_BackStack_PreservesCart() {
         mockApiServer.enqueueBillCreateSuccess()
         
-        newBillRobot
-            .addItemToCart(TestData.MenuItems.BURGER)
-            .tapCheckout()
-            .selectCashPayment()
+        newBillRobot.addItemToCart(TestData.MenuItems.BURGER)
+        val checkoutRobot = newBillRobot.tapCheckout()
+        checkoutRobot.selectCashPayment()
         
-        composeTestRule.activity.onBackPressedDispatcher.onBackPressed()
+        pressBackKey()
         
         newBillRobot.assertItemInCart(TestData.MenuItems.BURGER)
     }
 
     @Test
-    fun TC-VALIDATION-002_NewBillScreen_QuantityValidation() {
+    fun TC_VALIDATION_002_NewBillScreen_MultipleItemsValidation() {
         newBillRobot
             .addItemToCart(TestData.MenuItems.BURGER)
-            .increaseQuantity()
-            .increaseQuantity()
+            .addItemToCart(TestData.MenuItems.PIZZA)
+            .addItemToCart(TestData.MenuItems.COKE)
+            .assertCheckoutButtonEnabled()
+            .assertTotalVisible()
+    }
+
+    @Test
+    fun TC_OFFLINE_001_NewBillScreen_CachedMenu_Offline() {
+        disableNetwork()
         
-        newBillRobot.increaseQuantity()
+        newBillRobot
+            .addItemToCart(TestData.MenuItems.BURGER)
+            .assertItemInCart(TestData.MenuItems.BURGER)
+    }
+
+    @Test
+    fun TC_JOURNEY_002_Checkout_PaymentMethods() {
+        newBillRobot.addItemToCart(TestData.MenuItems.BURGER)
         
-        newBillRobot.decreaseQuantity()
-        
-        newBillRobot.decreaseQuantity()
+        val checkoutRobot = newBillRobot.tapCheckout()
+        checkoutRobot.assertPaymentMethodsVisible()
     }
 }

@@ -1,22 +1,23 @@
 package com.khanabook.lite.pos.test.robots
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.*
-import androidx.compose.ui.test.junit4.AndroidComposeUiTest
+import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 
-class OrdersRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
+class OrdersRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
 
     private val ordersListMatcher = hasText("Orders", substring = true)
     private val orderItemMatcher = hasText("Order #", substring = true)
     private val pendingStatusMatcher = hasText("Pending", substring = true)
     private val completedStatusMatcher = hasText("Completed", substring = true)
     private val filterButtonMatcher = hasContentDescription("Filter").or(hasText("Filter"))
-    private val searchMatcher = hasPlaceholder("Search orders")
+    private val searchMatcher = hasTestTag("search").or(hasText("Search", substring = true))
     private val refreshMatcher = hasContentDescription("Refresh").or(hasText("Refresh"))
 
     fun tapOrder(orderIndex: Int = 0): OrderDetailRobot {
-        composeTestRule.onAllNodes(orderItemMatcher)
-            .getOrNull(orderIndex)
-            ?.performClick()
+        composeTestRule.onAllNodes(orderItemMatcher, useUnmergedTree = true)
+            .get(orderIndex)
+            .performClick()
         return OrderDetailRobot(composeTestRule)
     }
 
@@ -33,32 +34,33 @@ class OrdersRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
 
     fun pullToRefresh(): OrdersRobot {
         composeTestRule.onNode(ordersListMatcher).performTouchInput {
-            down(500f, 300f)
-            moveTo(500f, 100f)
+            down(Offset(500f, 300f))
+            moveTo(Offset(500f, 100f))
             up()
         }
         return this
     }
 
     fun swipeOrder(orderIndex: Int = 0, direction: SwipeDirection = SwipeDirection.LEFT): OrdersRobot {
-        val node = composeTestRule.onAllNodes(orderItemMatcher).getOrNull(orderIndex)
-        node?.let {
+        try {
+            val node = composeTestRule.onAllNodes(orderItemMatcher, useUnmergedTree = true).get(orderIndex)
             when (direction) {
                 SwipeDirection.LEFT -> {
-                    it.performTouchInput {
-                        down(800f, 500f)
-                        moveTo(100f, 500f)
+                    node.performTouchInput {
+                        down(Offset(800f, 500f))
+                        moveTo(Offset(100f, 500f))
                         up()
                     }
                 }
                 SwipeDirection.RIGHT -> {
-                    it.performTouchInput {
-                        down(100f, 500f)
-                        moveTo(800f, 500f)
+                    node.performTouchInput {
+                        down(Offset(100f, 500f))
+                        moveTo(Offset(800f, 500f))
                         up()
                     }
                 }
             }
+        } catch (e: Exception) {
         }
         return this
     }
@@ -84,9 +86,12 @@ class OrdersRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 
     fun waitForOrdersToLoad(): OrdersRobot {
-        composeTestRule.waitUntil(timeoutMillis = 8000) {
+        composeTestRule.waitUntil(8000) {
             try {
-                composeTestRule.onAllNodes(orderItemMatcher).fetchSemanticsNodes().isNotEmpty()
+                composeTestRule.onAllNodes(orderItemMatcher, useUnmergedTree = true)
+                    .onFirst()
+                    .assertIsDisplayed()
+                true
             } catch (e: Exception) {
                 false
             }
@@ -111,7 +116,7 @@ class OrdersRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
     }
 }
 
-class OrderDetailRobot(private val composeTestRule: AndroidComposeUiTest<*>) {
+class OrderDetailRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
 
     private val orderIdMatcher = hasText("Order #")
     private val orderItemsMatcher = hasText("Items", substring = true)

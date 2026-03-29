@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -7,10 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -58,6 +55,7 @@ object ReviewSheetLayout {
 @Composable
 fun MenuConfigurationScreen(
     navController: NavController,
+    onBackClick: () -> Unit,
     viewModel: MenuViewModel = hiltViewModel()
 ) {
     val categories by viewModel.categories.collectAsState()
@@ -75,10 +73,12 @@ fun MenuConfigurationScreen(
     }
 
     val onBack: () -> Unit = {
-        if (ocrUiState.configMode != null) {
+        if (ocrUiState.drafts.isNotEmpty()) {
+            viewModel.clearDrafts()
+        } else if (ocrUiState.configMode != null) {
             viewModel.setConfigMode(null)
         } else {
-            navController.popBackStack()
+            onBackClick()
         }
     }
 
@@ -124,9 +124,16 @@ fun MenuConfigurationScreen(
                     menuItems = menuItems,
                     onCategorySelect = { viewModel.selectCategory(it) },
                     onAddCategory = { viewModel.addCategory(it, true) },
+                    onUpdateCategory = { viewModel.updateCategory(it) },
+                    onDeleteCategory = { viewModel.deleteCategory(it) },
                     onAddItem = { name, price, type -> 
                         selectedCategoryId?.let { viewModel.addItem(it, name, price, type) }
-                    }
+                    },
+                    onUpdateItem = { viewModel.updateItem(it) },
+                    onDeleteItem = { viewModel.deleteItem(it) },
+                    onAddVariant = { itemId, name, price -> viewModel.addVariant(itemId, name, price) },
+                    onUpdateVariant = { viewModel.updateVariant(it) },
+                    onDeleteVariant = { viewModel.deleteVariant(it) }
                 )
             }
 
@@ -640,23 +647,67 @@ fun ManualMenuView(
     menuItems: List<com.khanabook.lite.pos.data.local.relation.MenuWithVariants>,
     onCategorySelect: (Long) -> Unit,
     onAddCategory: (String) -> Unit,
-    onAddItem: (String, Double, String) -> Unit
+    onUpdateCategory: (CategoryEntity) -> Unit,
+    onDeleteCategory: (CategoryEntity) -> Unit,
+    onAddItem: (String, Double, String) -> Unit,
+    onUpdateItem: (MenuItemEntity) -> Unit,
+    onDeleteItem: (MenuItemEntity) -> Unit,
+    onAddVariant: (Long, String, Double) -> Unit,
+    onUpdateVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit,
+    onDeleteVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit
 ) {
     var showAddCategoryDialog by remember { mutableStateOf(false) }
+    var showEditCategoryDialog by remember { mutableStateOf<CategoryEntity?>(null) }
+    var showDeleteCategoryDialog by remember { mutableStateOf<CategoryEntity?>(null) }
+    
     var showAddItemDialog by remember { mutableStateOf(false) }
+    var showEditItemDialog by remember { mutableStateOf<com.khanabook.lite.pos.data.local.relation.MenuWithVariants?>(null) }
+    var showDeleteItemDialog by remember { mutableStateOf<MenuItemEntity?>(null) }
 
     Column(modifier = Modifier.fillMaxSize()) {
         LazyRow(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             items(categories) { category ->
-                FilterChip(
-                    selected = category.id == selectedCategoryId,
+                val isSelected = category.id == selectedCategoryId
+                Surface(
                     onClick = { onCategorySelect(category.id) },
-                    label = { Text(category.name) }
-                )
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isSelected) PrimaryGold else DarkBrown2,
+                    border = BorderStroke(1.dp, if (isSelected) PrimaryGold else BorderGold.copy(alpha = 0.3f)),
+                    contentColor = if (isSelected) DarkBrown1 else TextLight
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .combinedClickable(
+                                onClick = { onCategorySelect(category.id) },
+                                onLongClick = { showDeleteCategoryDialog = category }
+                            ),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = category.name,
+                            fontSize = 12.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                        if (isSelected) {
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit Category",
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .clickable { showEditCategoryDialog = category },
+                                tint = DarkBrown1
+                            )
+                        }
+                    }
+                }
             }
             item {
                 IconButton(onClick = { showAddCategoryDialog = true }) {
@@ -665,55 +716,419 @@ fun ManualMenuView(
             }
         }
 
-        LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
             items(menuItems) { itemWithVariants ->
-                Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = DarkBrown2)) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .combinedClickable(
+                            onClick = { showEditItemDialog = itemWithVariants },
+                            onLongClick = { showDeleteItemDialog = itemWithVariants.menuItem }
+                        ),
+                    colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                    border = BorderStroke(0.5.dp, BorderGold.copy(alpha = 0.2f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(itemWithVariants.menuItem.name, color = TextLight, fontWeight = FontWeight.Bold)
-                            Text("₹${itemWithVariants.menuItem.basePrice}", color = TextGold.copy(alpha = 0.7f), fontSize = 12.sp)
+                            Text(
+                                itemWithVariants.menuItem.name,
+                                color = TextLight,
+                                fontWeight = FontWeight.Bold
+                            )
+                            val variantCount = itemWithVariants.variants.size
+                            if (variantCount > 0) {
+                                Text(
+                                    "$variantCount variants",
+                                    color = TextGold.copy(alpha = 0.6f),
+                                    fontSize = 11.sp
+                                )
+                            } else {
+                                Text(
+                                    "₹${itemWithVariants.menuItem.basePrice}",
+                                    color = TextGold.copy(alpha = 0.7f),
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
-                        Icon(Icons.Default.Circle, null, tint = if (itemWithVariants.menuItem.foodType == "veg") VegGreen else NonVegRed, modifier = Modifier.size(12.dp))
+                        
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Circle,
+                                null,
+                                tint = if (itemWithVariants.menuItem.foodType == "veg") VegGreen else NonVegRed,
+                                modifier = Modifier.size(10.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = "Edit Item",
+                                tint = PrimaryGold.copy(alpha = 0.6f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
                 }
             }
         }
 
-        Button(onClick = { showAddItemDialog = true }, modifier = Modifier.fillMaxWidth().padding(16.dp), colors = ButtonDefaults.buttonColors(containerColor = PrimaryGold, contentColor = DarkBrown1), enabled = selectedCategoryId != null) {
-            Text("Add New Item")
+        Button(
+            onClick = { showAddItemDialog = true },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = PrimaryGold,
+                contentColor = DarkBrown1
+            ),
+            enabled = selectedCategoryId != null,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Default.Add, null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Add New Item", fontWeight = FontWeight.Bold)
         }
     }
 
+    // Category Dialogs
     if (showAddCategoryDialog) {
-        var newCatName by remember { mutableStateOf("") }
-        AlertDialog(
-            onDismissRequest = { showAddCategoryDialog = false },
-            title = { Text("Add Category") },
-            text = { OutlinedTextField(value = newCatName, onValueChange = { newCatName = it }, label = { Text("Category Name") }) },
-            confirmButton = { TextButton(onClick = { if (newCatName.isNotBlank()) onAddCategory(newCatName); showAddCategoryDialog = false }) { Text("Add") } },
-            dismissButton = { TextButton(onClick = { showAddCategoryDialog = false }) { Text("Cancel") } }
+        CategoryEditDialog(
+            title = "Add Category",
+            onDismiss = { showAddCategoryDialog = false },
+            onConfirm = { name -> 
+                onAddCategory(name)
+                showAddCategoryDialog = false
+            }
         )
     }
 
-    if (showAddItemDialog) {
-        var name by remember { mutableStateOf("") }
-        var price by remember { mutableStateOf("") }
-        var isVeg by remember { mutableStateOf(true) }
+    if (showEditCategoryDialog != null) {
+        CategoryEditDialog(
+            title = "Edit Category",
+            initialName = showEditCategoryDialog?.name ?: "",
+            onDismiss = { showEditCategoryDialog = null },
+            onConfirm = { name ->
+                showEditCategoryDialog?.let {
+                    onUpdateCategory(it.copy(name = name))
+                }
+                showEditCategoryDialog = null
+            }
+        )
+    }
+
+    if (showDeleteCategoryDialog != null) {
         AlertDialog(
-            onDismissRequest = { showAddItemDialog = false },
-            title = { Text("Add Item") },
-            text = {
-                Column {
-                    OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Item Name") })
-                    OutlinedTextField(value = price, onValueChange = { price = it }, label = { Text("Price") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Checkbox(checked = isVeg, onCheckedChange = { isVeg = it })
-                        Text("Vegetarian")
-                    }
+            onDismissRequest = { showDeleteCategoryDialog = null },
+            containerColor = DarkBrown2,
+            title = { Text("Delete Category?", color = PrimaryGold) },
+            text = { Text("All items in \"${showDeleteCategoryDialog?.name}\" will also be deleted. This cannot be undone.", color = TextLight) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteCategoryDialog?.let { onDeleteCategory(it) }
+                    showDeleteCategoryDialog = null
+                }) {
+                    Text("Delete", color = Color.Red)
                 }
             },
-            confirmButton = { TextButton(onClick = { if (name.isNotBlank()) onAddItem(name, price.toDoubleOrNull() ?: 0.0, if (isVeg) "veg" else "non-veg"); showAddItemDialog = false }) { Text("Add") } },
-            dismissButton = { TextButton(onClick = { showAddItemDialog = false }) { Text("Cancel") } }
+            dismissButton = {
+                TextButton(onClick = { showDeleteCategoryDialog = null }) {
+                    Text("Cancel", color = TextGold)
+                }
+            }
+        )
+    }
+
+    // Item Dialogs
+    if (showAddItemDialog) {
+        ItemEditDialog(
+            title = "Add New Item",
+            onDismiss = { showAddItemDialog = false },
+            onConfirm = { name, price, type ->
+                onAddItem(name, price, type)
+                showAddItemDialog = false
+            }
+        )
+    }
+
+    if (showEditItemDialog != null) {
+        val itemWithVariants = showEditItemDialog!!
+        ItemEditDialog(
+            title = "Edit Item",
+            initialName = itemWithVariants.menuItem.name,
+            initialPrice = itemWithVariants.menuItem.basePrice.toDoubleOrNull() ?: 0.0,
+            initialType = itemWithVariants.menuItem.foodType,
+            variants = itemWithVariants.variants,
+            onDismiss = { showEditItemDialog = null },
+            onConfirm = { name, price, type ->
+                onUpdateItem(itemWithVariants.menuItem.copy(
+                    name = name,
+                    basePrice = price.toString(),
+                    foodType = type
+                ))
+                showEditItemDialog = null
+            },
+            onAddVariant = { name, price -> onAddVariant(itemWithVariants.menuItem.id, name, price) },
+            onUpdateVariant = onUpdateVariant,
+            onDeleteVariant = onDeleteVariant
+        )
+    }
+
+    if (showDeleteItemDialog != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteItemDialog = null },
+            containerColor = DarkBrown2,
+            title = { Text("Delete Item?", color = PrimaryGold) },
+            text = { Text("Are you sure you want to delete \"${showDeleteItemDialog?.name}\"?", color = TextLight) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteItemDialog?.let { onDeleteItem(it) }
+                    showDeleteItemDialog = null
+                }) {
+                    Text("Delete", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteItemDialog = null }) {
+                    Text("Cancel", color = TextGold)
+                }
+            }
+        )
+    }
+}
+
+@Composable
+fun CategoryEditDialog(
+    title: String,
+    initialName: String = "",
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var name by remember { mutableStateOf(initialName) }
+    
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkBrown2,
+        title = { Text(title, color = PrimaryGold) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Category Name", color = TextGold) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PrimaryGold,
+                    unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                    focusedTextColor = TextLight,
+                    unfocusedTextColor = TextLight
+                ),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { if (name.isNotBlank()) onConfirm(name) },
+                enabled = name.isNotBlank()
+            ) {
+                Text("Save", color = PrimaryGold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextGold)
+            }
+        }
+    )
+}
+
+@Composable
+fun ItemEditDialog(
+    title: String,
+    initialName: String = "",
+    initialPrice: Double = 0.0,
+    initialType: String = "veg",
+    variants: List<com.khanabook.lite.pos.data.local.entity.ItemVariantEntity> = emptyList(),
+    onDismiss: () -> Unit,
+    onConfirm: (String, Double, String) -> Unit,
+    onAddVariant: (String, Double) -> Unit = { _, _ -> },
+    onUpdateVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit = {},
+    onDeleteVariant: (com.khanabook.lite.pos.data.local.entity.ItemVariantEntity) -> Unit = {}
+) {
+    var name by remember { mutableStateOf(initialName) }
+    var price by remember { mutableStateOf(if (initialPrice == 0.0) "" else initialPrice.toInt().toString()) }
+    var foodType by remember { mutableStateOf(initialType) }
+    
+    var showAddVariantDialog by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkBrown2,
+        title = { Text(title, color = PrimaryGold) },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Item Name", color = TextGold) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PrimaryGold,
+                        unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                        focusedTextColor = TextLight,
+                        unfocusedTextColor = TextLight
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                if (variants.isEmpty()) {
+                    OutlinedTextField(
+                        value = price,
+                        onValueChange = { price = it },
+                        label = { Text("Base Price (₹)", color = TextGold) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryGold,
+                            unfocusedBorderColor = BorderGold.copy(alpha = 0.5f),
+                            focusedTextColor = TextLight,
+                            unfocusedTextColor = TextLight
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = foodType == "veg",
+                            onClick = { foodType = "veg" },
+                            colors = RadioButtonDefaults.colors(selectedColor = VegGreen)
+                        )
+                        Text("Veg", color = TextLight)
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = foodType == "non-veg",
+                            onClick = { foodType = "non-veg" },
+                            colors = RadioButtonDefaults.colors(selectedColor = NonVegRed)
+                        )
+                        Text("Non-Veg", color = TextLight)
+                    }
+                }
+
+                if (variants.isNotEmpty() || initialName.isNotBlank()) {
+                    HorizontalDivider(color = BorderGold.copy(alpha = 0.2f))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Variants", color = PrimaryGold, fontWeight = FontWeight.Bold)
+                        TextButton(onClick = { showAddVariantDialog = true }) {
+                            Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                            Text("Add Variant", fontSize = 12.sp)
+                        }
+                    }
+
+                    variants.forEach { variant ->
+                        var vName by remember { mutableStateOf(variant.variantName) }
+                        var vPrice by remember { mutableStateOf(variant.price.toDoubleOrNull()?.toInt()?.toString() ?: "") }
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutlinedTextField(
+                                value = vName,
+                                onValueChange = { 
+                                    vName = it
+                                    onUpdateVariant(variant.copy(variantName = it))
+                                },
+                                label = { Text("Name", fontSize = 10.sp) },
+                                modifier = Modifier.weight(1.5f),
+                                colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
+                            )
+                            OutlinedTextField(
+                                value = vPrice,
+                                onValueChange = { 
+                                    vPrice = it
+                                    it.toDoubleOrNull()?.let { p ->
+                                        onUpdateVariant(variant.copy(price = p.toString()))
+                                    }
+                                },
+                                label = { Text("Price", fontSize = 10.sp) },
+                                modifier = Modifier.weight(1f),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                colors = OutlinedTextFieldDefaults.colors(focusedTextColor = TextLight, unfocusedTextColor = TextLight)
+                            )
+                            IconButton(onClick = { onDeleteVariant(variant) }) {
+                                Icon(Icons.Default.Delete, null, tint = NonVegRed.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { if (name.isNotBlank()) onConfirm(name, price.toDoubleOrNull() ?: 0.0, foodType) },
+                enabled = name.isNotBlank()
+            ) {
+                Text("Save", color = PrimaryGold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextGold)
+            }
+        }
+    )
+
+    if (showAddVariantDialog) {
+        var newVName by remember { mutableStateOf("") }
+        var newVPrice by remember { mutableStateOf("") }
+        
+        AlertDialog(
+            onDismissRequest = { showAddVariantDialog = false },
+            containerColor = DarkBrown2,
+            title = { Text("Add Variant", color = PrimaryGold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(value = newVName, onValueChange = { newVName = it }, label = { Text("Variant Name") })
+                    OutlinedTextField(value = newVPrice, onValueChange = { newVPrice = it }, label = { Text("Price (₹)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (newVName.isNotBlank() && newVPrice.isNotBlank()) {
+                        onAddVariant(newVName, newVPrice.toDoubleOrNull() ?: 0.0)
+                        showAddVariantDialog = false
+                    }
+                }) {
+                    Text("Add", color = PrimaryGold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddVariantDialog = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }

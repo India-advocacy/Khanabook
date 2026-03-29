@@ -1,21 +1,14 @@
 package com.khanabook.lite.pos.test.screens
 
 import android.content.pm.ActivityInfo
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import com.khanabook.lite.pos.MainActivity
 import com.khanabook.lite.pos.test.BaseTest
 import com.khanabook.lite.pos.test.robots.HomeRobot
 import com.khanabook.lite.pos.test.robots.LoginRobot
 import com.khanabook.lite.pos.test.util.TestData
-import dagger.hilt.android.testing.HiltAndroidInstrumentationTest
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 
-@HiltAndroidInstrumentationTest
-@RunWith(JUnit4::class)
 class LoginScreenTest : BaseTest() {
 
     private lateinit var loginRobot: LoginRobot
@@ -35,7 +28,7 @@ class LoginScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-LAYOUT-002_LoginScreen_LayoutValid_Portrait() {
+    fun TC_LAYOUT_002_LoginScreen_LayoutValid_Portrait() {
         loginRobot
             .assertPhoneFieldVisible()
             .assertPasswordFieldVisible()
@@ -43,7 +36,7 @@ class LoginScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-LAYOUT-002_LoginScreen_LayoutValid_Landscape() {
+    fun TC_LAYOUT_002_LoginScreen_LayoutValid_Landscape() {
         rotateDevice(ScreenOrientation.LANDSCAPE)
         
         loginRobot
@@ -53,7 +46,7 @@ class LoginScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-API-001_Login_Success_ValidCredentials() {
+    fun TC_API_001_Login_Success_ValidCredentials() {
         mockApiServer.enqueueLoginSuccess()
         mockApiServer.enqueueMasterSyncSuccess()
         
@@ -67,7 +60,7 @@ class LoginScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-API-002_Login_Failure_InvalidCredentials() {
+    fun TC_API_002_Login_Failure_InvalidCredentials() {
         mockApiServer.enqueueLoginFailure()
         
         loginRobot
@@ -80,7 +73,7 @@ class LoginScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-API-003_Login_Failure_EmptyCredentials() {
+    fun TC_API_003_Login_Failure_EmptyCredentials() {
         loginRobot
             .clearPhoneField()
             .clearPasswordField()
@@ -89,7 +82,7 @@ class LoginScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-API-004_Login_Failure_NetworkOffline() {
+    fun TC_API_004_Login_Failure_NetworkOffline() {
         disableNetwork()
         
         loginRobot
@@ -99,7 +92,7 @@ class LoginScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-NAV-003_Login_NavigationError_StaysOnScreen() {
+    fun TC_NAV_003_Login_NavigationError_StaysOnScreen() {
         mockApiServer.enqueueLoginFailure()
         
         loginRobot
@@ -110,7 +103,7 @@ class LoginScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-VALIDATION-001_Login_PhoneNumberValidation() {
+    fun TC_VALIDATION_001_Login_PhoneNumberValidation() {
         loginRobot
             .enterPhone("12345")
             .tapLogin()
@@ -118,7 +111,7 @@ class LoginScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-VALIDATION-001_Login_PasswordMinLength() {
+    fun TC_VALIDATION_001_Login_PasswordMinLength() {
         loginRobot
             .enterPassword("123")
             .tapLogin()
@@ -126,7 +119,7 @@ class LoginScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-LAYOUT-003_Login_KeyboardNotObscured() {
+    fun TC_LAYOUT_003_Login_KeyboardNotObscured() {
         loginRobot.enterPhone("9876543210")
         loginRobot.enterPassword("password")
         

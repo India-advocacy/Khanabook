@@ -1,21 +1,12 @@
 package com.khanabook.lite.pos.test.screens
 
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.khanabook.lite.pos.test.BaseTest
-import com.khanabook.lite.pos.test.api.MockApiServer
-import com.khanabook.lite.pos.test.api.ResponseFixtures
-import com.khanabook.lite.pos.test.robots.*
-import com.khanabook.lite.pos.test.util.TestData
-import dagger.hilt.android.testing.HiltAndroidInstrumentationTest
-import okhttp3.mockwebserver.MockResponse
-import org.junit.After
+import com.khanabook.lite.pos.test.robots.HomeRobot
+import com.khanabook.lite.pos.test.robots.LoginRobot
+import com.khanabook.lite.pos.test.robots.ReportsRobot
 import org.junit.Before
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
 
-@HiltAndroidInstrumentationTest
-@RunWith(JUnit4::class)
 class ReportsScreenTest : BaseTest() {
 
     private lateinit var homeRobot: HomeRobot
@@ -37,7 +28,7 @@ class ReportsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-LAYOUT-010_ReportsScreen_LayoutValid() {
+    fun TC_LAYOUT_010_ReportsScreen_LayoutValid() {
         homeRobot.tapReportsTab()
         
         reportsRobot
@@ -47,7 +38,7 @@ class ReportsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-LAYOUT-010_ReportsScreen_Rotation_ChartsAdapt() {
+    fun TC_LAYOUT_010_ReportsScreen_Rotation_ChartsAdapt() {
         homeRobot.tapReportsTab()
         
         reportsRobot.waitForReportsToLoad()
@@ -56,8 +47,8 @@ class ReportsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-API-012_ReportsScreen_FilterToday() {
-        mockApiServer.enqueueReportsData(TestData.Dates.TODAY)
+    fun TC_API_012_ReportsScreen_FilterToday() {
+        mockApiServer.enqueueReportsData("Today")
         
         homeRobot.tapReportsTab()
         
@@ -68,8 +59,8 @@ class ReportsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-API-012_ReportsScreen_FilterThisWeek() {
-        mockApiServer.enqueueReportsData(TestData.Dates.THIS_WEEK)
+    fun TC_API_012_ReportsScreen_FilterThisWeek() {
+        mockApiServer.enqueueReportsData("This Week")
         
         homeRobot.tapReportsTab()
         
@@ -80,8 +71,8 @@ class ReportsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-API-012_ReportsScreen_FilterThisMonth() {
-        mockApiServer.enqueueReportsData(TestData.Dates.THIS_MONTH)
+    fun TC_API_012_ReportsScreen_FilterThisMonth() {
+        mockApiServer.enqueueReportsData("This Month")
         
         homeRobot.tapReportsTab()
         
@@ -92,8 +83,8 @@ class ReportsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-API-012_ReportsScreen_CustomDateRange() {
-        mockApiServer.enqueueReportsData(TestData.Dates.CUSTOM_RANGE)
+    fun TC_API_012_ReportsScreen_CustomDateRange() {
+        mockApiServer.enqueueReportsData("Custom Range")
         
         homeRobot.tapReportsTab()
         
@@ -103,7 +94,7 @@ class ReportsScreenTest : BaseTest() {
     }
 
     @Test
-    fun TC-API-012_ReportsScreen_NoDataMessage() {
+    fun TC_API_012_ReportsScreen_NoDataMessage() {
         mockApiServer.enqueueEmptyReports()
         
         homeRobot.tapReportsTab()
