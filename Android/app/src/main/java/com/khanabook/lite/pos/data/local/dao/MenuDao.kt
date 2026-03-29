@@ -8,7 +8,12 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MenuDao {
-    
+    @Query("SELECT id, server_id as serverId FROM menu_items WHERE server_id IS NOT NULL")
+    suspend fun getAllMenuItemServerIds(): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
+
+    @Query("SELECT id, server_id as serverId FROM item_variants WHERE server_id IS NOT NULL")
+    suspend fun getAllVariantServerIds(): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertItem(item: MenuItemEntity): Long
 

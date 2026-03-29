@@ -230,12 +230,17 @@ class MasterSyncProcessor @Inject constructor(
             )
         }
 
+        // Fetch category ID mapping
+        val categoryIdMap = categoryDao.getAllCategoryServerIds().associate { it.serverId to it.id }
+
         if (masterData.menuItems.isNotEmpty()) {
             menuDao.insertSyncedMenuItems(
                 masterData.menuItems.map { remoteMenuItem ->
+                    val localCategoryId = remoteMenuItem.serverCategoryId?.let { categoryIdMap[it] } ?: remoteMenuItem.categoryId
+
                     MenuItemEntity(
                         id = remoteMenuItem.id,
-                        categoryId = remoteMenuItem.categoryId,
+                        categoryId = localCategoryId,
                         name = remoteMenuItem.name.orFallback("Unnamed Item"),
                         basePrice = remoteMenuItem.basePrice,
                         foodType = remoteMenuItem.foodType.orFallback("veg"),
@@ -256,12 +261,17 @@ class MasterSyncProcessor @Inject constructor(
             )
         }
 
+        // Fetch menu item ID mapping
+        val menuItemIdMap = menuDao.getAllMenuItemServerIds().associate { it.serverId to it.id }
+
         if (masterData.itemVariants.isNotEmpty()) {
             menuDao.insertSyncedItemVariants(
                 masterData.itemVariants.map { remoteVariant ->
+                    val localMenuItemId = remoteVariant.serverMenuItemId?.let { menuItemIdMap[it] } ?: remoteVariant.menuItemId
+
                     ItemVariantEntity(
                         id = remoteVariant.id,
-                        menuItemId = remoteVariant.menuItemId,
+                        menuItemId = localMenuItemId,
                         variantName = remoteVariant.variantName.orFallback("Default"),
                         price = remoteVariant.price,
                         isAvailable = remoteVariant.isAvailable ?: true,
@@ -280,13 +290,19 @@ class MasterSyncProcessor @Inject constructor(
             )
         }
 
+        // Fetch variant ID mapping
+        val variantIdMap = menuDao.getAllVariantServerIds().associate { it.serverId to it.id }
+
         if (masterData.stockLogs.isNotEmpty()) {
             inventoryDao.insertSyncedStockLogs(
                 masterData.stockLogs.map { remoteStockLog ->
+                    val localMenuItemId = remoteStockLog.serverMenuItemId?.let { menuItemIdMap[it] } ?: remoteStockLog.menuItemId
+                    val localVariantId = remoteStockLog.serverVariantId?.let { variantIdMap[it] } ?: remoteStockLog.variantId
+
                     StockLogEntity(
                         id = remoteStockLog.id,
-                        menuItemId = remoteStockLog.menuItemId,
-                        variantId = remoteStockLog.variantId,
+                        menuItemId = localMenuItemId,
+                        variantId = localVariantId,
                         delta = remoteStockLog.delta,
                         reason = remoteStockLog.reason.orFallback("adjustment"),
                         createdAt = remoteStockLog.createdAt ?: System.currentTimeMillis(),
@@ -345,15 +361,16 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.billItems.isNotEmpty()) {
             billDao.insertSyncedBillItems(
                 masterData.billItems.map { remoteBillItem ->
-                    // Use server_bill_id to find local bill_id if possible, otherwise fallback to local billId
                     val localBillId = remoteBillItem.serverBillId?.let { billServerIdMap[it] } ?: remoteBillItem.billId
+                    val localMenuItemId = remoteBillItem.serverMenuItemId?.let { menuItemIdMap[it] } ?: remoteBillItem.menuItemId
+                    val localVariantId = remoteBillItem.serverVariantId?.let { variantIdMap[it] } ?: remoteBillItem.variantId
                     
                     BillItemEntity(
                         id = remoteBillItem.id,
                         billId = localBillId,
-                        menuItemId = remoteBillItem.menuItemId,
+                        menuItemId = localMenuItemId,
                         itemName = remoteBillItem.itemName.orFallback("Unnamed Item"),
-                        variantId = remoteBillItem.variantId,
+                        variantId = localVariantId,
                         variantName = remoteBillItem.variantName,
                         price = remoteBillItem.price.toSafeAmount(),
                         quantity = remoteBillItem.quantity ?: 1,

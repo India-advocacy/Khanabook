@@ -74,6 +74,8 @@ data class BillItemEntity(
     @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
     @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null,
     @SerializedName("serverBillId") @ColumnInfo(name = "server_bill_id") val serverBillId: Long? = null,
+    @SerializedName("serverMenuItemId") @ColumnInfo(name = "server_menu_item_id") val serverMenuItemId: Long? = null,
+    @SerializedName("serverVariantId") @ColumnInfo(name = "server_variant_id") val serverVariantId: Long? = null,
     @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L
 )
 

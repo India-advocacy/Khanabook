@@ -7,6 +7,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CategoryDao {
+    @Query("SELECT id, server_id as serverId FROM categories WHERE server_id IS NOT NULL")
+    suspend fun getAllCategoryServerIds(): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertCategory(category: CategoryEntity): Long
 

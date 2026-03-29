@@ -38,5 +38,6 @@ data class ItemVariantEntity(
     @ColumnInfo(name = "updated_at", defaultValue = "0") val updatedAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "is_deleted", defaultValue = "0") val isDeleted: Boolean = false,
     @SerializedName("serverId") @ColumnInfo(name = "server_id") val serverId: Long? = null,
+    @SerializedName("serverMenuItemId") @ColumnInfo(name = "server_menu_item_id") val serverMenuItemId: Long? = null,
     @SerializedName("serverUpdatedAt") @ColumnInfo(name = "server_updated_at", defaultValue = "0") val serverUpdatedAt: Long = 0L
 )
