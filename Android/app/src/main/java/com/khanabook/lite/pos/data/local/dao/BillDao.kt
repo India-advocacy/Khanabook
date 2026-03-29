@@ -9,7 +9,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface BillDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun insertBill(bill: BillEntity): Long
+    @Query("SELECT id, server_id as serverId FROM bills WHERE server_id IS NOT NULL")
+    suspend fun getAllBillServerIds(): List<com.khanabook.lite.pos.domain.model.ServerIdMapping>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBill(bill: BillEntity): Long
 
     @Update
     suspend fun updateBill(bill: BillEntity)

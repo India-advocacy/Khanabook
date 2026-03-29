@@ -180,7 +180,8 @@ constructor(
         sessionManager.setInitialSyncCompleted(false)
 
         
-        val syncResult = syncManager.performMasterPull()
+        // Removed: syncManager.performMasterPull()
+        // This will be handled by InitialSyncScreen to avoid double-syncing and CASCADE DELETE issues.
 
         
         user.whatsappNumber?.let { number ->
@@ -202,7 +203,7 @@ constructor(
                 )
             }
         }
-        return syncResult
+        return Result.success(Unit)
     }
 
     fun sendOtp(phoneNumber: String, purpose: String = "signup") {

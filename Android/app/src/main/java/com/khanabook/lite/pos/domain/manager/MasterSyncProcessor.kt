@@ -339,12 +339,18 @@ class MasterSyncProcessor @Inject constructor(
             )
         }
 
+        // Get mapping of serverId to localId for bills to ensure items are linked correctly
+        val billServerIdMap = billDao.getAllBillServerIds().associate { it.serverId to it.id }
+
         if (masterData.billItems.isNotEmpty()) {
             billDao.insertSyncedBillItems(
                 masterData.billItems.map { remoteBillItem ->
+                    // Use server_bill_id to find local bill_id if possible, otherwise fallback to local billId
+                    val localBillId = remoteBillItem.serverBillId?.let { billServerIdMap[it] } ?: remoteBillItem.billId
+                    
                     BillItemEntity(
                         id = remoteBillItem.id,
-                        billId = remoteBillItem.billId,
+                        billId = localBillId,
                         menuItemId = remoteBillItem.menuItemId,
                         itemName = remoteBillItem.itemName.orFallback("Unnamed Item"),
                         variantId = remoteBillItem.variantId,
@@ -359,6 +365,7 @@ class MasterSyncProcessor @Inject constructor(
                         updatedAt = remoteBillItem.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteBillItem.isDeleted ?: false,
                         serverId = remoteBillItem.serverId,
+                        serverBillId = remoteBillItem.serverBillId,
                         serverUpdatedAt = remoteBillItem.serverUpdatedAt ?: 0L
                     )
                 }
@@ -368,9 +375,12 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.billPayments.isNotEmpty()) {
             billDao.insertSyncedBillPayments(
                 masterData.billPayments.map { remoteBillPayment ->
+                    // Use server_bill_id to find local bill_id if possible, otherwise fallback to local billId
+                    val localBillId = remoteBillPayment.serverBillId?.let { billServerIdMap[it] } ?: remoteBillPayment.billId
+
                     BillPaymentEntity(
                         id = remoteBillPayment.id,
-                        billId = remoteBillPayment.billId,
+                        billId = localBillId,
                         paymentMode = remoteBillPayment.paymentMode.orFallback("cash"),
                         amount = remoteBillPayment.amount.toSafeAmount(),
                         restaurantId = remoteBillPayment.restaurantId ?: 0L,
@@ -379,6 +389,7 @@ class MasterSyncProcessor @Inject constructor(
                         updatedAt = remoteBillPayment.updatedAt ?: System.currentTimeMillis(),
                         isDeleted = remoteBillPayment.isDeleted ?: false,
                         serverId = remoteBillPayment.serverId,
+                        serverBillId = remoteBillPayment.serverBillId,
                         serverUpdatedAt = remoteBillPayment.serverUpdatedAt ?: 0L
                     )
                 }
