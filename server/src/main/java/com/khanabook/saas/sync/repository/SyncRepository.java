@@ -14,6 +14,8 @@ public interface SyncRepository<T, ID> extends JpaRepository<T, ID> {
 	List<T> findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(Long restaurantId, Long lastSyncTimestamp,
 			String deviceId);
 
+	List<T> findByRestaurantIdAndServerUpdatedAtGreaterThan(Long restaurantId, Long lastSyncTimestamp);
+
 	Optional<T> findByRestaurantIdAndDeviceIdAndLocalId(Long restaurantId, String deviceId, Long localId);
 
 	List<T> findByRestaurantIdAndDeviceIdAndLocalIdIn(Long restaurantId, String deviceId, List<Long> localIds);

@@ -24,8 +24,9 @@ public class UserController {
 	}
 
 	@GetMapping("/pull")
-	public ResponseEntity<List<UserDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
-		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId), UserDTO.class));
+	public ResponseEntity<List<UserDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId,
+			@RequestParam(defaultValue = "false") boolean ignoreDeviceId) {
+		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId, ignoreDeviceId), UserDTO.class));
 	}
 
 	@PostMapping("/update-mobile")

@@ -87,7 +87,10 @@ public class BillItemServiceImpl implements BillItemService {
 	}
 
 	@Override
-	public List<BillItem> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
+	public List<BillItem> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId) {
+		if (ignoreDeviceId) {
+			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);
+		}
 		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
 				deviceId);
 	}

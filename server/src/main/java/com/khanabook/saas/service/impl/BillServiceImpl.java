@@ -52,7 +52,10 @@ public class BillServiceImpl implements BillService {
 	}
 
 	@Override
-	public List<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
+	public List<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId) {
+		if (ignoreDeviceId) {
+			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);
+		}
 		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
 				deviceId);
 	}

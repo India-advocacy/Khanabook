@@ -22,7 +22,8 @@ public class ItemVariantController {
 	}
 
 	@GetMapping("/pull")
-	public ResponseEntity<List<ItemVariantDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
-		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId), ItemVariantDTO.class));
+	public ResponseEntity<List<ItemVariantDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId,
+			@RequestParam(defaultValue = "false") boolean ignoreDeviceId) {
+		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId, ignoreDeviceId), ItemVariantDTO.class));
 	}
 }

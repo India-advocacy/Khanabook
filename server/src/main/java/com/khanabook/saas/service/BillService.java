@@ -8,5 +8,5 @@ public interface BillService {
 
 	PushSyncResponse pushData(Long tenantId, List<Bill> payload);
 
-	List<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
+	List<Bill> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId);
 }

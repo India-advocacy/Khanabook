@@ -85,59 +85,65 @@ class SettingsRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
 
 class MenuConfigurationRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
 
-    private val modeSelectionMatcher = hasText("Select Mode", substring = true)
-    private val manualModeMatcher = hasText("Manual", substring = true)
-    private val smartImportMatcher = hasText("Smart Import", substring = true)
-    private val selectPdfMatcher = hasText("Select PDF", substring = true).or(hasContentDescription("Select PDF"))
-    private val scanImageMatcher = hasText("Scan Image", substring = true).or(hasContentDescription("Scan"))
-    private val reviewItemsMatcher = hasText("Review Items", substring = true)
-    private val importButtonMatcher = hasText("Import", substring = true)
+    private val addMenuItemsMatcher = hasText("Add Menu Items", substring = true)
+    private val manualEntryMatcher = hasText("Manual Entry", substring = true)
+    private val smartAIMatcher = hasText("Smart AI", substring = true)
+    
+    private val cameraOptionMatcher = hasText("Camera", substring = true)
+    private val galleryOptionMatcher = hasText("Gallery", substring = true)
+    private val pdfOptionMatcher = hasText("PDF", substring = true)
 
-    fun selectManualMode(): MenuConfigurationRobot {
-        composeTestRule.onNode(manualModeMatcher).performClick()
+    fun assertAddMenuItemsHeaderVisible(): MenuConfigurationRobot {
+        composeTestRule.onNode(addMenuItemsMatcher).assertIsDisplayed()
         return this
     }
 
-    fun selectSmartImport(): MenuConfigurationRobot {
-        composeTestRule.onNode(smartImportMatcher).performClick()
+    // Backwards compatibility methods
+    fun assertModeSelectionVisible(): MenuConfigurationRobot = assertAddMenuItemsHeaderVisible()
+    fun assertManualModeVisible(): MenuConfigurationRobot = assertManualEntryVisible()
+    fun assertSmartImportVisible(): MenuConfigurationRobot = assertSmartAIVisible()
+    fun selectManualMode(): MenuConfigurationRobot = tapManualEntry()
+    fun selectSmartImport(): MenuConfigurationRobot = tapSmartAI()
+
+    fun assertManualEntryVisible(): MenuConfigurationRobot {
+        composeTestRule.onNode(manualEntryMatcher).assertIsDisplayed()
         return this
     }
 
-    fun tapSelectPdf(): MenuConfigurationRobot {
-        composeTestRule.onNode(selectPdfMatcher).performClick()
+    fun tapManualEntry(): MenuConfigurationRobot {
+        composeTestRule.onNode(manualEntryMatcher).performClick()
         return this
     }
 
-    fun tapScanImage(): MenuConfigurationRobot {
-        composeTestRule.onNode(scanImageMatcher).performClick()
+    fun assertSmartAIVisible(): MenuConfigurationRobot {
+        composeTestRule.onNode(smartAIMatcher).assertIsDisplayed()
         return this
     }
 
-    fun assertModeSelectionVisible(): MenuConfigurationRobot {
-        composeTestRule.onNode(modeSelectionMatcher).assertIsDisplayed()
+    fun tapSmartAI(): MenuConfigurationRobot {
+        composeTestRule.onNode(smartAIMatcher).performClick()
         return this
     }
 
-    fun assertManualModeVisible(): MenuConfigurationRobot {
-        composeTestRule.onNode(manualModeMatcher).assertIsDisplayed()
+    fun assertSmartAIOptionsVisible(): MenuConfigurationRobot {
+        composeTestRule.onNode(cameraOptionMatcher).assertIsDisplayed()
+        composeTestRule.onNode(galleryOptionMatcher).assertIsDisplayed()
+        composeTestRule.onNode(pdfOptionMatcher).assertIsDisplayed()
         return this
     }
 
-    fun assertSmartImportVisible(): MenuConfigurationRobot {
-        composeTestRule.onNode(smartImportMatcher).assertIsDisplayed()
+    fun tapCamera(): MenuConfigurationRobot {
+        composeTestRule.onNode(cameraOptionMatcher).performClick()
         return this
     }
 
-    fun waitForOcrProcessing(): MenuConfigurationRobot {
-        composeTestRule.waitUntil(15000) {
-            try {
-                composeTestRule.onNode(reviewItemsMatcher, useUnmergedTree = true)
-                    .assertExists()
-                true
-            } catch (e: Exception) {
-                false
-            }
-        }
+    fun tapGallery(): MenuConfigurationRobot {
+        composeTestRule.onNode(galleryOptionMatcher).performClick()
+        return this
+    }
+
+    fun tapPDF(): MenuConfigurationRobot {
+        composeTestRule.onNode(pdfOptionMatcher).performClick()
         return this
     }
 

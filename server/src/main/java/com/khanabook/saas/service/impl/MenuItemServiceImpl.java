@@ -53,7 +53,10 @@ public class MenuItemServiceImpl implements MenuItemService {
 	}
 
 	@Override
-	public List<MenuItem> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId) {
+	public List<MenuItem> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId) {
+		if (ignoreDeviceId) {
+			return repository.findByRestaurantIdAndServerUpdatedAtGreaterThan(tenantId, lastSyncTimestamp);
+		}
 		return repository.findByRestaurantIdAndServerUpdatedAtGreaterThanAndDeviceIdNot(tenantId, lastSyncTimestamp,
 				deviceId);
 	}

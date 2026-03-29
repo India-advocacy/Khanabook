@@ -8,7 +8,7 @@ public interface UserService {
 
 	PushSyncResponse pushData(Long tenantId, List<User> payload);
 
-	List<User> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
+	List<User> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId);
 
 	void requestMobileNumberUpdateOtp(Long tenantId, String newMobileNumber);
 

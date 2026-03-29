@@ -22,7 +22,8 @@ public class StockLogController {
 	}
 
 	@GetMapping("/pull")
-	public ResponseEntity<List<StockLogDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
-		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId), StockLogDTO.class));
+	public ResponseEntity<List<StockLogDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId,
+			@RequestParam(defaultValue = "false") boolean ignoreDeviceId) {
+		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId, ignoreDeviceId), StockLogDTO.class));
 	}
 }

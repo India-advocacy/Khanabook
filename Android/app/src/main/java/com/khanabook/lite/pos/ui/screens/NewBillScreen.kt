@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 
 package com.khanabook.lite.pos.ui.screens
 
@@ -33,6 +33,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -114,7 +117,12 @@ fun NewBillScreen(
             }
         }
     ) { paddingValues ->
-        Box(modifier = modifier.fillMaxSize().padding(paddingValues).background(DarkBrown1)) {
+        Box(modifier = modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+            .consumeWindowInsets(paddingValues)
+            .background(DarkBrown1)
+        ) {
             when (step) {
                 1 ->
                         CustomerInfoStep(
@@ -633,8 +641,14 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
                 BillCalculator.validatePartPayment(p1Text, p2Text, summary.total)
             } else true
 
+    val relocationRequester = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
+
     Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+            modifier = Modifier.fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp)
+                    .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (isUpiMode) {
@@ -692,123 +706,140 @@ fun PaymentStep(viewModel: BillingViewModel, settingsViewModel: SettingsViewMode
             Spacer(modifier = Modifier.height(24.dp))
         }
         
-        Card(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                colors = CardDefaults.cardColors(containerColor = DarkBrown2),
-                shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .bringIntoViewRequester(relocationRequester)
+                .padding(vertical = 8.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.3f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Payable Amount", color = TextGold, fontSize = 14.sp)
+                        Text(
+                                "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
+                                color = PrimaryGold,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 20.sp
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                    "Select Payment Mode:",
+                    color = TextLight,
+                    modifier = Modifier.align(Alignment.Start),
+                    fontSize = 14.sp
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Box(
+                    modifier =
+                            Modifier.fillMaxWidth()
+                                    .height(56.dp)
+                                    .background(DarkBrown2, RoundedCornerShape(8.dp))
+                                    .border(1.dp, BorderGold)
+                                    .clickable { expanded = true }
+                                    .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart
+            ) {
                 Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Payable Amount", color = TextGold, fontSize = 14.sp)
-                    Text(
-                            "₹${"%.2f".format(summary.total.toDoubleOrNull() ?: 0.0)}",
-                            color = PrimaryGold,
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 20.sp
-                    )
+                    Text(selectedMode.displayLabel, color = PrimaryGold)
+                    Icon(Icons.Default.ArrowDropDown, null, tint = PrimaryGold)
                 }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-                "Select Payment Mode:",
-                color = TextLight,
-                modifier = Modifier.align(Alignment.Start),
-                fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Box(
-                modifier =
-                        Modifier.fillMaxWidth()
-                                .height(56.dp)
-                                .background(DarkBrown2, RoundedCornerShape(8.dp))
-                                .border(1.dp, BorderGold)
-                                .clickable { expanded = true }
-                                .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
-        ) {
-            Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(selectedMode.displayLabel, color = PrimaryGold)
-                Icon(Icons.Default.ArrowDropDown, null, tint = PrimaryGold)
-            }
-            DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                    modifier = Modifier.background(DarkBrown2)
-            ) {
-                enabledModes.forEach { mode ->
-                    DropdownMenuItem(
-                            text = { Text(mode.displayLabel, color = TextLight) },
-                            onClick = {
-                                selectedMode = mode
-                                expanded = false
-                            }
-                    )
-                }
-            }
-        }
-
-        if (isSplitMode) {
-            Spacer(modifier = Modifier.height(24.dp))
-            val labels =
-                    when (selectedMode) {
-                        PaymentMode.PART_CASH_UPI -> "Cash Amount" to "UPI Amount"
-                        PaymentMode.PART_CASH_POS -> "Cash Amount" to "POS Amount"
-                        PaymentMode.PART_UPI_POS -> "UPI Amount" to "POS Amount"
-                        else -> "" to ""
+                DropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false },
+                        modifier = Modifier.background(DarkBrown2)
+                ) {
+                    enabledModes.forEach { mode ->
+                        DropdownMenuItem(
+                                text = { Text(mode.displayLabel, color = TextLight) },
+                                onClick = {
+                                    selectedMode = mode
+                                    expanded = false
+                                }
+                        )
                     }
-
-            Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(modifier = Modifier.weight(1f)) {
-                    ParchmentTextField(
-                            value = p1Text,
-                            onValueChange = { p1Text = it },
-                            label = labels.first,
-                            isError = !isAmountValid,
-                            keyboardOptions =
-                                    androidx.compose.foundation.text.KeyboardOptions(
-                                            keyboardType =
-                                                    androidx.compose.ui.text.input.KeyboardType
-                                                            .Decimal
-                                    )
-                    )
-                }
-                Box(modifier = Modifier.weight(1f)) {
-                    ParchmentTextField(
-                            value = p2Text,
-                            onValueChange = { p2Text = it },
-                            label = labels.second,
-                            isError = !isAmountValid,
-                            keyboardOptions =
-                                    androidx.compose.foundation.text.KeyboardOptions(
-                                            keyboardType =
-                                                    androidx.compose.ui.text.input.KeyboardType
-                                                            .Decimal
-                                    )
-                    )
                 }
             }
 
-            if (!isAmountValid) {
-                Text(
-                        "Sum must equal ${CurrencyUtils.formatPrice(summary.total)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
-                        color = DangerRed,
-                        fontSize = 11.sp,
-                        modifier = Modifier.padding(top = 4.dp).align(Alignment.Start)
-                )
+            if (isSplitMode) {
+                Spacer(modifier = Modifier.height(24.dp))
+                val labels =
+                        when (selectedMode) {
+                            PaymentMode.PART_CASH_UPI -> "Cash Amount" to "UPI Amount"
+                            PaymentMode.PART_CASH_POS -> "Cash Amount" to "POS Amount"
+                            PaymentMode.PART_UPI_POS -> "UPI Amount" to "POS Amount"
+                            else -> "" to ""
+                        }
+
+                Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        ParchmentTextField(
+                                value = p1Text,
+                                onValueChange = { p1Text = it },
+                                label = labels.first,
+                                modifier = Modifier.onFocusChanged { 
+                                    if (it.isFocused) {
+                                        scope.launch { relocationRequester.bringIntoView() }
+                                    }
+                                },
+                                isError = !isAmountValid,
+                                keyboardOptions =
+                                        androidx.compose.foundation.text.KeyboardOptions(
+                                                keyboardType =
+                                                        androidx.compose.ui.text.input.KeyboardType
+                                                                .Decimal
+                                        )
+                        )
+                    }
+                    Box(modifier = Modifier.weight(1f)) {
+                        ParchmentTextField(
+                                value = p2Text,
+                                onValueChange = { p2Text = it },
+                                label = labels.second,
+                                modifier = Modifier.onFocusChanged { 
+                                    if (it.isFocused) {
+                                        scope.launch { relocationRequester.bringIntoView() }
+                                    }
+                                },
+                                isError = !isAmountValid,
+                                keyboardOptions =
+                                        androidx.compose.foundation.text.KeyboardOptions(
+                                                keyboardType =
+                                                        androidx.compose.ui.text.input.KeyboardType
+                                                                .Decimal
+                                        )
+                        )
+                    }
+                }
+
+                if (!isAmountValid) {
+                    Text(
+                            "Sum must equal ${CurrencyUtils.formatPrice(summary.total)} (Current: ${CurrencyUtils.formatPrice(p1 + p2)})",
+                            color = DangerRed,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(top = 4.dp).align(Alignment.Start)
+                    )
+                }
             }
         }
 

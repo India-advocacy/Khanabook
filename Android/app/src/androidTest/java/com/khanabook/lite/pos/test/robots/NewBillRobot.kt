@@ -10,7 +10,7 @@ class NewBillRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
     private val addItemButtonMatcher = hasText("Add Item", substring = true)
         .or(hasContentDescription("Add Item"))
 
-    private val checkoutButtonMatcher = hasText("Checkout", substring = true)
+    private val checkoutButtonMatcher = hasTestTag("checkout_button")
         .or(hasText("Proceed to Pay", substring = true))
         .or(hasText("Pay", substring = true))
         .or(hasText("Complete", substring = true))
@@ -204,6 +204,23 @@ class CheckoutRobot(private val composeTestRule: AndroidComposeTestRule<*, *>) {
             .performTextInput(code)
         composeTestRule.onNode(hasText("Apply", substring = true))
             .performClick()
+        return this
+    }
+
+    fun selectPaymentMode(modeName: String): CheckoutRobot {
+        composeTestRule.onNode(hasText(modeName, substring = true)).performClick()
+        return this
+    }
+
+    fun tapAmountField(label: String): CheckoutRobot {
+        val tag = if (label.contains("1") || label.contains("Cash")) "part_amount_1" else "part_amount_2"
+        composeTestRule.onNode(hasTestTag(tag).or(hasText(label, substring = true))).performClick()
+        return this
+    }
+
+    fun assertAmountFieldVisible(label: String): CheckoutRobot {
+        val tag = if (label.contains("1") || label.contains("Cash")) "part_amount_1" else "part_amount_2"
+        composeTestRule.onNode(hasTestTag(tag).or(hasText(label, substring = true))).assertIsDisplayed()
         return this
     }
 

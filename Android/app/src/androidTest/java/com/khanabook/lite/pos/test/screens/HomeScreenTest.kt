@@ -6,9 +6,11 @@ import androidx.compose.ui.test.hasText
 import com.khanabook.lite.pos.test.BaseTest
 import com.khanabook.lite.pos.test.robots.HomeRobot
 import com.khanabook.lite.pos.test.robots.LoginRobot
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Before
 import org.junit.Test
 
+@HiltAndroidTest
 class HomeScreenTest : BaseTest() {
 
     private lateinit var homeRobot: HomeRobot

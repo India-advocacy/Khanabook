@@ -8,5 +8,5 @@ public interface ItemVariantService {
 
 	PushSyncResponse pushData(Long tenantId, List<ItemVariant> payload);
 
-	List<ItemVariant> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
+	List<ItemVariant> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId);
 }

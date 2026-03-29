@@ -23,8 +23,8 @@ public class RestaurantProfileController {
 
 	@GetMapping("/pull")
 	public ResponseEntity<List<RestaurantProfileDTO>> pull(@RequestParam Long lastSyncTimestamp,
-			@RequestParam String deviceId) {
-		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId), RestaurantProfileDTO.class));
+			@RequestParam String deviceId, @RequestParam(defaultValue = "false") boolean ignoreDeviceId) {
+		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId, ignoreDeviceId), RestaurantProfileDTO.class));
 	}
 
 	@PostMapping("/counters/increment")

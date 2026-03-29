@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -72,6 +73,27 @@ fun MenuConfigurationScreen(
         uri?.let { viewModel.extractTextFromPdf(context, it) }
     }
 
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            try {
+                val bitmap = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                    android.graphics.ImageDecoder.decodeBitmap(android.graphics.ImageDecoder.createSource(context.contentResolver, it))
+                } else {
+                    @Suppress("DEPRECATION")
+                    android.provider.MediaStore.Images.Media.getBitmap(context.contentResolver, it)
+                }
+                val bitmapCopy = bitmap.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
+                if (bitmapCopy != null) {
+                    viewModel.processMenuImage(context, bitmapCopy)
+                }
+            } catch (t: Throwable) {
+                // Error handling could be added to viewModel or snackbar
+            }
+        }
+    }
+
     val onBack: () -> Unit = {
         if (ocrUiState.drafts.isNotEmpty()) {
             viewModel.clearDrafts()
@@ -90,6 +112,8 @@ fun MenuConfigurationScreen(
             viewModel.clearSuccessMessage()
         }
     }
+
+    var showOverwriteDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -115,6 +139,7 @@ fun MenuConfigurationScreen(
                         val catName = categories.find { it.id == selectedCategoryId }?.name ?: ""
                         navController.navigate("ocr_scanner/$catName")
                     },
+                    onGalleryClick = { galleryLauncher.launch("image/*") },
                     onPdfClick = { pdfLauncher.launch("application/pdf") }
                 )
             } else {
@@ -142,11 +167,51 @@ fun MenuConfigurationScreen(
                     drafts = ocrUiState.drafts,
                     onDismiss = { viewModel.clearDrafts() },
                     onConfirm = { 
-                        selectedCategoryId?.let { viewModel.saveDraftsToCategory(it) }
+                        viewModel.checkForConflicts(selectedCategoryId) { hasConflict ->
+                            if (hasConflict) {
+                                showOverwriteDialog = true
+                            } else {
+                                viewModel.saveImportedMenu(selectedCategoryId, false)
+                            }
+                        }
+                    },
+                    onConfirmOverwrite = {
+                        viewModel.saveImportedMenu(selectedCategoryId, true)
+                        showOverwriteDialog = false
                     },
                     onToggleSelection = { viewModel.toggleDraftSelection(it) },
                     onUpdateDraft = { index, draft -> viewModel.updateDraft(index, draft) },
                     onToggleFoodType = { viewModel.toggleDraftFoodType(it) }
+                )
+            }
+
+            if (showOverwriteDialog) {
+                AlertDialog(
+                    onDismissRequest = { showOverwriteDialog = false },
+                    containerColor = DarkBrown2,
+                    title = { Text("Items Already Exist", color = PrimaryGold) },
+                    text = { Text("Some items you are adding already exist in your menu. Do you want to overwrite them or skip duplicates?", color = TextLight) },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.saveImportedMenu(selectedCategoryId, true)
+                            showOverwriteDialog = false
+                        }) {
+                            Text("Overwrite All", color = Color.Red, fontWeight = FontWeight.Bold)
+                        }
+                    },
+                    dismissButton = {
+                        Row {
+                            TextButton(onClick = {
+                                viewModel.saveImportedMenu(selectedCategoryId, false)
+                                showOverwriteDialog = false
+                            }) {
+                                Text("Merge & Skip", color = SuccessGreen)
+                            }
+                            TextButton(onClick = { showOverwriteDialog = false }) {
+                                Text("Cancel", color = TextGold)
+                            }
+                        }
+                    }
                 )
             }
         }
@@ -158,6 +223,7 @@ fun ReviewDetectedItemsSheet(
     drafts: List<MenuViewModel.DraftMenuItem>,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
+    onConfirmOverwrite: () -> Unit,
     onToggleSelection: (Int) -> Unit,
     onUpdateDraft: (Int, MenuViewModel.DraftMenuItem) -> Unit,
     onToggleFoodType: (Int) -> Unit
@@ -566,30 +632,24 @@ fun ModeSelectionView(
     selectedCategoryName: String?,
     onManualClick: () -> Unit,
     onSmartImportClick: () -> Unit,
+    onGalleryClick: () -> Unit,
     onPdfClick: () -> Unit
 ) {
+    var isSmartAIExpanded by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.Center
     ) {
-        if (!selectedCategoryName.isNullOrBlank()) {
-            Surface(
-                color = PrimaryGold.copy(alpha = 0.12f),
-                border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.3f)),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)
-            ) {
-                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Category, null, tint = PrimaryGold, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Configuring: $selectedCategoryName", color = PrimaryGold, fontSize = 14.sp)
-                }
-            }
-        }
-
         Text("Add Menu Items", color = TextGold, fontSize = 20.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 24.dp))
 
-        Card(onClick = onManualClick, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = DarkBrown2)) {
+        // 1. Manual Entry (View & Edit)
+        Card(
+            onClick = onManualClick,
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+            border = BorderStroke(1.dp, BorderGold.copy(alpha = 0.2f))
+        ) {
             Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
                 Surface(color = PrimaryGold.copy(alpha = 0.1f), shape = CircleShape, modifier = Modifier.size(52.dp)) {
                     Icon(Icons.Default.Edit, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
@@ -597,46 +657,97 @@ fun ModeSelectionView(
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text("Manual Entry", color = TextLight, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                    Text("Add items one by one", color = TextGold.copy(alpha = 0.6f), fontSize = 14.sp)
+                    Text("View & Edit items one by one", color = TextGold.copy(alpha = 0.6f), fontSize = 14.sp)
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Card(onClick = onSmartImportClick, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = DarkBrown2)) {
-            Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(color = PrimaryGold.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(52.dp)) {
-                    Icon(Icons.Default.CameraAlt, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Camera Scan", color = TextLight, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Surface(color = PrimaryGold, shape = RoundedCornerShape(4.dp)) {
-                            Text("AI", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = DarkBrown1)
-                        }
+        // 2. Smart AI
+        Card(
+            onClick = { isSmartAIExpanded = !isSmartAIExpanded },
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = DarkBrown2),
+            border = BorderStroke(1.dp, if (isSmartAIExpanded) PrimaryGold.copy(alpha = 0.5f) else BorderGold.copy(alpha = 0.2f))
+        ) {
+            Column(modifier = Modifier.animateContentSize()) {
+                Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Surface(color = PrimaryGold.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(52.dp)) {
+                        Icon(Icons.Default.AutoAwesome, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
                     }
-                    Text("Scan a menu photo", color = TextGold.copy(alpha = 0.6f), fontSize = 14.sp)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("Smart AI", color = TextLight, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(color = PrimaryGold, shape = RoundedCornerShape(4.dp)) {
+                                Text("AI", modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp), fontSize = 10.sp, fontWeight = FontWeight.Black, color = DarkBrown1)
+                            }
+                        }
+                        Text("Extract from Camera, Gallery or PDF", color = TextGold.copy(alpha = 0.6f), fontSize = 14.sp)
+                    }
+                    Icon(
+                        if (isSmartAIExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        null,
+                        tint = TextGold.copy(alpha = 0.5f)
+                    )
+                }
+
+                if (isSmartAIExpanded) {
+                    HorizontalDivider(color = BorderGold.copy(alpha = 0.1f), modifier = Modifier.padding(horizontal = 20.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        SmartAIOption(
+                            icon = Icons.Default.CameraAlt,
+                            label = "Camera",
+                            onClick = onSmartImportClick
+                        )
+                        SmartAIOption(
+                            icon = Icons.Default.PhotoLibrary,
+                            label = "Gallery",
+                            onClick = onGalleryClick
+                        )
+                        SmartAIOption(
+                            icon = Icons.Default.PictureAsPdf,
+                            label = "PDF",
+                            onClick = onPdfClick
+                        )
+                    }
                 }
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(onClick = onPdfClick, modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = DarkBrown2), border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.3f))) {
-            Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                Surface(color = PrimaryGold.copy(alpha = 0.2f), shape = CircleShape, modifier = Modifier.size(52.dp)) {
-                    Icon(Icons.Default.PictureAsPdf, null, tint = PrimaryGold, modifier = Modifier.padding(14.dp))
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text("Upload PDF", color = TextLight, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-                    Text("Import from digital menu PDF", color = TextGold.copy(alpha = 0.6f), fontSize = 14.sp)
-                }
-            }
+@Composable
+fun SmartAIOption(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() }
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Surface(
+            color = DarkBrown1,
+            shape = CircleShape,
+            modifier = Modifier.size(44.dp),
+            border = BorderStroke(1.dp, PrimaryGold.copy(alpha = 0.2f))
+        ) {
+            Icon(icon, null, tint = PrimaryGold, modifier = Modifier.padding(12.dp))
         }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(label, color = TextLight, fontSize = 12.sp, fontWeight = FontWeight.Medium)
     }
 }
 

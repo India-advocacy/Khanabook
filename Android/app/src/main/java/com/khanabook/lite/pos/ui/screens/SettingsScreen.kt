@@ -48,6 +48,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.khanabook.lite.pos.ui.components.ParchmentTextField
+import com.khanabook.lite.pos.domain.util.ValidationUtils
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.khanabook.lite.pos.data.local.entity.*
@@ -1064,11 +1066,6 @@ private fun TaxConfigView(profile: RestaurantProfileEntity?, onSave: (Restaurant
             Button(onClick = { profile?.copy(country = country, gstEnabled = gstEnabled, gstin = gstNumber, gstPercentage = gstPct.toDoubleOrNull() ?: 0.0, fssaiNumber = fssaiNumber)?.let { onSave(it) } }, modifier = Modifier.fillMaxWidth().height(48.dp), colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen), enabled = isSaveEnabled) { Text("Save") }
         }
     }
-}
-
-@Composable
-fun ParchmentTextField(value: String, onValueChange: (String) -> Unit, label: String, trailingIcon: @Composable (() -> Unit)? = null, isError: Boolean = false, supportingText: String? = null) {
-    OutlinedTextField(value = value, onValueChange = onValueChange, label = { Text(label, fontSize = 12.sp, color = TextGold) }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), trailingIcon = trailingIcon, isError = isError, supportingText = supportingText?.let { { Text(it, color = DangerRed, fontSize = 11.sp) } }, colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = BorderGold, unfocusedBorderColor = BorderGold.copy(alpha = 0.5f), focusedTextColor = TextLight, unfocusedTextColor = TextLight, focusedLabelColor = TextGold, unfocusedLabelColor = TextGold.copy(alpha = 0.7f), cursorColor = PrimaryGold, errorBorderColor = DangerRed, errorLabelColor = DangerRed, errorCursorColor = DangerRed), singleLine = true)
 }
 
 private fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: String): String? {

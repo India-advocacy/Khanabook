@@ -8,5 +8,5 @@ public interface MenuItemService {
 
 	PushSyncResponse pushData(Long tenantId, List<MenuItem> payload);
 
-	List<MenuItem> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
+	List<MenuItem> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId);
 }

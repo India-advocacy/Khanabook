@@ -27,7 +27,8 @@ public class BillItemController {
 	}
 
 	@GetMapping("/pull")
-	public ResponseEntity<List<BillItemDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
-		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId), BillItemDTO.class));
+	public ResponseEntity<List<BillItemDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId,
+			@RequestParam(defaultValue = "false") boolean ignoreDeviceId) {
+		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId, ignoreDeviceId), BillItemDTO.class));
 	}
 }

@@ -8,5 +8,5 @@ public interface StockLogService {
 
 	PushSyncResponse pushData(Long tenantId, List<StockLog> payload);
 
-	List<StockLog> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
+	List<StockLog> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId);
 }

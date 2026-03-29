@@ -126,8 +126,15 @@ constructor(
 
         result.onSuccess { user ->
             Log.d(TAG, "Remote login success for: $email")
-            handleLoginSuccess(user)
-            _loginStatus.value = LoginResult.Success(user)
+            val setupResult = handleLoginSuccess(user)
+            if (setupResult.isSuccess) {
+                _loginStatus.value = LoginResult.Success(user)
+            } else {
+                _loginStatus.value = loginError(
+                    "Login successful but failed to restore your data. Please check your internet and try again.",
+                    LoginErrorCode.GOOGLE_SYNC_FAILED
+                )
+            }
         }.onFailure { e ->
             Log.e(TAG, "Remote login failed: ${e.message}.", e)
             
@@ -164,7 +171,7 @@ constructor(
         }
     }
 
-    private suspend fun handleLoginSuccess(user: UserEntity) {
+    private suspend fun handleLoginSuccess(user: UserEntity): Result<Unit> {
         failedLoginAttempts = 0
         lockoutUntilMs = 0L
 
@@ -173,7 +180,7 @@ constructor(
         sessionManager.setInitialSyncCompleted(false)
 
         
-        syncManager.performMasterPull()
+        val syncResult = syncManager.performMasterPull()
 
         
         user.whatsappNumber?.let { number ->
@@ -195,6 +202,7 @@ constructor(
                 )
             }
         }
+        return syncResult
     }
 
     fun sendOtp(phoneNumber: String, purpose: String = "signup") {
@@ -389,36 +397,16 @@ constructor(
                         lockoutUntilMs = 0L
 
                         
-                        sessionManager.saveLastSyncTimestamp(0L)
-                        sessionManager.setInitialSyncCompleted(false)
+                        val setupResult = handleLoginSuccess(user)
 
-                        
-                        syncManager.performMasterPull()
-
-                        
-                        user.whatsappNumber?.let { number ->
-                            viewModelScope.launch {
-                                val currentProfile = restaurantRepository.getProfile()
-                                if (currentProfile != null) {
-                                    if (currentProfile.whatsappNumber != number) {
-                                        restaurantRepository.saveProfile(currentProfile.copy(whatsappNumber = number))
-                                    }
-                                } else {
-                                    restaurantRepository.saveProfile(
-                                        RestaurantProfileEntity(
-                                            id = 1,
-                                            shopName = user.name,
-                                            shopAddress = "",
-                                            whatsappNumber = number,
-                                            upiMobile = number,
-                                            lastResetDate = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                                        )
-                                    )
-                                }
-                            }
+                        if (setupResult.isSuccess) {
+                            _loginStatus.value = LoginResult.Success(user)
+                        } else {
+                            _loginStatus.value = loginError(
+                                "Login successful but failed to restore your data. Please check your internet and try again.",
+                                LoginErrorCode.GOOGLE_SYNC_FAILED
+                            )
                         }
-
-                        _loginStatus.value = LoginResult.Success(user)
                     }.onFailure { e ->
                         Log.e(TAG, "Remote Google login failed", e)
                         _loginStatus.value = loginError(

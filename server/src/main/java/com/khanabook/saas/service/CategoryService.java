@@ -8,5 +8,5 @@ public interface CategoryService {
 
 	PushSyncResponse pushData(Long tenantId, List<Category> payload);
 
-	List<Category> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId);
+	List<Category> pullData(Long tenantId, Long lastSyncTimestamp, String deviceId, boolean ignoreDeviceId);
 }

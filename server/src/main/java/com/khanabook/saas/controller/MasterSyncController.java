@@ -31,7 +31,8 @@ public class MasterSyncController {
 	@org.springframework.transaction.annotation.Transactional(readOnly = true)
 	@GetMapping("/pull")
 	public ResponseEntity<MasterSyncResponseDTO> pullMasterSync(@RequestParam Long lastSyncTimestamp,
-			@RequestParam String deviceId, @RequestParam(required = false) Long restaurantId) {
+			@RequestParam String deviceId, @RequestParam(required = false) Long restaurantId,
+			@RequestParam(defaultValue = "false") boolean ignoreDeviceId) {
 
 		Long tenantId = TenantContext.getCurrentTenant();
 		String role = TenantContext.getCurrentRole();
@@ -41,18 +42,19 @@ public class MasterSyncController {
 		}
 
 		long currentServerTime = System.currentTimeMillis();
+		boolean shouldIgnoreDeviceId = ignoreDeviceId || (lastSyncTimestamp == null || lastSyncTimestamp == 0);
 
 		MasterSyncResponseDTO response = new MasterSyncResponseDTO();
 		response.setServerTimestamp(currentServerTime);
-		response.setProfiles(SyncMapper.mapList(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId), RestaurantProfileDTO.class));
-		response.setUsers(SyncMapper.mapList(userService.pullData(tenantId, lastSyncTimestamp, deviceId), UserDTO.class));
-		response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId), CategoryDTO.class));
-		response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId), MenuItemDTO.class));
-		response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId), ItemVariantDTO.class));
-		response.setStockLogs(SyncMapper.mapList(stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId), StockLogDTO.class));
-		response.setBills(SyncMapper.mapList(billService.pullData(tenantId, lastSyncTimestamp, deviceId), BillDTO.class));
-		response.setBillItems(SyncMapper.mapList(billItemService.pullData(tenantId, lastSyncTimestamp, deviceId), BillItemDTO.class));
-		response.setBillPayments(SyncMapper.mapList(billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId), BillPaymentDTO.class));
+		response.setProfiles(SyncMapper.mapList(restaurantProfileService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), RestaurantProfileDTO.class));
+		response.setUsers(SyncMapper.mapList(userService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), UserDTO.class));
+		response.setCategories(SyncMapper.mapList(categoryService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), CategoryDTO.class));
+		response.setMenuItems(SyncMapper.mapList(menuItemService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), MenuItemDTO.class));
+		response.setItemVariants(SyncMapper.mapList(itemVariantService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), ItemVariantDTO.class));
+		response.setStockLogs(SyncMapper.mapList(stockLogService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), StockLogDTO.class));
+		response.setBills(SyncMapper.mapList(billService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), BillDTO.class));
+		response.setBillItems(SyncMapper.mapList(billItemService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), BillItemDTO.class));
+		response.setBillPayments(SyncMapper.mapList(billPaymentService.pullData(tenantId, lastSyncTimestamp, deviceId, shouldIgnoreDeviceId), BillPaymentDTO.class));
 
 		int profilesCount = response.getProfiles() == null ? 0 : response.getProfiles().size();
 		int usersCount = response.getUsers() == null ? 0 : response.getUsers().size();

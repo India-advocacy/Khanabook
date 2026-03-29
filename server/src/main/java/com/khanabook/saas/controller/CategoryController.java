@@ -30,7 +30,8 @@ public class CategoryController {
 	}
 
 	@GetMapping("/pull")
-	public ResponseEntity<List<CategoryDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId) {
-		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId), CategoryDTO.class));
+	public ResponseEntity<List<CategoryDTO>> pull(@RequestParam Long lastSyncTimestamp, @RequestParam String deviceId,
+			@RequestParam(defaultValue = "false") boolean ignoreDeviceId) {
+		return ResponseEntity.ok(SyncMapper.mapList(service.pullData(TenantContext.getCurrentTenant(), lastSyncTimestamp, deviceId, ignoreDeviceId), CategoryDTO.class));
 	}
 }

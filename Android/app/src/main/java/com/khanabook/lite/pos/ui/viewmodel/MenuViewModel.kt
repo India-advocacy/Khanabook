@@ -438,6 +438,39 @@ class MenuViewModel @Inject constructor(
         )
     }
 
+    fun checkForConflicts(defaultCategoryId: Long?, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            val selectedDrafts = _ocrImportUiState.value.drafts.filter { it.isSelected }
+            if (selectedDrafts.isEmpty()) {
+                withContext(kotlinx.coroutines.Dispatchers.Main) { onResult(false) }
+                return@launch
+            }
+
+            val groupedByDetected = selectedDrafts.groupBy { it.categoryName }
+            var hasConflict = false
+
+            for ((detectedName, items) in groupedByDetected) {
+                val targetCategoryId: Long? = if (detectedName != null) {
+                    categoryRepository.getAllCategoriesFlow().first()
+                        .find { it.name.equals(detectedName, ignoreCase = true) }?.id
+                } else {
+                    defaultCategoryId
+                }
+
+                if (targetCategoryId != null) {
+                    val existingNames = menuRepository.getItemsByCategoryOnce(targetCategoryId)
+                        .map { it.name.lowercase() }.toHashSet()
+                    
+                    if (items.any { it.name.lowercase() in existingNames }) {
+                        hasConflict = true
+                        break
+                    }
+                }
+            }
+            withContext(kotlinx.coroutines.Dispatchers.Main) { onResult(hasConflict) }
+        }
+    }
+
     fun saveImportedMenu(defaultCategoryId: Long?, overwrite: Boolean = false) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
             _ocrImportUiState.update { it.copy(isProcessing = true, processingLabel = "Saving menu...") }
