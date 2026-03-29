@@ -236,7 +236,9 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.menuItems.isNotEmpty()) {
             menuDao.insertSyncedMenuItems(
                 masterData.menuItems.map { remoteMenuItem ->
-                    val localCategoryId = remoteMenuItem.serverCategoryId?.let { categoryIdMap[it] } ?: remoteMenuItem.categoryId
+                    val localCategoryId = (remoteMenuItem.serverCategoryId ?: remoteMenuItem.categoryId).let { id ->
+                        categoryIdMap[id] ?: id
+                    }
 
                     MenuItemEntity(
                         id = remoteMenuItem.id,
@@ -267,7 +269,9 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.itemVariants.isNotEmpty()) {
             menuDao.insertSyncedItemVariants(
                 masterData.itemVariants.map { remoteVariant ->
-                    val localMenuItemId = remoteVariant.serverMenuItemId?.let { menuItemIdMap[it] } ?: remoteVariant.menuItemId
+                    val localMenuItemId = (remoteVariant.serverMenuItemId ?: remoteVariant.menuItemId).let { id ->
+                        menuItemIdMap[id] ?: id
+                    }
 
                     ItemVariantEntity(
                         id = remoteVariant.id,
@@ -296,8 +300,12 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.stockLogs.isNotEmpty()) {
             inventoryDao.insertSyncedStockLogs(
                 masterData.stockLogs.map { remoteStockLog ->
-                    val localMenuItemId = remoteStockLog.serverMenuItemId?.let { menuItemIdMap[it] } ?: remoteStockLog.menuItemId
-                    val localVariantId = remoteStockLog.serverVariantId?.let { variantIdMap[it] } ?: remoteStockLog.variantId
+                    val localMenuItemId = (remoteStockLog.serverMenuItemId ?: remoteStockLog.menuItemId).let { id ->
+                        menuItemIdMap[id] ?: id
+                    }
+                    val localVariantId = (remoteStockLog.serverVariantId ?: remoteStockLog.variantId)?.let { id ->
+                        variantIdMap[id] ?: id
+                    }
 
                     StockLogEntity(
                         id = 0, // Auto-generate
@@ -363,9 +371,15 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.billItems.isNotEmpty()) {
             billDao.insertSyncedBillItems(
                 masterData.billItems.map { remoteBillItem ->
-                    val localBillId = remoteBillItem.serverBillId?.let { billServerIdMap[it] } ?: remoteBillItem.billId
-                    val localMenuItemId = remoteBillItem.serverMenuItemId?.let { menuItemIdMap[it] } ?: remoteBillItem.menuItemId
-                    val localVariantId = remoteBillItem.serverVariantId?.let { variantIdMap[it] } ?: remoteBillItem.variantId
+                    val localBillId = (remoteBillItem.serverBillId ?: remoteBillItem.billId).let { id ->
+                        billServerIdMap[id] ?: id
+                    }
+                    val localMenuItemId = (remoteBillItem.serverMenuItemId ?: remoteBillItem.menuItemId)?.let { id ->
+                        menuItemIdMap[id] ?: id
+                    }
+                    val localVariantId = (remoteBillItem.serverVariantId ?: remoteBillItem.variantId)?.let { id ->
+                        variantIdMap[id] ?: id
+                    }
                     
                     BillItemEntity(
                         id = 0, // Let SQLite generate local ID
@@ -396,8 +410,9 @@ class MasterSyncProcessor @Inject constructor(
         if (masterData.billPayments.isNotEmpty()) {
             billDao.insertSyncedBillPayments(
                 masterData.billPayments.map { remoteBillPayment ->
-                    // Use server_bill_id to find local bill_id if possible, otherwise fallback to local billId
-                    val localBillId = remoteBillPayment.serverBillId?.let { billServerIdMap[it] } ?: remoteBillPayment.billId
+                    val localBillId = (remoteBillPayment.serverBillId ?: remoteBillPayment.billId).let { id ->
+                        billServerIdMap[id] ?: id
+                    }
 
                     BillPaymentEntity(
                         id = 0, // Auto-generate
