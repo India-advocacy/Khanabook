@@ -300,7 +300,7 @@ class MasterSyncProcessor @Inject constructor(
                     val localVariantId = remoteStockLog.serverVariantId?.let { variantIdMap[it] } ?: remoteStockLog.variantId
 
                     StockLogEntity(
-                        id = remoteStockLog.id,
+                        id = 0, // Auto-generate
                         menuItemId = localMenuItemId,
                         variantId = localVariantId,
                         delta = remoteStockLog.delta,
@@ -312,6 +312,8 @@ class MasterSyncProcessor @Inject constructor(
                         updatedAt = remoteStockLog.updatedAt,
                         isDeleted = remoteStockLog.isDeleted ?: false,
                         serverId = remoteStockLog.serverId,
+                        serverMenuItemId = remoteStockLog.serverMenuItemId,
+                        serverVariantId = remoteStockLog.serverVariantId,
                         serverUpdatedAt = remoteStockLog.serverUpdatedAt ?: 0L
                     )
                 }
@@ -366,7 +368,7 @@ class MasterSyncProcessor @Inject constructor(
                     val localVariantId = remoteBillItem.serverVariantId?.let { variantIdMap[it] } ?: remoteBillItem.variantId
                     
                     BillItemEntity(
-                        id = remoteBillItem.id,
+                        id = 0, // Let SQLite generate local ID
                         billId = localBillId,
                         menuItemId = localMenuItemId,
                         itemName = remoteBillItem.itemName.orFallback("Unnamed Item"),
@@ -383,6 +385,8 @@ class MasterSyncProcessor @Inject constructor(
                         isDeleted = remoteBillItem.isDeleted ?: false,
                         serverId = remoteBillItem.serverId,
                         serverBillId = remoteBillItem.serverBillId,
+                        serverMenuItemId = remoteBillItem.serverMenuItemId,
+                        serverVariantId = remoteBillItem.serverVariantId,
                         serverUpdatedAt = remoteBillItem.serverUpdatedAt ?: 0L
                     )
                 }
@@ -396,7 +400,7 @@ class MasterSyncProcessor @Inject constructor(
                     val localBillId = remoteBillPayment.serverBillId?.let { billServerIdMap[it] } ?: remoteBillPayment.billId
 
                     BillPaymentEntity(
-                        id = remoteBillPayment.id,
+                        id = 0, // Auto-generate
                         billId = localBillId,
                         paymentMode = remoteBillPayment.paymentMode.orFallback("cash"),
                         amount = remoteBillPayment.amount.toSafeAmount(),
