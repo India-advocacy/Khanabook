@@ -1,5 +1,7 @@
 package com.khanabook.saas.sync.service;
 
+import com.khanabook.saas.entity.*;
+import com.khanabook.saas.repository.*;
 import com.khanabook.saas.debug.DebugNDJSONLogger;
 import com.khanabook.saas.entity.AuthProvider;
 import com.khanabook.saas.entity.RestaurantProfile;
@@ -9,6 +11,7 @@ import com.khanabook.saas.sync.entity.BaseSyncEntity;
 import com.khanabook.saas.sync.repository.SyncRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +25,11 @@ import java.util.stream.Collectors;
 @Service
 public class GenericSyncService {
 	private static final Logger log = LoggerFactory.getLogger(GenericSyncService.class);
+
+	@Autowired private BillRepository billRepository;
+	@Autowired private MenuItemRepository menuItemRepository;
+	@Autowired private ItemVariantRepository itemVariantRepository;
+	@Autowired private CategoryRepository categoryRepository;
 
 	@Transactional
 	public <T extends BaseSyncEntity> PushSyncResponse handlePushSync(Long tenantId, List<T> payload,
@@ -232,6 +240,10 @@ public class GenericSyncService {
 									}
 								}
 							}
+							
+							// Relational ID Resolution for Updates
+							resolveRelationalIds(incomingRecord, targetTenantId, deviceId);
+
 							incomingRecord.setId(existingRecord.getId());
 
 							T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
@@ -243,6 +255,8 @@ public class GenericSyncService {
 							successfulLocalIds.add(incomingRecord.getLocalId());
 						}
 					} else {
+						// Relational ID Resolution for New Records
+						resolveRelationalIds(incomingRecord, targetTenantId, deviceId);
 
 						T staged = recordsToSaveMap.get(incomingRecord.getLocalId());
 						if (staged == null || incomingRecord.getUpdatedAt() > staged.getUpdatedAt()) {
@@ -290,5 +304,46 @@ public class GenericSyncService {
 		);
 
 		return new PushSyncResponse(successfulLocalIds, failedLocalIds);
+	}
+
+	private void resolveRelationalIds(BaseSyncEntity record, Long tenantId, String deviceId) {
+		if (record instanceof MenuItem menuItem) {
+			if (menuItem.getCategoryId() != null && menuItem.getServerCategoryId() == null) {
+				categoryRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, menuItem.getCategoryId())
+						.ifPresent(cat -> menuItem.setServerCategoryId(cat.getId()));
+			}
+		} else if (record instanceof ItemVariant variant) {
+			if (variant.getMenuItemId() != null && variant.getServerMenuItemId() == null) {
+				menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, variant.getMenuItemId())
+						.ifPresent(item -> variant.setServerMenuItemId(item.getId()));
+			}
+		} else if (record instanceof BillItem billItem) {
+			if (billItem.getBillId() != null && billItem.getServerBillId() == null) {
+				billRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getBillId())
+						.ifPresent(bill -> billItem.setServerBillId(bill.getId()));
+			}
+			if (billItem.getMenuItemId() != null && billItem.getServerMenuItemId() == null) {
+				menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getMenuItemId())
+						.ifPresent(item -> billItem.setServerMenuItemId(item.getId()));
+			}
+			if (billItem.getVariantId() != null && billItem.getServerVariantId() == null) {
+				itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, billItem.getVariantId())
+						.ifPresent(v -> billItem.setServerVariantId(v.getId()));
+			}
+		} else if (record instanceof BillPayment payment) {
+			if (payment.getBillId() != null && payment.getServerBillId() == null) {
+				billRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, payment.getBillId())
+						.ifPresent(bill -> payment.setServerBillId(bill.getId()));
+			}
+		} else if (record instanceof StockLog log) {
+			if (log.getMenuItemId() != null && log.getServerMenuItemId() == null) {
+				menuItemRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, log.getMenuItemId())
+						.ifPresent(item -> log.setServerMenuItemId(item.getId()));
+			}
+			if (log.getVariantId() != null && log.getServerVariantId() == null) {
+				itemVariantRepository.findByRestaurantIdAndDeviceIdAndLocalId(tenantId, deviceId, log.getVariantId())
+						.ifPresent(v -> log.setServerVariantId(v.getId()));
+			}
+		}
 	}
 }

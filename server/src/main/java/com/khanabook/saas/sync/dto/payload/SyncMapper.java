@@ -17,10 +17,11 @@ public class SyncMapper {
             T target = targetClass.getDeclaredConstructor().newInstance();
             BeanUtils.copyProperties(source, target);
             
-            // Manual overrides for core sync fields to ensure they map correctly
+            // Core sync fields mapping
             if (target instanceof CategoryDTO) {
-                ((CategoryDTO) target).setId(source.getId());
-                ((CategoryDTO) target).setLocalId(source.getLocalId());
+                CategoryDTO dto = (CategoryDTO) target;
+                dto.setId(source.getId());
+                dto.setLocalId(source.getLocalId());
             } else if (target instanceof MenuItemDTO) {
                 MenuItemDTO dto = (MenuItemDTO) target;
                 MenuItem entity = (MenuItem) source;
@@ -36,8 +37,9 @@ public class SyncMapper {
                 dto.setMenuItemId(entity.getMenuItemId());
                 dto.setServerMenuItemId(entity.getServerMenuItemId());
             } else if (target instanceof BillDTO) {
-                ((BillDTO) target).setId(source.getId());
-                ((BillDTO) target).setLocalId(source.getLocalId());
+                BillDTO dto = (BillDTO) target;
+                dto.setId(source.getId());
+                dto.setLocalId(source.getLocalId());
             } else if (target instanceof BillItemDTO) {
                 BillItemDTO dto = (BillItemDTO) target;
                 BillItem entity = (BillItem) source;
@@ -66,11 +68,13 @@ public class SyncMapper {
                 dto.setServerMenuItemId(entity.getServerMenuItemId());
                 dto.setServerVariantId(entity.getServerVariantId());
             } else if (target instanceof RestaurantProfileDTO) {
-                ((RestaurantProfileDTO) target).setId(source.getId());
-                ((RestaurantProfileDTO) target).setLocalId(source.getLocalId());
+                RestaurantProfileDTO dto = (RestaurantProfileDTO) target;
+                dto.setId(source.getId());
+                dto.setLocalId(source.getLocalId());
             } else if (target instanceof UserDTO) {
-                ((UserDTO) target).setId(source.getId());
-                ((UserDTO) target).setLocalId(source.getLocalId());
+                UserDTO dto = (UserDTO) target;
+                dto.setId(source.getId());
+                dto.setLocalId(source.getLocalId());
             }
 
             return target;
@@ -95,8 +99,9 @@ public class SyncMapper {
 
             // Manual overrides for core sync fields
             if (source instanceof CategoryDTO) {
-                target.setId(((CategoryDTO) source).getId());
-                target.setLocalId(((CategoryDTO) source).getLocalId());
+                CategoryDTO dto = (CategoryDTO) source;
+                target.setId(dto.getId());
+                target.setLocalId(dto.getLocalId());
             } else if (source instanceof MenuItemDTO) {
                 MenuItem entity = (MenuItem) target;
                 MenuItemDTO dto = (MenuItemDTO) source;
@@ -112,8 +117,9 @@ public class SyncMapper {
                 entity.setMenuItemId(dto.getMenuItemId());
                 entity.setServerMenuItemId(dto.getServerMenuItemId());
             } else if (source instanceof BillDTO) {
-                target.setId(((BillDTO) source).getId());
-                target.setLocalId(((BillDTO) source).getLocalId());
+                BillDTO dto = (BillDTO) source;
+                target.setId(dto.getId());
+                target.setLocalId(dto.getLocalId());
             } else if (source instanceof BillItemDTO) {
                 BillItem entity = (BillItem) target;
                 BillItemDTO dto = (BillItemDTO) source;
@@ -142,11 +148,13 @@ public class SyncMapper {
                 entity.setServerMenuItemId(dto.getServerMenuItemId());
                 entity.setServerVariantId(dto.getServerVariantId());
             } else if (source instanceof RestaurantProfileDTO) {
-                target.setId(((RestaurantProfileDTO) source).getId());
-                target.setLocalId(((RestaurantProfileDTO) source).getLocalId());
+                RestaurantProfileDTO dto = (RestaurantProfileDTO) source;
+                target.setId(dto.getId());
+                target.setLocalId(dto.getLocalId());
             } else if (source instanceof UserDTO) {
-                target.setId(((UserDTO) source).getId());
-                target.setLocalId(((UserDTO) source).getLocalId());
+                UserDTO dto = (UserDTO) source;
+                target.setId(dto.getId());
+                target.setLocalId(dto.getLocalId());
             }
 
             return target;
