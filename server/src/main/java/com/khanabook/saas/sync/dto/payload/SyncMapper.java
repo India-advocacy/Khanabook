@@ -17,7 +17,7 @@ public class SyncMapper {
             T target = targetClass.getDeclaredConstructor().newInstance();
             BeanUtils.copyProperties(source, target);
             
-            // Core sync fields mapping: Ensure serverId and localId are mapped correctly
+            // Explicitly map all core sync fields and relational IDs
             if (target instanceof CategoryDTO dto) {
                 dto.setId(source.getId());
                 dto.setLocalId(source.getLocalId());
@@ -46,10 +46,10 @@ public class SyncMapper {
                 dto.setLocalId(entity.getLocalId());
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setBillId(entity.getBillId());
-                dto.setMenuItemId(entity.getMenuItemId());
-                dto.setVariantId(entity.getVariantId());
                 dto.setServerBillId(entity.getServerBillId());
+                dto.setMenuItemId(entity.getMenuItemId());
                 dto.setServerMenuItemId(entity.getServerMenuItemId());
+                dto.setVariantId(entity.getVariantId());
                 dto.setServerVariantId(entity.getServerVariantId());
             } else if (target instanceof BillPaymentDTO dto) {
                 BillPayment entity = (BillPayment) source;
@@ -64,8 +64,8 @@ public class SyncMapper {
                 dto.setLocalId(entity.getLocalId());
                 dto.setServerUpdatedAt(entity.getServerUpdatedAt());
                 dto.setMenuItemId(entity.getMenuItemId());
-                dto.setVariantId(entity.getVariantId());
                 dto.setServerMenuItemId(entity.getServerMenuItemId());
+                dto.setVariantId(entity.getVariantId());
                 dto.setServerVariantId(entity.getServerVariantId());
             } else if (target instanceof RestaurantProfileDTO dto) {
                 dto.setId(source.getId());
@@ -97,7 +97,7 @@ public class SyncMapper {
             T target = targetClass.getDeclaredConstructor().newInstance();
             BeanUtils.copyProperties(source, target);
 
-            // Manual overrides for core sync fields: Ensure localId and serverId (from id) are mapped correctly
+            // Explicitly map all core sync fields and relational IDs back to entity
             if (source instanceof CategoryDTO dto) {
                 target.setId(dto.getId());
                 target.setLocalId(dto.getLocalId());
@@ -126,10 +126,10 @@ public class SyncMapper {
                 entity.setLocalId(dto.getLocalId());
                 entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setBillId(dto.getBillId());
-                entity.setMenuItemId(dto.getMenuItemId());
-                entity.setVariantId(dto.getVariantId());
                 entity.setServerBillId(dto.getServerBillId());
+                entity.setMenuItemId(dto.getMenuItemId());
                 entity.setServerMenuItemId(dto.getServerMenuItemId());
+                entity.setVariantId(dto.getVariantId());
                 entity.setServerVariantId(dto.getServerVariantId());
             } else if (source instanceof BillPaymentDTO dto) {
                 BillPayment entity = (BillPayment) target;
@@ -144,8 +144,8 @@ public class SyncMapper {
                 entity.setLocalId(dto.getLocalId());
                 entity.setServerUpdatedAt(dto.getServerUpdatedAt());
                 entity.setMenuItemId(dto.getMenuItemId());
-                entity.setVariantId(dto.getVariantId());
                 entity.setServerMenuItemId(dto.getServerMenuItemId());
+                entity.setVariantId(dto.getVariantId());
                 entity.setServerVariantId(dto.getServerVariantId());
             } else if (source instanceof RestaurantProfileDTO dto) {
                 target.setId(dto.getId());
